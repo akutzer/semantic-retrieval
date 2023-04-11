@@ -27,6 +27,7 @@ PyTorch (DeepLearning Framework): https://pytorch.org/
 |-------------------------------------------|--------------------------------------|---------------------------------------------|
 | [1706.03762.pdf](papers/1706.03762.pdf)   | Vanilla Transformer Paper            | Introduction to Transformer <br> *(alternativly: https://nlp.seas.harvard.edu/annotated-transformer/  describes the paper more detailed and with PyTorch code)*  |
 | [1810.04805.pdf](papers/1810.04805.pdf)   | BERT Paper                           | useful Base-Model; paper also describes methodes to mark the answer to the given question in the given paragraph (see 4.2 SQuAD v1.1 and 4.3 SQuAD v2.0) |
+| [2004.12832.pdf](papers/2004.12832.pdf)   | ColBERT Paper                           | BERT based model for efficient passage search; focuses on computational efficiency; more tba|
 | ...                                       |  ...                                 |...                                          |
 
 
