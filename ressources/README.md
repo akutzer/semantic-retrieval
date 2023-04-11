@@ -12,18 +12,21 @@ Paper der größten Information Retrieval Konferenz (SIGIR) als Inspiration: htt
 
 ### Libs
 
-Potentiell nützliche Software:
+Potentiell nützliche Software: \
 Natural Language Toolkit: https://www.nltk.org \
 Gensim - Word Embeddings (Semantic Vector Representations of Words): https://radimrehurek.com/gensim/ \
 Pipelines für NLP (NER or POS Tagging, Parsing etc.): https://spacy.io \
 Simple Transformers: https://simpletransformers.ai \
 Transformers & Tokenizers: https://huggingface.co/docs \
-PyTorch: https://pytorch.org/ 
+PyTorch (DeepLearning Framework): https://pytorch.org/ 
 
 
 ### Reference table for papers
 
-| file name                                 | description                                           |
-|-------------------------------------------|-------------------------------------------------------|
-| [1706.03762.pdf](papers/1706.03762.pdf)   | Vanilla Transformer Paper                             |
-| ...                                       |  ...                                                  |
+| file name                                 | description                          | useful for/ used in                         |
+|-------------------------------------------|--------------------------------------|---------------------------------------------|
+| [1706.03762.pdf](papers/1706.03762.pdf)   | Vanilla Transformer Paper            | Introduction to Transformer <br> *(alternativly: https://nlp.seas.harvard.edu/annotated-transformer/  describes the paper more detailed and with PyTorch code)*  |
+| [1810.04805.pdf](papers/1810.04805.pdf)   | BERT Paper                           | useful Base-Model; paper also describes methodes to mark the answer to the given question in the given paragraph (see 4.2 SQuAD v1.1 and 4.3 SQuAD v2.0) |
+| ...                                       |  ...                                 |...                                          |
+
+
