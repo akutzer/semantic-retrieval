@@ -27,7 +27,8 @@ PyTorch (DeepLearning Framework): https://pytorch.org/
 |-------------------------------------------|--------------------------------------|---------------------------------------------|
 | [1706.03762.pdf](papers/1706.03762.pdf)   | Vanilla Transformer Paper            | Introduction to Transformer <br> *(alternativly: https://nlp.seas.harvard.edu/annotated-transformer/  describes the paper more detailed and with PyTorch code)*  |
 | [1810.04805.pdf](papers/1810.04805.pdf)   | BERT Paper                           | useful Base-Model; paper also describes methodes to mark the answer to the given question in the given paragraph (see 4.2 SQuAD v1.1 and 4.3 SQuAD v2.0) |
-| [2004.12832.pdf](papers/2004.12832.pdf)   | ColBERT Paper                           | BERT based model for efficient passage search; focuses on computational efficiency; more tba|
+| [2004.12832.pdf](papers/2004.12832.pdf)   | ColBERT Paper                           | BERT based model for efficient passage search; focuses on computational efficiency; describes a re-ranking and a full retrieval approach|
+| [1903.06902v3.pdf](papers/1903.06902v3.pdf)   | Deep Look into Neural Ranking Models (NRMs) for IR                            | Describes tasks & architecture types of NRMs as well as formalizing the learning problem; tba; doesn't include (more modern) Transformer-based architecures, but still a very good first overview|
 | ...                                       |  ...                                 |...                                          |
 
 
