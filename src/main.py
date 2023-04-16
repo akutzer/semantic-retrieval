@@ -5,7 +5,7 @@
 #sequence = "In a hole in the ground there lived a hobbit."
 #print(tokenizer(sequence))
 
-
+import pandas as pd
 from transformers import AutoModelForQuestionAnswering, AutoTokenizer, pipeline
 
 model_name = "deepset/tinyroberta-squad2"
@@ -14,8 +14,9 @@ model_name = "deepset/tinyroberta-squad2"
 nlp = pipeline('question-answering', model=model_name, tokenizer=model_name)
 
 
-question = 'Who is the bad guy?'
-QA_inputs = [
+
+question = 'When was Harry born?'
+'''QA_inputs = [
     {    'question': question,
     'context': 'Harry James[58] Potter (b. 31 July 1980)[1] was an English half-blood[2] wizard, and one of the most famous wizards of modern times. '
                'The only child and son of James and Lily Potter (née Evans), Harry\'s birth was overshadowed by a prophecy, naming either himself or Neville Longbottom as the'
@@ -67,7 +68,29 @@ for i in range (0, len(QA_inputs)):
 
 print("all answers per paragraph: ", res)
 print("best result: ", best)
-print("in paragraph:", paragraph_index+1)
+print("in paragraph:", paragraph_index+1)'''
+
+#whole harry wiki
+df = pd.read_pickle("C:/Daten/Florian/Dev/Python/information_retrieval1/res/harrypotter_pages_current.pickle")
+
+question = 'what was owned by an old witch?'
+res = []
+best = {'score': -1, 'start': 0, 'end': 0, 'answer': ''}
+number_of_paragraphs_to_search = 100
+for i in range(0, 100):
+    dict = {'question': question,
+     'context': df["text"].iloc[i]}
+    answer = nlp(dict)
+    if answer['score'] > best['score']:
+        best = answer
+        paragraph_index = i
+
+
+print("all answers per paragraph: ", res)
+print("best result: ", best)
+print("paragraph_index:", paragraph_index)
+print("paragraph:", df["text"].iloc[paragraph_index])
+
 
 
 # b) Load model & tokenizer
