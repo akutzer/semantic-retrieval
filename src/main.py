@@ -15,8 +15,8 @@ nlp = pipeline('question-answering', model=model_name, tokenizer=model_name)
 
 
 
-question = 'When was Harry born?'
-'''QA_inputs = [
+'''question = 'When was Harry born?'
+QA_inputs = [
     {    'question': question,
     'context': 'Harry James[58] Potter (b. 31 July 1980)[1] was an English half-blood[2] wizard, and one of the most famous wizards of modern times. '
                'The only child and son of James and Lily Potter (née Evans), Harry\'s birth was overshadowed by a prophecy, naming either himself or Neville Longbottom as the'
@@ -73,17 +73,25 @@ print("in paragraph:", paragraph_index+1)'''
 #whole harry wiki
 df = pd.read_pickle("C:/Daten/Florian/Dev/Python/information_retrieval1/res/harrypotter_pages_current.pickle")
 
-question = 'what was owned by an old witch?'
+question = 'What is Harry´s favourite sport?'
 res = []
 best = {'score': -1, 'start': 0, 'end': 0, 'answer': ''}
-number_of_paragraphs_to_search = 100
-for i in range(0, 100):
+old_best = {'score': -1, 'start': 0, 'end': 0, 'answer': ''}
+number_of_paragraphs_to_search = 17000
+print_result_every_n_parapgrabhs = 50
+for i in range(0, number_of_paragraphs_to_search):
     dict = {'question': question,
      'context': df["text"].iloc[i]}
     answer = nlp(dict)
     if answer['score'] > best['score']:
         best = answer
         paragraph_index = i
+    if i % print_result_every_n_parapgrabhs== 0 and best != old_best:
+        old_best = best
+        print("best result (inprogress): ", best)
+        print("paragraph_index (inprogress):", paragraph_index)
+        #print("paragraph (inprogress):", df["text"].iloc[paragraph_index])
+        print("")
 
 
 print("all answers per paragraph: ", res)
