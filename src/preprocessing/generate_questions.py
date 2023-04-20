@@ -83,7 +83,7 @@ def main():
 
     for filename in os.listdir(wiki_dumps_path):
         file_path = os.path.join(wiki_dumps_path, filename)
-        if not os.path.isfile(file_path):
+        if not os.path.isfile(file_path) or not file_path.endswith(".json"):
             continue
         
         with open(file_path, mode="r") as f:
@@ -99,7 +99,6 @@ def main():
         print(f"Writing {file_name}")
         with open(file_path, mode="w") as f:
             json.dump(data[:PAGES], f)
-
 
 
 if __name__ == "__main__":
