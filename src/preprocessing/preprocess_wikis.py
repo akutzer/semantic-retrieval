@@ -29,6 +29,9 @@ if __name__ == "__main__":
 
 
     for wiki_name, dump_url in WIKI_DUMPS_URLS.items():
+        print("#"*50)
+        print(f"Starting to generate {wiki_name} wiki.")
+        print("#"*50, end="\n\n")
         # download the data dump into the data/preprocessing/dumps directory
         dump_file_name = dump_url.split("/")[-1]
         path_to_dump_archive = os.path.join(dump_path, dump_file_name)
@@ -36,16 +39,19 @@ if __name__ == "__main__":
 
         # download and extract the dump, if it doesn't exist or a re-download is requested
         if not os.path.isfile(path_to_dump_archive) or REDOWNLOAD:
+            print(f"Downloading {wiki_name} from {dump_url}.")
             urllib.request.urlretrieve(dump_url, filename=path_to_dump_archive, )
 
             # convert relative to absolute paths, because py7zr doesn't work otherwise
             abs_path_to_dump_archive = os.path.abspath(path_to_dump_archive)
             abs_dump_path = os.path.abspath(dump_path)
             # unpack the data dump
+            print(f"Unpacking {path_to_dump_archive} into {dump_path}.")
             shutil.unpack_archive(filename=abs_path_to_dump_archive, extract_dir=abs_dump_path)
 
         # use wikiextractor to extract and clean the data dumps
         # this created many json like files in the extraction_path/AA directory
+        print(f"Beginning to clean the {wiki_name} wiki.")
         cmd_str = f"python3 -m wikiextractor.WikiExtractor --json -o {extraction_path} {path_to_dump_file}"
         subprocess.run(cmd_str, shell=True)
 
@@ -60,10 +66,11 @@ if __name__ == "__main__":
         # drop wiki pages which are to short
         df = df[df.text.map(len) >= 50]
         # print(df.text.map(len).describe())
+        print(f"{df.shape[0]} pages remain after cleaning!")
 
         # save the dataframe to a json file
-        print(f"{df.shape[0]} pages remain after cleaning!")
         wiki_json_file = os.path.join(preprocessing_path, wiki_name) + ".json"
+        print(f"Saving {wiki_name} wiki to {wiki_json_file}.", end="\n\n\n")
         df.to_json(path_or_buf=wiki_json_file, orient="records", indent=1)
 
         # delete the tmp folder filled by temporary files from the wikiextractor

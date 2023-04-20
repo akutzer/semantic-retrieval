@@ -2,6 +2,7 @@ import os
 import json
 import re
 from tqdm import tqdm
+import torch
 from transformers import T5Config, T5ForConditionalGeneration, T5Tokenizer
 
 
@@ -44,20 +45,22 @@ def split_page_in_paragraphs(wiki_page, heading_max_length=40):
     return clean_parags
 
 
-def generate_questions(parags, batch_size=16, **generator_args):
+def generate_questions(parags, batch_size=16, device="cpu", **generator_args):
     question_answer = []
 
     model_name = "allenai/t5-small-squad2-question-generation"
     tokenizer = T5Tokenizer.from_pretrained(model_name)
     model = T5ForConditionalGeneration.from_pretrained(model_name)
-    model.to("cuda:0")
+    model.to(device)
 
+    # TODO: choose batch_size depending on the sequence length to prevent
+    # out-memory-errors when processing long sequences
     for i in range(0, len(parags), batch_size):
         parags_batch = parags[i: i+batch_size]
         input_ids = tokenizer.batch_encode_plus(parags_batch, return_tensors="pt", padding=True)
         
         for key, tensor in input_ids.items():
-            input_ids[key] = tensor.to("cuda:0")
+            input_ids[key] = tensor.to(device)
 
         out = model.generate(**input_ids, **generator_args)
         questions = tokenizer.batch_decode(out, skip_special_tokens=True)
@@ -75,8 +78,8 @@ def main():
     dataset_path = "../../data/fandom-qa/"
     os.makedirs(dataset_path, exist_ok=True)
 
-    PAGES = 1_000
-
+    PAGES = 100
+    DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     for filename in os.listdir(wiki_dumps_path):
         file_path = os.path.join(wiki_dumps_path, filename)
@@ -88,7 +91,7 @@ def main():
         
         for i, wiki_page in enumerate(tqdm(data[:PAGES])):
             wiki_page["text"] = split_page_in_paragraphs(wiki_page["text"])
-            wiki_page["text"] = generate_questions(wiki_page["text"], batch_size=192, max_new_tokens=50)
+            wiki_page["text"] = generate_questions(wiki_page["text"], batch_size=192, device=DEVICE, max_new_tokens=50)
 
         
         file_name = os.path.splitext(os.path.basename(file_path))[0] + "_qa.json"
