@@ -49,6 +49,7 @@ which aren't answered in the paragraph
 - BERT paper describes a possible baseline, where, for a given question and wikipedia paragraph, the answer text span is predicted (on the SQuAD dataset); alternativly one can also
 just calculate a similarity score for the question and paragraph
 - the model could either predict the text span to the answer or just a similarity score (both ways would be interesting)
+- re-ranking or full retrieval?
 - other exotic approaches can be interesting (probably not big problem if it doesn't outperform baseline) or a performance oriented approach ("model performance"/FLOPs, "model performance"/inference time [µs])
 - embedding for the input data, either a learnable matrix or what ever
 - responsible: ...

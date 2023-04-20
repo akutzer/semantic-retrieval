@@ -1,0 +1,5 @@
+wikiextractor
+py7zr
+pandas
+tqdm
+transformers
