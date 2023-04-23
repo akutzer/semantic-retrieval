@@ -1,5 +1,8 @@
 wikiextractor
 py7zr
+numpy
 pandas
 tqdm
 transformers
+nltk
+torch

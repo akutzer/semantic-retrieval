@@ -1,82 +1,129 @@
 import os
-import subprocess
-import urllib.request
-import shutil
-from py7zr import unpack_7zarchive
-import pandas as pd
+import re
+import json
+
+import nltk
+nltk.download('punkt')
 
 
 
-# enables shutil to unpack 7zip files
-shutil.register_unpack_format('7zip', ['.7z'], unpack_7zarchive)
-REDOWNLOAD = True
+
+def clean_wiki(wiki, min_length=40, page_regex=None, line_regex=None):
+    # removes wiki pages which are only 50 symbols long or which start with an URL
+    # important: this is an inplace operation
+    raw_wiki[:] = [wiki_page for wiki_page in raw_wiki if filter_wiki(wiki_page, min_length=50, regex=page_regex)]
+
+    for i, wiki in enumerate(raw_wiki):
+        wiki_text = wiki["text"]
+        parags = split_page_in_paragraphs(wiki_text, heading_max_length=40, regex=line_regex)
+        wiki["text"] = parags
+        raw_wiki[i] = wiki
+
+    return raw_wiki
+
+
+def filter_wiki(wiki_page, min_length, regex=None):
+    wiki_text = wiki_page["text"].strip()
+    if len(wiki_text) < min_length:
+        return False
+    
+    if regex is not None and regex.match(wiki_text):
+        return False 
+    
+    return True
+
+
+def split_paragraphs(paragraph, max_words_per_line):
+    sentences = nltk.sent_tokenize(paragraph)
+    sub_paragraphs = []
+    current_sub_paragraph = ""
+    
+    for sentence in sentences:
+        sentence_length = len(sentence.split())
+        sub_paragraph_length = len(current_sub_paragraph.split())
+
+        if sub_paragraph_length + sentence_length <= max_words_per_line:
+            current_sub_paragraph += sentence + " "
+        else:
+            if 2*(max_words_per_line - sub_paragraph_length) >= sentence_length:
+                current_sub_paragraph += sentence
+                sub_paragraphs.append(current_sub_paragraph.strip())
+                current_sub_paragraph = ""
+            else:
+                if current_sub_paragraph.strip():
+                    sub_paragraphs.append(current_sub_paragraph.strip())
+                current_sub_paragraph = sentence + " "
+    
+    if current_sub_paragraph:
+        sub_paragraphs.append(current_sub_paragraph.strip())
+    
+    return sub_paragraphs
+
+
+def split_page_in_paragraphs(wiki_page, heading_max_length=40, max_words_per_line=120, regex=None):
+    parags = wiki_page.split("\n")
+
+    # first iteration: drop links and empty lines
+    clean_parags = []
+    for parag in parags:
+        parag = parag.strip()
+        if parag == "":
+            continue
+
+        if regex is not None and regex.match(parag):
+            continue
+        
+        clean_parags.append(parag)
+    
+
+    parags, clean_parags = clean_parags, clean_parags[:1]
+
+    # second iteration:
+    # (1) merge a line with it's previous line, in case the former was a heading
+    # (2) creates a new paragraph after `max_words_per_line`, but still allows to
+    #     finish the sentence, so lines can be longer
+    last_parag_heading = ""
+    for j, parag in enumerate(parags[1:], start=1):
+        prev_parag = parags[j - 1]
+        sub_parags = split_paragraphs(parag, max_words_per_line=100)
+        if len(prev_parag) <= heading_max_length:
+            # remove the last line, since it was a heading, and merge it with
+            # the current line
+            clean_parags.pop(-1)
+            clean_parags.extend([f"{prev_parag[:-1]}: {sub_parag}" for sub_parag in sub_parags])
+            last_parag_heading = prev_parag[:-1]
+        else:
+            if last_parag_heading:
+                clean_parags.extend([f"{last_parag_heading}: {sub_parag}" for sub_parag in sub_parags])
+            else:
+                clean_parags.extend(sub_parags)
+
+    return clean_parags
+
 
 
 if __name__ == "__main__":
 
-    # https://<wiki-name>.fandom.com/wiki/Special:Statistics
-    WIKI_DUMPS_URLS = {
-        "harry_potter": "https://s3.amazonaws.com/wikia_xml_dumps/h/ha/harrypotter_pages_current.xml.7z",
-        "elder_scrolls": "https://s3.amazonaws.com/wikia_xml_dumps/e/el/elderscrolls_pages_current.xml.7z"
-    }
+    WIKI_PATHS = "../../data/preprocessing/dumps"
+    LINE_ANTI_PATTERN = "^&lt;"
+    line_regex = re.compile(LINE_ANTI_PATTERN)
 
+    for file in os.listdir(WIKI_PATHS):
+        path_to_wiki = os.path.join(WIKI_PATHS, file)
 
-    # create new directories for the data dumps in the data/ directory
-    preprocessing_path = "../../data/preprocessing/"
-    dump_path = os.path.join(preprocessing_path, "dumps")
-    extraction_path = os.path.join(dump_path, "tmp")
-    os.makedirs(extraction_path, exist_ok=True)
+        # skip directories and non-json files
+        if not os.path.isfile(path_to_wiki) or not path_to_wiki.endswith("_raw.json"):
+            continue
 
-
-    for wiki_name, dump_url in WIKI_DUMPS_URLS.items():
         print("#"*50)
-        print(f"Starting to generate {wiki_name} wiki.")
-        print("#"*50, end="\n\n")
-        # download the data dump into the data/preprocessing/dumps directory
-        dump_file_name = dump_url.split("/")[-1]
-        path_to_dump_archive = os.path.join(dump_path, dump_file_name)
-        path_to_dump_file = os.path.splitext(path_to_dump_archive)[0]
+        print(f"Starting to clean {file.replace('_raw', '')} wiki.")
+        print("#"*50, end="\n\n")        
 
-        # download and extract the dump, if it doesn't exist or a re-download is requested
-        if not os.path.isfile(path_to_dump_archive) or REDOWNLOAD:
-            print(f"Downloading {wiki_name} from {dump_url}.")
-            urllib.request.urlretrieve(dump_url, filename=path_to_dump_archive, )
+        with open(path_to_wiki, mode="r", encoding="utf-8") as f:
+            raw_wiki = json.load(f)        
+        
+        cleaned_wiki = clean_wiki(raw_wiki, min_length=40, line_regex=line_regex)
 
-            # convert relative to absolute paths, because py7zr doesn't work otherwise
-            abs_path_to_dump_archive = os.path.abspath(path_to_dump_archive)
-            abs_dump_path = os.path.abspath(dump_path)
-            # unpack the data dump
-            print(f"Unpacking {path_to_dump_archive} into {dump_path}.")
-            shutil.unpack_archive(filename=abs_path_to_dump_archive, extract_dir=abs_dump_path)
-
-        # use wikiextractor to extract and clean the data dumps
-        # this created many json like files in the extraction_path/AA directory
-        print(f"Beginning to clean the {wiki_name} wiki.")
-        cmd_str = f"python3 -m wikiextractor.WikiExtractor --json -o {extraction_path} {path_to_dump_file}"
-        subprocess.run(cmd_str, shell=True)
-
-        # create dataframe and add the content of all data files to it
-        df = pd.DataFrame()
-        for root, dirs, files in os.walk(extraction_path):
-            for f in files:
-                path_f = os.path.join(root, f)
-                df = pd.concat([df, pd.read_json(path_f, lines=True)], ignore_index=True, sort=False)
-        print(f"{df.shape[0]} pages found!")
-
-        # drop wiki pages which are to short
-        df = df[df.text.map(len) >= 50]
-        # print(df.text.map(len).describe())
-        print(f"{df.shape[0]} pages remain after cleaning!")
-
-        # save the dataframe to a json file
-        wiki_json_file = os.path.join(preprocessing_path, wiki_name) + ".json"
-        print(f"Saving {wiki_name} wiki to {wiki_json_file}.", end="\n\n\n")
-        df.to_json(path_or_buf=wiki_json_file, orient="records", indent=1)
-
-        # delete the tmp folder filled by temporary files from the wikiextractor
-        shutil.rmtree(extraction_path)
-        os.makedirs(extraction_path, exist_ok=True)
-
-
-    # finally remove the tmp folder
-    shutil.rmtree(extraction_path)
+        path_to_cleaned_wiki = os.path.join(os.path.split(WIKI_PATHS)[0], file.replace("_raw", ""))
+        with open(path_to_cleaned_wiki, mode="w", encoding="utf-8") as f:
+            json.dump(cleaned_wiki, f)

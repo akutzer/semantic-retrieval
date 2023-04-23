@@ -69,8 +69,6 @@ def generate_questions(parags, batch_size=16, device="cpu", **generator_args):
     return question_answer
 
 
-    
-
 
 def main():
     # create new directories for the data dumps in the data/ directory
@@ -81,7 +79,8 @@ def main():
     PAGES = 100
     DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-    for filename in os.listdir(wiki_dumps_path):
+    # for filename in os.listdir(wiki_dumps_path):
+    for filename in ["harry_potter.json", "elder_scrolls.json"]:
         file_path = os.path.join(wiki_dumps_path, filename)
         if not os.path.isfile(file_path) or not file_path.endswith(".json"):
             continue
@@ -90,7 +89,7 @@ def main():
             data = json.load(f)    
         
         for i, wiki_page in enumerate(tqdm(data[:PAGES])):
-            wiki_page["text"] = split_page_in_paragraphs(wiki_page["text"])
+            # wiki_page["text"] = split_page_in_paragraphs(wiki_page["text"])
             wiki_page["text"] = generate_questions(wiki_page["text"], batch_size=192, device=DEVICE, max_new_tokens=50)
 
         

@@ -1,1 +1,1 @@
-Dummy directory. Keep data locally or at the HPC.
+Dummy directory. Keep data locally in this directory or at the HPC.
