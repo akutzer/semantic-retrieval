@@ -1,10 +1,10 @@
 import os
 import re
 import json
+import numpy as np
 
 import nltk
-nltk.download('punkt')
-
+nltk.download("punkt")
 
 
 
@@ -18,8 +18,44 @@ def clean_wiki(wiki, min_length=40, page_regex=None, line_regex=None):
         parags = split_page_in_paragraphs(wiki_text, heading_max_length=40, regex=line_regex)
         wiki["text"] = parags
         raw_wiki[i] = wiki
+    
+    # remove wiki pages without paragraphs after cleaning
+    raw_wiki[:] = [wiki_page for wiki_page in raw_wiki if len(wiki_page["text"]) > 0]
+    print_stats(raw_wiki)
 
     return raw_wiki
+
+
+def print_stats(wiki):
+    n_pages = len(wiki)
+    n_parags_per_page = [len(wiki_page["text"]) for wiki_page in wiki]
+    n_words_per_parags = [len(parag.split(" ")) for wiki_page in wiki for parag in wiki_page["text"]]
+
+            
+    print("~~~~~~~~~~~   Quick Stats   ~~~~~~~~~~~")
+    print(f"Wiki contains {n_pages} pages.")
+    print(f"Wiki contains {sum(n_parags_per_page)} paragraphs.", end="\n\n")
+    print(f"Parags per page:")
+    print(f"  mean: {np.mean(n_parags_per_page)}")
+    print(f"  min: {np.min(n_parags_per_page)}")
+    print(f"  5%: {np.percentile(n_parags_per_page, 0.05)}")
+    print(f"  25%: {np.percentile(n_parags_per_page, 0.25)}")
+    print(f"  50%: {np.percentile(n_parags_per_page, 0.5)}")
+    print(f"  75%: {np.percentile(n_parags_per_page, 0.75)}")
+    print(f"  95%: {np.percentile(n_parags_per_page, 0.95)}")
+    print(f"  max: {np.max(n_parags_per_page)}", end="\n\n")
+
+    print(f"Words per paragraph:")
+    print(f"  mean: {np.mean(n_words_per_parags)}")
+    print(f"  min: {np.min(n_words_per_parags)}")
+    print(f"  5%: {np.percentile(n_words_per_parags, 0.05)}")
+    print(f"  25%: {np.percentile(n_words_per_parags, 0.25)}")
+    print(f"  50%: {np.percentile(n_words_per_parags, 0.5)}")
+    print(f"  75%: {np.percentile(n_words_per_parags, 0.75)}")
+    print(f"  95%: {np.percentile(n_words_per_parags, 0.95)}")
+    print(f"  max: {np.max(n_words_per_parags)}")
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", end="\n\n")
+
 
 
 def filter_wiki(wiki_page, min_length, regex=None):
@@ -82,6 +118,7 @@ def split_page_in_paragraphs(wiki_page, heading_max_length=40, max_words_per_lin
     # (1) merge a line with it's previous line, in case the former was a heading
     # (2) creates a new paragraph after `max_words_per_line`, but still allows to
     #     finish the sentence, so lines can be longer
+    # TODO: merge short paragraphs
     last_parag_heading = ""
     for j, parag in enumerate(parags[1:], start=1):
         prev_parag = parags[j - 1]
@@ -97,6 +134,9 @@ def split_page_in_paragraphs(wiki_page, heading_max_length=40, max_words_per_lin
                 clean_parags.extend([f"{last_parag_heading}: {sub_parag}" for sub_parag in sub_parags])
             else:
                 clean_parags.extend(sub_parags)
+    
+    # drop empty sub paragraphs just in case
+    clean_parags[:] = [parag.strip() for parag in clean_parags if len(parag.strip())]
 
     return clean_parags
 
@@ -126,4 +166,4 @@ if __name__ == "__main__":
 
         path_to_cleaned_wiki = os.path.join(os.path.split(WIKI_PATHS)[0], file.replace("_raw", ""))
         with open(path_to_cleaned_wiki, mode="w", encoding="utf-8") as f:
-            json.dump(cleaned_wiki, f)
+            json.dump(cleaned_wiki, f, indent=1)
