@@ -1,6 +1,7 @@
 # ignore everything in data/ directory, except the README
-data/
+!data/fandom-qa/
 !data/README.md
+data/
 
 
 # ignore mac files

@@ -34,7 +34,7 @@ def count_question_words(data):
 
 
 if __name__ == "__main__":
-    path_to_dataset = "../../data/fandom-qa/harry_potter_qa_1k.json"
+    path_to_dataset = "../../data/fandom-qa/harry_potter_qa.json"
     with open(path_to_dataset, mode="r") as f:
         data = json.load(f)
 
@@ -42,7 +42,9 @@ if __name__ == "__main__":
 
     print(f"Number of QA pairs: {n_qa_pairs}")
     s = 0
-    for q_word, count, q_word_perc in question_words_count:
+    for i, (q_word, count, q_word_perc) in enumerate(question_words_count):
         print(f"'{q_word}':  {count}\t({q_word_perc}%)")
         s += q_word_perc
+        if i >= 15:
+            break
     print(s)
