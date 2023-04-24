@@ -26,7 +26,7 @@ return multiple (N) candidate passages to the user (how large N is is up to you,
 #### 1. Crawling data
 - [x] collect xml files from various fandoms
 - [x] preprocess the data using [WikiExtractor](https://github.com/attardi/wikiextractor) (e.g. clean from wiki syntax, remove tables, ...)
-:hourglass: bringing the data into a fitting file format and file structure
+- :hourglass: bringing the data into a fitting file format and file structure
     - communicate together with person responsible for dataloading
     - have a look at benchmark datasets
 - [ ] extract multi-linguistic wikis
@@ -35,7 +35,7 @@ return multiple (N) candidate passages to the user (how large N is is up to you,
 
 
 #### 2. Generating dataset
-:hourglass: auto-generate questions
+- :hourglass: auto-generate questions
     - if possible: get the text span of the answers for a given paragraph as well
     - if possible: generate questions, which aren't answered in the paragraph
     - currently using [T5-small](https://huggingface.co/allenai/t5-small-squad2-question-generation), but we should test also other models
@@ -49,7 +49,7 @@ return multiple (N) candidate passages to the user (how large N is is up to you,
 
 
 #### 3. Retrieval System
-:hourglass: read into different neural retrieval systems and select one or two retrieval approaches + a baseline model
+- :hourglass: read into different neural retrieval systems and select one or two retrieval approaches + a baseline model
     - baseline: TF-IDF or BM25?
     - first approach: ColBERT?
     - second approach: ???

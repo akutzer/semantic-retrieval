@@ -19,6 +19,9 @@ class QADataset(Dataset):
             for j, parag in enumerate(wiki_page["text"]):
                 self.data.append((i, j, parag))
 
+        # TODO: sort data by length of paragraph
+        self.data.sort(key=lambda x: x[::-1], reverse=True)
+
     def __getitem__(self, idx):
         return self.data[idx]
 
