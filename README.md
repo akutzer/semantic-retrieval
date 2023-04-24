@@ -19,12 +19,14 @@ return multiple (N) candidate passages to the user (how large N is is up to you,
 
 ---
 
+
 ### **Tasks:**
 *task schedule will be iterativly improved by all of use :3*
 
 #### 1. Crawling data
-- collect xml files from various wikia/fandoms
-- extract both english and multi-linguistic wikis; we will probably focus first on english pages and
+- [:white_check_mark:] collect xml files from various wikia/fandoms :white_check_mark:
+
+- [ ] extract both english and multi-linguistic wikis; we will probably focus first on english pages and
 later traing a model on multiple languages
 - preprocess the data (e.g. clean from wiki syntax, best-case: find code which does this tedious task already)
 - bringing the data into a fitting file format and file structure (communicate together with person responsible for dataloading); have a look at benchmark datasets
