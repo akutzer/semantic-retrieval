@@ -3,6 +3,10 @@ data/
 !data/README.md
 
 
+# ignore mac files
+.DS_Store
+src/preprocessing/daiaipy.py
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
