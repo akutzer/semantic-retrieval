@@ -42,7 +42,7 @@ def collate_fn_wrapper(tokenizer, max_length=512):
 
 def main():
     # create new directories for the data dumps in the data/ directory
-    WIKI_DUMPS_PATH = "../../data/preprocessing/"
+    WIKI_DUMPS_PATH = "../../data/fandoms/"
     DATASET_PATH = "../../data/fandom-qa/"
     os.makedirs(DATASET_PATH, exist_ok=True)
 

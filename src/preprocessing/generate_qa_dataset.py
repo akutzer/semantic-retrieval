@@ -5,8 +5,6 @@ import json
 if __name__ == "__main__":
     QA_PATH = "../../data/fandom-qa/"
     for file in os.listdir(QA_PATH):
-        if not "witcher" in file:
-            continue
         path_to_qa = os.path.join(QA_PATH, file)
 
         # skip directories and non-json files
