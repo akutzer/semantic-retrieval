@@ -29,10 +29,12 @@ class QADataset(Dataset):
         return len(self.data)
 
 
-def collate_fn_wrapper(tokenizer):
+def collate_fn_wrapper(tokenizer, max_length=512):
     def collate_fn(batch):
         doc_ids, parag_ids, parags = zip(*batch)
-        parags_token = tokenizer.batch_encode_plus(parags, return_tensors="pt", padding=True)
+        parags_token = tokenizer(
+            parags, padding='longest', truncation='longest_first',
+            return_tensors='pt', max_length=max_length)
         return doc_ids, parag_ids, parags, parags_token
     
     return collate_fn
@@ -97,7 +99,10 @@ def main():
         
         for doc_idx, parag_idx, question in question_answer:
             parag = wiki_data[doc_idx]["text"][parag_idx]
-            wiki_data[doc_idx]["text"][parag_idx] = [question, parag]
+            if not question.endswith("?") or question[:-1] in parag:
+                wiki_data[doc_idx]["text"][parag_idx] = [[], parag]
+            else:
+                wiki_data[doc_idx]["text"][parag_idx] = [[question], parag]
         
 
         path_to_wiki_qa = os.path.splitext(os.path.basename(path_to_wiki))[0] + "_qa.json"

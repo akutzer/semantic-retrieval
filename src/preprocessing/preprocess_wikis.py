@@ -80,11 +80,12 @@ def split_page_in_paragraphs(wiki_page, max_heading_length=50, max_words_per_par
             # remove the last line, since it was a heading, and merge it with
             # the current line
             clean_parags.pop(-1)
-            clean_parags.extend([f"{prev_parag[:-1]}: {sub_parag}" for sub_parag in sub_parags])
             last_parag_heading = prev_parag[:-1]
+            clean_parags.extend([f"[{last_parag_heading}] {sub_parag}" for sub_parag in sub_parags])
+            
         else:
             if last_parag_heading:
-                clean_parags.extend([f"{last_parag_heading}: {sub_parag}" for sub_parag in sub_parags])
+                clean_parags.extend([f"[{last_parag_heading}] {sub_parag}" for sub_parag in sub_parags])
             else:
                 clean_parags.extend(sub_parags)
     
