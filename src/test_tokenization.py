@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from tokenization import DocTokenizer, QueryTokenizer
 from configs import BaseConfig
 

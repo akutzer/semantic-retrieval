@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from transformers import AutoTokenizer
 from .utils import _split_into_batches
 #from ..configs import BaseConfig
