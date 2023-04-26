@@ -1,9 +1,13 @@
+#!/usr/bin/env python3
 import os
 import json
+import csv
 
 
 if __name__ == "__main__":
     QA_PATH = "../../data/fandom-qa/"
+    MODE = "tsv" # "tsv" or "json"
+
     for file in os.listdir(QA_PATH):
         path_to_qa = os.path.join(QA_PATH, file)
 
@@ -49,16 +53,32 @@ if __name__ == "__main__":
         qa_dataset_path = os.path.join(QA_PATH, filename)
         os.makedirs(qa_dataset_path, exist_ok=True)
 
-        with open(os.path.join(qa_dataset_path, "triples.train.json"), mode="w", encoding="utf-8") as f:
-            json.dump(triples, f)
-        
-        with open(os.path.join(qa_dataset_path, "queries.train.json"), mode="w", encoding="utf-8") as f:
-            json.dump(qID_2_query, f, indent=0)
-        
-        with open(os.path.join(qa_dataset_path, "passages.train.json"), mode="w", encoding="utf-8") as f:
-            json.dump(pID_2_passage, f, indent=0)
-        
-        with open(os.path.join(qa_dataset_path, "docs.train.json"), mode="w", encoding="utf-8") as f:
-            json.dump(docID_2_pID, f, indent=0)
+
+        if MODE.lower() == "tsv":
+            with open(os.path.join(qa_dataset_path, "triples.train.tsv"), mode="w", encoding="utf-8", newline="") as trip_f:
+                writer = csv.writer(trip_f, delimiter='\t', lineterminator='\n')
+                writer.writerows(triples)
+            
+            with open(os.path.join(qa_dataset_path, "queries.train.tsv"), mode="w", encoding="utf-8", newline="") as q_f:
+                writer = csv.writer(q_f, delimiter='\t', lineterminator='\n')
+                writer.writerows(qID_2_query.items())
+            
+            with open(os.path.join(qa_dataset_path, "passages.train.tsv"), mode="w", encoding="utf-8", newline="") as p_f:
+                writer = csv.writer(p_f, delimiter='\t', lineterminator='\n')
+                writer.writerows(pID_2_passage.items())
+
+        elif MODE.lower() == "json":
+            with open(os.path.join(qa_dataset_path, "triples.train.json"), mode="w", encoding="utf-8") as trip_f:
+                json.dump(triples, trip_f)
+            
+            with open(os.path.join(qa_dataset_path, "queries.train.json"), mode="w", encoding="utf-8") as q_f:
+                json.dump(qID_2_query, q_f, indent=0)
+            
+            with open(os.path.join(qa_dataset_path, "passages.train.json"), mode="w", encoding="utf-8") as p_f:
+                json.dump(pID_2_passage, p_f, indent=0)
+
+
+        with open(os.path.join(qa_dataset_path, "docs.train.json"), mode="w", encoding="utf-8", newline="") as docs_f:
+            json.dump(docID_2_pID, docs_f, indent=0)
 
     
