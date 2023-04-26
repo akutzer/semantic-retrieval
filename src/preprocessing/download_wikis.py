@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import subprocess
 import urllib.request
@@ -30,7 +31,7 @@ if __name__ == "__main__":
     REDOWNLOAD = True
 
     # create new directories for the data dumps in the data/ directory
-    preprocessing_path = "../../data/preprocessing/"
+    preprocessing_path = "../../data/fandoms/"
     dump_path = os.path.join(preprocessing_path, "dumps")
     extraction_path = os.path.join(dump_path, "tmp")
     os.makedirs(extraction_path, exist_ok=True)
@@ -40,7 +41,7 @@ if __name__ == "__main__":
         print("#"*50)
         print(f"Starting to extract {wiki_name} wiki.")
         print("#"*50, end="\n\n")
-        # download the data dump into the data/preprocessing/dumps directory
+        # download the data dump into the data/fandoms/dumps directory
         dump_file_name = dump_url.split("/")[-1]
         path_to_dump_archive = os.path.join(dump_path, dump_file_name)
         path_to_dump_file = os.path.splitext(path_to_dump_archive)[0]

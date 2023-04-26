@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import re
 import json
@@ -9,7 +10,7 @@ nltk.download("punkt")
 
 
 def clean_wiki(wiki, min_length=0, page_regex=None, parag_regex=None,
-               max_heading_length=50, max_words_per_parag=250,
+               max_heading_length=5, max_words_per_parag=250,
                print_statistics=True):
     # removes wiki pages which are only 50 symbols long or which start with an URL
     # important: this is an inplace operation
@@ -39,7 +40,7 @@ def clean_wiki(wiki, min_length=0, page_regex=None, parag_regex=None,
 
 def wiki_filter(wiki_page, min_length, regex=None):
     wiki_text = wiki_page["text"].strip()
-    if len(wiki_text) < min_length:
+    if len(wiki_text.split(" ")) < min_length:
         return False
     
     if regex is not None and regex.match(wiki_text):
@@ -48,7 +49,7 @@ def wiki_filter(wiki_page, min_length, regex=None):
     return True
 
 
-def split_page_in_paragraphs(wiki_page, max_heading_length=50, max_words_per_parag=250, regex=None):
+def split_page_in_paragraphs(wiki_page, max_heading_length=5, max_words_per_parag=250, regex=None):
     parags = wiki_page.split("\n")
 
     # first iteration: drop links and empty lines
@@ -76,15 +77,16 @@ def split_page_in_paragraphs(wiki_page, max_heading_length=50, max_words_per_par
     for j, parag in enumerate(parags[1:], start=1):
         prev_parag = parags[j - 1]
         sub_parags = split_paragraphs(parag, max_words_per_parag=max_words_per_parag)
-        if len(prev_parag) <= max_heading_length:
+        if len(prev_parag.split(" ")) <= max_heading_length:
             # remove the last line, since it was a heading, and merge it with
             # the current line
             clean_parags.pop(-1)
-            clean_parags.extend([f"{prev_parag[:-1]}: {sub_parag}" for sub_parag in sub_parags])
             last_parag_heading = prev_parag[:-1]
+            clean_parags.extend([f"[{last_parag_heading}] {sub_parag}" for sub_parag in sub_parags])
+            
         else:
             if last_parag_heading:
-                clean_parags.extend([f"{last_parag_heading}: {sub_parag}" for sub_parag in sub_parags])
+                clean_parags.extend([f"[{last_parag_heading}] {sub_parag}" for sub_parag in sub_parags])
             else:
                 clean_parags.extend(sub_parags)
     
@@ -93,7 +95,7 @@ def split_page_in_paragraphs(wiki_page, max_heading_length=50, max_words_per_par
 
     return clean_parags
 
-
+# TODO: add min_words_per_parag
 def split_paragraphs(paragraph, max_words_per_parag):
     sentences = nltk.sent_tokenize(paragraph)
     sub_paragraphs = []
@@ -158,7 +160,7 @@ def print_stats(wiki):
 
 if __name__ == "__main__":
     # directory containing the wikis, which should be preprocessed
-    WIKI_PATHS = "../../data/preprocessing/dumps"
+    WIKI_PATHS = "../../data/fandoms/dumps"
 
     # regex pattern for wiki pages, which should be removed, applies to the whole page
     PAGE_ANTI_PATTERN = ""
@@ -169,12 +171,12 @@ if __name__ == "__main__":
     PARAGRAPH_ANTI_PATTERN = "^&lt;"
     parag_regex = re.compile(PARAGRAPH_ANTI_PATTERN)
 
-    # wikis with less than `MIN_LENGTH` symbols will be discarded
-    MIN_LENGTH = 40
+    # wikis with less than `MIN_LENGTH` words will be discarded
+    MIN_LENGTH = 8
 
-    # if a paragraph is of maximal length `MAX_HEADING_LENGTH`, than it is considered a
+    # if a paragraph contains at most `MAX_HEADING_LENGTH` words, then it is considered a
     # paragraph heading and is append to the next paragraphs
-    MAX_HEADING_LENGTH = 40
+    MAX_HEADING_LENGTH = 8
     
     # soft upper bound for paragraphs, which can be exceeded
     MAX_WORDS_PER_PARAG = 120

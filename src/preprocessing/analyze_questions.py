@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import json
 from collections import defaultdict
 
@@ -19,9 +20,10 @@ def count_question_words(data):
 
     for page in data:
         parags = page["text"]
-        for q, a in parags:
-            q_word = q.split(" ")[0].lower()
-            question_words_count[q_word] += 1
+        for questions, passage in parags:
+            for q in questions:
+                q_word = q.split(" ")[0].lower()
+                question_words_count[q_word] += 1
     
     question_words_count = list(sorted(question_words_count.items(), key=lambda k_v: k_v[1], reverse=True))
 
@@ -43,7 +45,7 @@ if __name__ == "__main__":
     print(f"Number of QA pairs: {n_qa_pairs}")
     s = 0
     for i, (q_word, count, q_word_perc) in enumerate(question_words_count):
-        print(f"'{q_word}':  {count}\t({q_word_perc}%)")
+        print(f"'{q_word}': {count} \t({q_word_perc}%)")
         s += q_word_perc
         if i >= 15:
             break
