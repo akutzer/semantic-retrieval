@@ -64,11 +64,10 @@ class DataIterator():
         # sort by paragraph length
         sorted_indices = p_masks.sum(dim=-1).sort(descending=True).indices
         q_tokens, q_masks = q_tokens[sorted_indices], q_masks[sorted_indices]
-        p_tokens, p_masks = p_tokens[sorted_indices], p_masks[sorted_indices]       
-
-        subbatch_p_maxlen = p_masks[::subbatch_size].sum(dim=-1)
+        p_tokens, p_masks = p_tokens[sorted_indices], p_masks[sorted_indices] 
 
         # split into sub-batches, while also removing unnecessary padding
+        subbatch_p_maxlen = p_masks[::subbatch_size].sum(dim=-1)
         q_tokens = [q_tokens[i:i+subbatch_size] for i in range(0, size, subbatch_size)]
         q_masks = [q_masks[i:i+subbatch_size] for i in range(0, size, subbatch_size)]
         p_tokens = [p_tokens[i:i+subbatch_size, :subbatch_p_maxlen[i//subbatch_size]] for i in range(0, size, subbatch_size)]
@@ -121,3 +120,10 @@ class DataIterator():
         p_masks = [p_masks[i:i+subbatch_size] for i in range(0, size, subbatch_size)]
 
         return zip(q_tokens, q_masks, p_tokens, p_masks)
+    
+
+    def shuffle(self):
+        self.triples.shuffle()
+    
+    def reset(self):
+        self.position = 0

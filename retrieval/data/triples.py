@@ -1,6 +1,6 @@
 import json
 import csv
-
+import random
 
 
 class Triples:
@@ -46,5 +46,8 @@ class Triples:
         
         if psgs_per_qry is not None:
             triples[:] = [triple[:psgs_per_qry + 1] for triple in triples]
-            
+
         return triples
+    
+    def shuffle(self):
+        random.shuffle(self.data)

@@ -12,23 +12,31 @@ if __name__ == "__main__":
     doc_tokenizer = DocTokenizer(base_config)
     query_tokenizer = QueryTokenizer(base_config)
 
-    triples_path = "/home/aaron/Documents/Studium/Informatik/6_Semester/KP BigData/semantic-retrieval/data/fandom-qa/witcher_qa/triples.train.tsv"
-    queries_path = "/home/aaron/Documents/Studium/Informatik/6_Semester/KP BigData/semantic-retrieval/data/fandom-qa/witcher_qa/queries.train.tsv"
-    passages_path = "/home/aaron/Documents/Studium/Informatik/6_Semester/KP BigData/semantic-retrieval/data/fandom-qa/witcher_qa/passages.train.tsv"
+    triples_path = "/home/aaron/Documents/Studium/Informatik/6_Semester/KP BigData/semantic-retrieval/data/fandom-qa/harry_potter_qa/triples.train.tsv"
+    queries_path = "/home/aaron/Documents/Studium/Informatik/6_Semester/KP BigData/semantic-retrieval/data/fandom-qa/harry_potter_qa/queries.train.tsv"
+    passages_path = "/home/aaron/Documents/Studium/Informatik/6_Semester/KP BigData/semantic-retrieval/data/fandom-qa/harry_potter_qa/passages.train.tsv"
 
 
     data_iter = DataIterator(base_config, triples_path, queries_path, passages_path)
+    #data_iter.shuffle()
+    EPOCHS = 10
 
-    for batch in tqdm(data_iter):
-        for sub_batch in batch:
-            #q_tokens, p_tokens = sub_batch
-            q_tokens, q_masks, p_tokens, p_masks = sub_batch
-            #print(p_masks)
-            #print(q_tokens.shape, q_masks.shape, p_tokens.shape, p_masks.shape)
-            
-        #exit(0)
+
+    for epoch in range(1, EPOCHS+1):
+        data_iter.reset()
+        data_iter.shuffle()
+
+        for batch in tqdm(data_iter):
+            for sub_batch in batch:
+                q_tokens, q_masks, p_tokens, p_masks = sub_batch
+                #print(q_tokens.is_pinned())
+                q_tokens.to("cuda:0")
+                q_masks.to("cuda:0")
+                p_tokens.to("cuda:0")
+                p_masks.to("cuda:0")
+                #exit(0)
     
-
+    exit(0)
     out = doc_tokenizer.encode(["Wow this looks cool!!!! :D", "What does look so cool?"], add_special_tokens=True)
     print(out)
 
