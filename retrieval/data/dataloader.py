@@ -1,40 +1,27 @@
-import csv
 import math
 
-from retrieval.tokenization import QueryTokenizer, DocTokenizer, tensorize_triples
+from retrieval.tokenization import QueryTokenizer, DocTokenizer
+from retrieval.data.queries import Queries
+from retrieval.data.passages import Passages
+from retrieval.data.triples import Triples
+
 
 
 class DataIterator():
-    def __init__(self, config, triples_path, queries_path, passages_path, drop_last=False):
+    def __init__(self, config, triples_path, queries_path, passages_path):
         self.batch_size = config.batch_size
         self.accum_steps = config.accum_steps
         self.psgs_per_qry = config.passages_per_query
-        self.drop_last = drop_last
+        self.drop_last = config.drop_last
         
         self.qry_tokenizer = QueryTokenizer(config)
         self.doc_tokenizer = DocTokenizer(config)
-        #self.tensorize_triples = partial(tensorize_triples, self.query_tokenizer, self.doc_tokenizer)
         self.position = 0
 
-        self.triples = []
-        with open(triples_path, mode="r", encoding="utf-8", newline="") as triples_f:
-            reader = csv.reader(triples_f, delimiter="\t")
-            for triplet in reader:
-                self.triples.append(list(map(int, triplet)))
-        
-        self.queries = {}
-        with open(queries_path, mode="r", encoding="utf-8", newline="") as queries_f:
-            reader = csv.reader(queries_f, delimiter="\t")
-            for qid, query in reader:
-                self.queries[int(qid)] = query
-        
-        self.passages = {}
-        with open(passages_path, mode="r", encoding="utf-8", newline="") as passages_f:
-            reader = csv.reader(passages_f, delimiter="\t")
-            for pid, passage in reader:
-                self.passages[int(pid)] = passage
+        self.triples = Triples(triples_path)
+        self.queries = Queries(queries_path)
+        self.passages = Passages(passages_path)
 
-        
 
     def __iter__(self):
         return self
@@ -60,8 +47,25 @@ class DataIterator():
             psg_batch.extend([self.passages[pid] for pid in pids if pid >= 0])
         
         return self.collate_fn(qry_batch, psg_batch)
-
+    
     def collate_fn(self, queries, passages):
+        size = len(queries)
+
+        q_tokens, q_masks = self.qry_tokenizer.tensorize(queries)
+        p_tokens, p_masks = self.doc_tokenizer.tensorize(passages)
+
+        assert self.accum_steps > 0
+        subbatch_size = self.batch_size // self.accum_steps
+
+        # split into sub-batches
+        q_tokens = [q_tokens[i:i+subbatch_size] for i in range(0, size, subbatch_size)]
+        q_masks = [q_masks[i:i+subbatch_size] for i in range(0, size, subbatch_size)]
+        p_tokens = [p_tokens[i:i+subbatch_size] for i in range(0, size, subbatch_size)]
+        p_masks = [p_masks[i:i+subbatch_size] for i in range(0, size, subbatch_size)]
+
+        return zip(q_tokens, q_masks, p_tokens, p_masks)
+
+    def collate_fn_old(self, queries, passages):
         size = len(queries)
 
         q_tokens, q_masks = self.qry_tokenizer.tensorize(queries)

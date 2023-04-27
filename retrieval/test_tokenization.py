@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 
 if __name__ == "__main__":
-    base_config = BaseConfig(tok_name_or_path="../../data/colbertv2.0/")
+    base_config = BaseConfig(tok_name_or_path="../data/colbertv2.0/")
     doc_tokenizer = DocTokenizer(base_config)
     query_tokenizer = QueryTokenizer(base_config)
 

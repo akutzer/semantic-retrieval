@@ -30,3 +30,4 @@ class TrainingSettings:
     batch_size: int = 128
     accum_steps: int = 2
     passages_per_query: int = 2
+    drop_last: bool = False
