@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 from transformers import AutoTokenizer
-from .utils import _split_into_batches
-#from ..configs import BaseConfig
+from retrieval.tokenization.utils import _split_into_batches
+from retrieval.configs import BaseConfig
 
 
 class QueryTokenizer():
-    def __init__(self, config): #config: BaseConfig
+    def __init__(self, config: BaseConfig):
         self.config = config
         self.tok = AutoTokenizer.from_pretrained(config.tok_name_or_path)    
 

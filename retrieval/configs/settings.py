@@ -25,3 +25,8 @@ class QuerySettings:
     interaction: str = "colbert"
 
 
+@dataclass
+class TrainingSettings:
+    batch_size: int = 128
+    accum_steps: int = 2
+    passages_per_query: int = 2
