@@ -17,11 +17,13 @@ if __name__ == "__main__":
     passages_path = "/home/aaron/Documents/Studium/Informatik/6_Semester/KP BigData/semantic-retrieval/data/fandom-qa/witcher_qa/passages.train.tsv"
 
 
-    data_iter = DataIterator(base_config, triples_path, queries_path, passages_path, drop_last=False)
+    data_iter = DataIterator(base_config, triples_path, queries_path, passages_path)
 
     for batch in tqdm(data_iter):
         for sub_batch in batch:
+            #q_tokens, p_tokens = sub_batch
             q_tokens, q_masks, p_tokens, p_masks = sub_batch
+            #print(p_masks)
             #print(q_tokens.shape, q_masks.shape, p_tokens.shape, p_masks.shape)
             
         #exit(0)
