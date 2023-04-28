@@ -3,6 +3,11 @@ import os
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 
+'''
+#   Evaluates test data by using tf-idf as a base model. Measurement: is one of the best -k- predicted answers the correct one?
+#   Calculates the dot product between every paragraph tf-idf vector and the query tf-idf vector and chooses the largest -k- scores. 
+#   (X@q_vec.T, where X is matrix of all paragraph vectors and q_vec is the query vector)
+'''
 
 FOLDERS = ['../../data/fandom-qa/harry_potter_qa'
            #,'../../data/fandom-qa/witcher_qa_2'
