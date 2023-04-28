@@ -2,6 +2,8 @@ import pandas as pd
 import os 
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
+import swifter
+
 
 '''
 #   Evaluates test data by using tf-idf as a base model. Measurement: is one of the best -k- predicted answers the correct one?
@@ -64,14 +66,14 @@ def getResultDfs(k, FOLDERS):
 
         # create tf-idf vectorizer and matrix
         vectorizer, X = tfIDFCreatorFromArr(p_df['paragraph'])
-        # q_df = q_df.iloc[:100,:]
+        q_df = q_df.iloc[:100,:]
 
         # get best k paragraph matches for question
-        q_df["best_k_PID"] = q_df['query'].apply(lambda q: mapToInternalID(p_df, getKBestMatchingIndicesForQuestion(q ,vectorizer, X, k), 'PID'))
+        q_df["best_k_PID"] = q_df['query'].swifter.apply(lambda q: mapToInternalID(p_df, getKBestMatchingIndicesForQuestion(q ,vectorizer, X, k), 'PID'))
         # q_df['best_k_match'] = q_df.apply(lambda x : any([isPairInTriples(x[0], y, t_df) for y in x[2]]), axis=1)
 
         # get position of the correct question in the best k paragraphs else -1
-        q_df['best_k_match'] = q_df.apply(lambda x : (lambda arr : -1 if arr[0].size == 0 else arr[0][0]) (np.array([isPairInTriples(x[0], y, t_df) for y in x[2]]).nonzero()) , axis=1)
+        q_df['best_k_match'] = q_df.swifter.apply(lambda x : (lambda arr : -1 if arr[0].size == 0 else arr[0][0]) (np.array([isPairInTriples(x[0], y, t_df) for y in x[2]]).nonzero()) , axis=1)
         
         result_dfs.append(q_df)
     return result_dfs
