@@ -51,7 +51,7 @@ def main():
     DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
     pin_memory = DEVICE.startswith("cuda")
     BATCH_SIZE = 64 #255
-    N_WORKERS = 8   # TODO: check if workers actually do anything
+    N_WORKERS = 0   # TODO: check if workers actually do anything
     
     # question generation parameters
     #TODO: play around with parameters
