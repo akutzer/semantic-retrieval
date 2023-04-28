@@ -12,6 +12,14 @@ class TokenizerSettings:
 
 
 @dataclass
+class ModelSettings:
+    backbone_name_or_path: str = "../data/colbertv2.0/" # "bert-base-uncased"
+    dim: int = 69
+    skip_punctuation: bool = True
+    similarity: str = "cosine" # "L2" or "cosine"
+
+
+@dataclass
 class DocSettings:
     dim: int = 128
     doc_maxlen: int = 220
@@ -28,6 +36,6 @@ class QuerySettings:
 @dataclass
 class TrainingSettings:
     batch_size: int = 128
-    accum_steps: int = 2
-    passages_per_query: int = 2
+    accum_steps: int = 16
+    passages_per_query: int = 1
     drop_last: bool = False
