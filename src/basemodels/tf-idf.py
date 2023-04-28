@@ -66,7 +66,7 @@ def getResultDfs(k, FOLDERS):
 
         # create tf-idf vectorizer and matrix
         vectorizer, X = tfIDFCreatorFromArr(p_df['paragraph'])
-        q_df = q_df.iloc[:100,:]
+        # q_df = q_df.iloc[:100,:]
 
         # get best k paragraph matches for question
         q_df["best_k_PID"] = q_df['query'].swifter.apply(lambda q: mapToInternalID(p_df, getKBestMatchingIndicesForQuestion(q ,vectorizer, X, k), 'PID'))
