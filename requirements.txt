@@ -6,3 +6,4 @@ pandas==1.5.3
 nltk==3.8.1
 transformers==4.28.1
 torch==2.0.0
+scikit-learn==1.2.2
