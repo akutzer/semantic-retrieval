@@ -3,6 +3,9 @@
 data/
 !retrieval/data
 
+# ignores tensorboard logging directory
+runs/*
+
 
 # ignore mac files
 .DS_Store
