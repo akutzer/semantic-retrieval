@@ -17,6 +17,7 @@ class ModelSettings:
     dim: int = 69
     skip_punctuation: bool = True
     similarity: str = "cosine" # "L2" or "cosine"
+    intra_batch_similarity: bool = False
 
 
 @dataclass
@@ -35,7 +36,9 @@ class QuerySettings:
 
 @dataclass
 class TrainingSettings:
+    epochs: int = 10
     batch_size: int = 128
     accum_steps: int = 16
     passages_per_query: int = 1
     drop_last: bool = False
+    

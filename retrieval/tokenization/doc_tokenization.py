@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from transformers import AutoTokenizer
-from retrieval.tokenization.utils import _split_into_batches, _sort_by_length
 from retrieval.configs import BaseConfig
 
 
@@ -42,7 +41,7 @@ class DocTokenizer():
 
         return ids
 
-    def tensorize(self, batch_text, bsize=None):
+    def tensorize(self, batch_text):
         assert type(batch_text) in [list, tuple], (type(batch_text))
 
         # add placehold for the [D] marker
@@ -55,11 +54,6 @@ class DocTokenizer():
 
         # postprocess for the [D] marker
         ids[:, 1] = self.D_marker_token_id
-
-        if bsize:
-            ids, mask, reverse_indices = _sort_by_length(ids, mask, bsize)
-            batches = _split_into_batches(ids, mask, bsize)
-            return batches, reverse_indices
 
         return ids, mask
 

@@ -24,7 +24,6 @@ class DataIterator():
         self.queries = Queries(queries_path)
         self.passages = Passages(passages_path)
 
-
     def __iter__(self):
         return self
 
@@ -48,10 +47,9 @@ class DataIterator():
             qry_batch.append(self.queries[qid])
             psg_batch.extend([self.passages[pid] for pid in pids if pid >= 0])
         
-        return self.collate_fn_3(qry_batch, psg_batch)
+        return self.collate_fn(qry_batch, psg_batch)
     
-
-    def collate_fn_3(self, queries, passages):
+    def collate_fn(self, queries, passages):
         size = len(queries)
 
         assert self.accum_steps > 0
@@ -74,37 +72,8 @@ class DataIterator():
         p_masks = [p_masks[i:i+subbatch_size, :subbatch_p_maxlen[i//subbatch_size]] for i in range(0, size, subbatch_size)]
 
         return zip(q_tokens, q_masks, p_tokens, p_masks)
-    
 
-    def collate_fn_2(self, queries, passages):
-        size = len(queries)
-
-        assert self.accum_steps > 0
-        subbatch_size = self.batch_size // self.accum_steps
-
-        # pretokenize
-        qry_tokens = [self.qry_tokenizer.tok.tokenize(qry) for qry in queries]
-        psg_tokens = [self.doc_tokenizer.tok.tokenize(psg) for psg in passages]
-
-        # sort
-        sorted_indices = np.argsort(list(map(len, psg_tokens)))
-        qry_tokens[:] = [qry_tokens[idx] for idx in sorted_indices]
-        psg_tokens[:] = [psg_tokens[idx] for idx in sorted_indices] 
-
-        #sub batch
-        qry_tokens_subbatches = [qry_tokens[i:i+subbatch_size] for i in range(0, size, subbatch_size)]
-        psg_tokens_subbatches = [psg_tokens[i:i+subbatch_size] for i in range(0, size, subbatch_size)]
-
-        # finish tokenization (map tokens to ids)
-        for qry_subbatch, psg_subbatch in zip(qry_tokens_subbatches, psg_tokens_subbatches):
-            qry_subbatch = self.qry_tokenizer.tok(qry_subbatch, padding='max_length', truncation=True,
-                       return_tensors='pt', max_length=self.config.query_maxlen, is_split_into_words=True, return_token_type_ids=False)
-            psg_subbatch = self.doc_tokenizer.tok(psg_subbatch, padding='max_length', truncation=True,
-                       return_tensors='pt', max_length=self.config.doc_maxlen, is_split_into_words=True, return_token_type_ids=False)
-            yield qry_subbatch, psg_subbatch
-
-
-    def collate_fn_1(self, queries, passages):
+    def collate_fn_(self, queries, passages):
         size = len(queries)
 
         q_tokens, q_masks = self.qry_tokenizer.tensorize(queries)
@@ -120,7 +89,6 @@ class DataIterator():
         p_masks = [p_masks[i:i+subbatch_size] for i in range(0, size, subbatch_size)]
 
         return zip(q_tokens, q_masks, p_tokens, p_masks)
-    
 
     def shuffle(self):
         self.triples.shuffle()

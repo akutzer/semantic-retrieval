@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from transformers import AutoTokenizer
-from retrieval.tokenization.utils import _split_into_batches
 from retrieval.configs import BaseConfig
 
 
@@ -43,7 +42,7 @@ class QueryTokenizer():
 
         return ids
 
-    def tensorize(self, batch_text, bsize=None):
+    def tensorize(self, batch_text):
         assert type(batch_text) in [list, tuple], (type(batch_text))
 
         # add placehold for the [Q] marker
@@ -62,9 +61,5 @@ class QueryTokenizer():
         if self.config.attend_to_mask_tokens:
             mask[ids == self.mask_token_id] = 1
             assert mask.sum().item() == mask.size(0) * mask.size(1), mask
-
-        if bsize:
-            batches = _split_into_batches(ids, mask, bsize)
-            return batches
 
         return ids, mask
