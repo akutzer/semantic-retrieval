@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from dataclasses import dataclass
 
 
@@ -41,4 +42,3 @@ class TrainingSettings:
     accum_steps: int = 16
     passages_per_query: int = 1
     drop_last: bool = False
-    

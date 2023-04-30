@@ -56,5 +56,3 @@ class DocTokenizer():
         ids[:, 1] = self.D_marker_token_id
 
         return ids, mask
-
-

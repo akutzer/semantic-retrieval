@@ -19,6 +19,12 @@ return multiple (N) candidate passages to the user (how large N is is up to you,
 
 ---
 
+### **Installation**
+
+```python
+pip install -r requirements.txt
+pip install -e .
+```
 
 ### **Tasks:**
 *task schedule will be iterativly improved by all of use :3*
