@@ -123,6 +123,7 @@ Look into [DistributedDataParallel](https://pytorch.org/docs/stable/generated/to
 Look into logging, either using [Tensorboard](https://pytorch.org/docs/stable/tensorboard.html) or [Weights&Biases](https://docs.wandb.ai/guides/integrations/pytorch). \
 After each epoch, validate our model on the validation set using fitting evaluation metrics. \
 The loss calculation should be part of the model, so we only need to call .backward() in the training loop.
+Implement Checkpoiting, where after a certain number of steps the model is saved.
 
 ### Train the models
 *tba*
@@ -141,11 +142,12 @@ Run the baseline and neural models on the test dataset and log their performance
 
 
 ## 6. Mockup
-*tba*
+Demonstration of the model (done however you like; website, colab, application, ...)
+Maybe some inference optimizations & pruning if the person in charge is interested in it and there is time
 
 
 ## 7. Paper
-*tba*
+Final paper blablabla
 
 
 ## :checkered_flag:
