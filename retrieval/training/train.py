@@ -21,7 +21,7 @@ torch.manual_seed(SEED)
 torch.cuda.manual_seed_all(SEED)
 
 
-MODEL_PATH = "bert-base-uncased" # "../../data/colbertv2.0/"
+MODEL_PATH = "roberta-base" #"bert-base-uncased" # "../../data/colbertv2.0/"
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 config = BaseConfig(
@@ -31,7 +31,8 @@ config = BaseConfig(
     batch_size = 32,
     accum_steps = 2,    # sub_batch_size = ceil(batch_size / accum_steps)
     similarity="cosine",
-    intra_batch_similarity=True)
+    intra_batch_similarity=True,
+    dim=42)
 
 writer = SummaryWriter()
 
@@ -41,7 +42,7 @@ passages_path = "../../data/fandom-qa/witcher_qa/passages.train.tsv"
 
 data_iter = DataIterator(config, triples_path, queries_path, passages_path)
 
-colbert = ColBERT(config, device=DEVICE)
+colbert = ColBERT(config, tokenizer=data_iter.tokenizer, device=DEVICE)
 
 optimizer = torch.optim.AdamW(colbert.parameters(), lr=5e-6, eps=1e-8)
 criterion = torch.nn.CrossEntropyLoss(reduction="sum")
