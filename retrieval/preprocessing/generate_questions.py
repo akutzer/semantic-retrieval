@@ -34,8 +34,8 @@ def collate_fn_wrapper(tokenizer, max_length=512):
     def collate_fn(batch):
         doc_ids, parag_ids, parags = zip(*batch)
         parags_token = tokenizer(
-            parags, padding='longest', truncation='longest_first',
-            return_tensors='pt', max_length=max_length)
+            parags, padding="longest", truncation="longest_first",
+            return_tensors="pt", max_length=max_length)
         return doc_ids, parag_ids, parags, parags_token
     
     return collate_fn

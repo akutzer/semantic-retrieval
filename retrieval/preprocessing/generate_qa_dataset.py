@@ -56,15 +56,15 @@ if __name__ == "__main__":
 
         if MODE.lower() == "tsv":
             with open(os.path.join(qa_dataset_path, "triples.train.tsv"), mode="w", encoding="utf-8", newline="") as trip_f:
-                writer = csv.writer(trip_f, delimiter='\t', lineterminator='\n')
+                writer = csv.writer(trip_f, delimiter="\t", lineterminator="\n")
                 writer.writerows(triples)
             
             with open(os.path.join(qa_dataset_path, "queries.train.tsv"), mode="w", encoding="utf-8", newline="") as q_f:
-                writer = csv.writer(q_f, delimiter='\t', lineterminator='\n')
+                writer = csv.writer(q_f, delimiter="\t", lineterminator="\n")
                 writer.writerows(qID_2_query.items())
             
             with open(os.path.join(qa_dataset_path, "passages.train.tsv"), mode="w", encoding="utf-8", newline="") as p_f:
-                writer = csv.writer(p_f, delimiter='\t', lineterminator='\n')
+                writer = csv.writer(p_f, delimiter="\t", lineterminator="\n")
                 writer.writerows(pID_2_passage.items())
 
         elif MODE.lower() == "json":

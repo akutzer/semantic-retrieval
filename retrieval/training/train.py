@@ -67,7 +67,7 @@ for epoch in range(1, config.epochs+1):
         
         optimizer.step()   
 
-        writer.add_scalar('Loss/train', losses, epoch*len(data_iter) + i)
-        writer.add_scalar('Acc/train', accs / config.batch_size, epoch*len(data_iter) + i)
+        writer.add_scalar("Loss/train", losses, epoch*len(data_iter) + i)
+        writer.add_scalar("Acc/train", accs / config.batch_size, epoch*len(data_iter) + i)
 
     data_iter.reset()

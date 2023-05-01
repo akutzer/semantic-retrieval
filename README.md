@@ -22,8 +22,8 @@ return multiple (N) candidate passages to the user (how large N is is up to you,
 ### **Installation**
 
 ```python
-pip install -r requirements.txt
-pip install -e .
+pip3 install -r requirements.txt
+pip3 install -e .
 ```
 
 ### **Tasks:**

@@ -1,2 +1,2 @@
 #!/usr/bin/env python3
-from .colbert import ColBERT
+from .colbert.colbert import ColBERT

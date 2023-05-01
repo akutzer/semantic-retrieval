@@ -31,7 +31,7 @@ class DocTokenizer():
     def encode(self, batch_text, add_special_tokens=False):
         assert type(batch_text) in [list, tuple], (type(batch_text))
 
-        ids = self.tok(batch_text, add_special_tokens=False)['input_ids']
+        ids = self.tok(batch_text, add_special_tokens=False)["input_ids"]
 
         if not add_special_tokens:
             return ids
@@ -45,12 +45,12 @@ class DocTokenizer():
         assert type(batch_text) in [list, tuple], (type(batch_text))
 
         # add placehold for the [D] marker
-        batch_text = ['. ' + x for x in batch_text]
+        batch_text = [". " + x for x in batch_text]
 
-        obj = self.tok(batch_text, padding='longest', truncation='longest_first',
-                       return_tensors='pt', max_length=self.doc_maxlen)
+        obj = self.tok(batch_text, padding="longest", truncation="longest_first",
+                       return_tensors="pt", max_length=self.doc_maxlen)
 
-        ids, mask = obj['input_ids'], obj['attention_mask']
+        ids, mask = obj["input_ids"], obj["attention_mask"]
 
         # postprocess for the [D] marker
         ids[:, 1] = self.D_marker_token_id
