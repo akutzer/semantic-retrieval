@@ -1,10 +1,10 @@
-## 1. Fandom crawl (currently working: Tommy)
-:white_check_mark: Download and extract fandom dumps. \
-:white_check_mark: Clean up these dumps, i.e. remove wiki markdown syntax, remove tables, etc., using [WikiExtractor](https://github.com/attardi/wikiextractor)
+## :bangbang: 1. Fandom crawl (currently working: Tommy)
+:heavy_check_mark: Download and extract fandom dumps. \
+:heavy_check_mark: Clean up these dumps, i.e. remove wiki markdown syntax, remove tables, etc., using [WikiExtractor](https://github.com/attardi/wikiextractor)
 
-:hourglass_flowing_sand: Remove some pages, like the front page, and whatever else you can find.
+:bangbang: :hourglass_flowing_sand: Remove some pages, like the front page, and whatever else you can find.
 
-:hourglass_flowing_sand: Split the page content into paragraphs, by first splitting those paragraphs into sentences using sentence tokenizers and then merging them up to a certain passage length. If a single sentence is longer than the maximum passage length, we have to split it in half. If passages or paragraphs are very short, merge them together.
+:bangbang: :hourglass_flowing_sand: Split the page content into paragraphs, by first splitting those paragraphs into sentences using sentence tokenizers and then merging them up to a certain passage length. If a single sentence is longer than the maximum passage length, we have to split it in half. If passages or paragraphs are very short, merge them together.
 
 Save the final dump in a JSON with the following format:
 ```json
@@ -24,7 +24,7 @@ If we have time we might also download and extract multi-linguistic wikis.
 
 
 ## 2. Generate Dataset/Training Set
-### Generating the question-answer pairs
+### :exclamation: Generating the question-answer pairs
 For each wiki, generate two datasets of the following type:
  - QQP-Dataset: `{(q⁺,q⁻,p) | for most passages p in the wiki}`
  - QPP-Dataset: `{(q,p⁺,p⁻) | for most passages p⁺ in the wiki}`
@@ -75,9 +75,9 @@ It is extremely important that there is no overlap between the three data sets.
 Try to find a good split ratio (80%-10%-10%, ...), search for typical ratios for similarly sized datasets.
 
 ### Classes for loading the dataset
-Write a Python class for efficient loading of these datasets.
+Write a Python class for efficient loading to be capable of working with both of the dataset types.
 
-The task is to create a Python class that takes the paths to the dataset files as input and can be used as either a map-style dataset or an iterable-style dataset. \
+The task is to create a Python class that takes the paths to the dataset files as input and can be used as either a *map-style* dataset or an *iterable-style* dataset. \
 A *map-style* dataset works like a list, so given an index i, return the i-the triple.
 An *iterable-style* iterates over the set of triples. \
 At each iteration/index, the output should be either just the triple of IDs or the triple with the IDs replaces by the actual strings.
@@ -85,24 +85,33 @@ Maybe some inspiration can be found here: https://pytorch.org/docs/stable/data.h
 
 The current [ColBERT dataloader](retrieval/data/dataloader.py) could be a good starting point, which implements an iterable-style dataset and also dataloader. One could base the dataset on this one, but maybe use better datastructures (maybe pandas.DataFrame). The tokenization step should be left out, as it should be implemented in each models dataloader. 
 
+### Benchmark datasets
+Find benchmarks/ gold standard datasets, on which we can train our models and compare with other papers. (For example to make sure our implementation is correct or if we design our own model to be able to compare it with others) \
+Look into: SQuAD 2.0, MS MARCO, TREC CAR... \
+Choose a dataset with is similar to our task & dataset (I think MS MARCO should be similar to our QPP dataset)
 
-## Implement Models
-### Baseline: BM-25 or TF-IDF
-:white_check_mark: Implement the BM-25 or TF-IDF model, using an external library. \
+
+
+## 3. Implement Models
+### :hourglass_flowing_sand: Baseline: BM-25 or TF-IDF
+:heavy_check_mark: Implement the BM-25 or TF-IDF model, using an external library. \
 The implementation should work with the previous described datasets class. In case the output of the dataset class is not directly usable, you can write a dataloader, which for example tokenizes the data from the dataset class and then combines these into a batch of data, which is then directly feed into the model. I don't know if this is necessary tho. ^^
 
-### ColBERT
-:white_check_mark: Implement the ColBERT model from the ColBERTv1 paper. \
+### :hourglass_flowing_sand: First Model: ColBERT
+:heavy_check_mark: Implement the ColBERT model from the ColBERTv1 paper. \
 :hourglass_flowing_sand: Add support for other backbones, like RoBERTa, TinyBERT, etc. \
 :hourglass_flowing_sand: Write dataloaders base on the dataset class. \
 Formulate the loss function, so that the training loop can just call .backward() on the loss. \
 Implement efficient inference using either re-ranking or full-retrieval.
+Focus on inference performance ("model performance"/FLOPs, "model performance"/inference time [µs])
 
-### other Model?
-tba
+### :bangbang: Second Model: ???
+Search for the code to the paper (e.g. https://paperswithcode.com/) or implement the model yourself using PyTorch (finding parameters would be very helpful for quicker training)
+
+Other exotic approaches can be interesting (probably not big problem if it doesn't outperform baseline)
 
 
-## Training loop
+## 4. Training loop
 Write a script for training the neural IR models.
 
 It should use the dataset class for our datasets and the dataloader for the selected model. \
@@ -115,18 +124,20 @@ The loss calculation should be part of the model, so we only need to call .backw
 
 
 
-## Evaluation
+## 5. Evaluation
 ### Metrics
 Implement metrics, like top-k accuracy, mean reciprocal rank, precision/recall, etc., which are suitable for our models and datasets. \
-The metrics should use a fairly universal interface, so the outputs of the models can be easily converted into fitting data formats, that can interact with the metrics.
+The metrics should use a fairly universal interface, so the outputs of the models can be easily converted into fitting data formats, that can interact with the metrics. \
+Meassure the parameters in a model, meassure the FLOPs and ms per answer-retrieval.
+(Parameters & FLOPs only necessary for neural IR approches)
 
 ### Meassuring
 Run the baseline and neural models on the test dataset and log their performance for later use in the paper. This script will probably look fairly similar to the training scripts.
 
 
-## Mockup
+## 6. Mockup
 tba
 
 
-## Paper
+## 7. Paper
 tba
