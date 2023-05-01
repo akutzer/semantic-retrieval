@@ -11,7 +11,7 @@ import swifter
 #   (X@q_vec.T, where X is matrix of all paragraph vectors and q_vec is the query vector)
 '''
 
-FOLDERS = ['../../data/fandom-qa/harry_potter_qa'
+FOLDERS = ['../../../data/fandom-qa/harry_potter_qa'
            #,'../../data/fandom-qa/witcher_qa_2'
            ]
 

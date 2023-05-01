@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from dataclasses import dataclass
 
 
@@ -9,6 +10,15 @@ class TokenizerSettings:
     doc_token_id: str = "[unused1]"
     query_token: str = "[Q]"
     doc_token: str = "[D]"
+
+
+@dataclass
+class ModelSettings:
+    backbone_name_or_path: str = "../data/colbertv2.0/" # "bert-base-uncased"
+    dim: int = 69
+    skip_punctuation: bool = True
+    similarity: str = "cosine" # "L2" or "cosine"
+    intra_batch_similarity: bool = False
 
 
 @dataclass
@@ -25,3 +35,10 @@ class QuerySettings:
     interaction: str = "colbert"
 
 
+@dataclass
+class TrainingSettings:
+    epochs: int = 10
+    batch_size: int = 128
+    accum_steps: int = 16
+    passages_per_query: int = 1
+    drop_last: bool = False
