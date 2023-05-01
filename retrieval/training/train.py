@@ -14,60 +14,66 @@ from retrieval.models import ColBERT
 from torch.utils.tensorboard import SummaryWriter
 
 
-random.seed(125)
-np.random.seed(125)
-torch.manual_seed(125)
-torch.cuda.manual_seed_all(125)
+SEED = 125
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+torch.cuda.manual_seed_all(SEED)
 
 
-MODEL_PATH = "../../data/colbertv2.0/" # "bert-base-uncased" #"bert-base-uncased" # 
-DEVICE = "cuda:0"
+MODEL_PATH = "bert-base-uncased" # "../../data/colbertv2.0/"
+DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 config = BaseConfig(
     tok_name_or_path=MODEL_PATH,
     backbone_name_or_path=MODEL_PATH,
     epochs = 10,
     batch_size = 32,
-    accum_steps = 2,
-    similarity="cosine", 
+    accum_steps = 2,    # sub_batch_size = ceil(batch_size / accum_steps)
+    similarity="cosine",
     intra_batch_similarity=True)
 
 writer = SummaryWriter()
 
-triples_path = "/home/aaron/Documents/Studium/Informatik/6_Semester/KP BigData/semantic-retrieval/data/fandom-qa/harry_potter_qa/triples.train.tsv"
-queries_path = "/home/aaron/Documents/Studium/Informatik/6_Semester/KP BigData/semantic-retrieval/data/fandom-qa/harry_potter_qa/queries.train.tsv"
-passages_path = "/home/aaron/Documents/Studium/Informatik/6_Semester/KP BigData/semantic-retrieval/data/fandom-qa/harry_potter_qa/passages.train.tsv"
+triples_path = "../../data/fandom-qa/witcher_qa/triples.train.tsv"
+queries_path = "../../data/fandom-qa/witcher_qa/queries.train.tsv"
+passages_path = "../../data/fandom-qa/witcher_qa/passages.train.tsv"
 
 data_iter = DataIterator(config, triples_path, queries_path, passages_path)
 
 colbert = ColBERT(config, device=DEVICE)
 
 optimizer = torch.optim.AdamW(colbert.parameters(), lr=5e-6, eps=1e-8)
-criterion = torch.nn.CrossEntropyLoss()
+criterion = torch.nn.CrossEntropyLoss(reduction="sum")
 
 for epoch in range(1, config.epochs+1):
     data_iter.shuffle()
     for i, batch in enumerate(tqdm(data_iter)):
-        #B = sum(map(lambda x: x[0].shape[0], batch))
         optimizer.zero_grad()
-        losses = 0
-        accs = 0
+        losses, accs = 0, 0
         for sub_batch in batch:
             q_tokens, q_masks, p_tokens, p_masks = sub_batch
             Q, P = (q_tokens, q_masks), (p_tokens, p_masks)
             sub_B = q_tokens.shape[0]
 
-            out = colbert(Q, P)        
-            accs += torch.sum(out.detach().max(dim=-1).indices == torch.arange(0, sub_B, device=DEVICE, dtype=torch.long))        
+            out = colbert(Q, P)
+
             loss = criterion(out, torch.arange(0, sub_B, device=DEVICE, dtype=torch.long))
             loss *= 1 / config.batch_size
+
+            # calculate the accuracy within a subbatch -> extremly inflated accuracy
+            accs += torch.sum(out.detach().max(dim=-1).indices == torch.arange(0, sub_B, device=DEVICE, dtype=torch.long))        
+            
+            # calculate & accumulate gradients, the update step is done after the entire batch
+            # has been passed through the model
             loss.backward()
 
             losses += loss.item()
         
-        optimizer.step()   
+        # update model parameters
+        optimizer.step() 
 
-        writer.add_scalar("Loss/train", losses, epoch*len(data_iter) + i)
-        writer.add_scalar("Acc/train", accs / config.batch_size, epoch*len(data_iter) + i)
+        writer.add_scalar("Loss/train", losses, (epoch-1)*len(data_iter) + i)
+        writer.add_scalar("Accuracy/train", accs / config.batch_size, (epoch-1)*len(data_iter) + i)
 
     data_iter.reset()

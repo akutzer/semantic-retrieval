@@ -54,7 +54,7 @@ class DataIterator():
         size = len(queries)
 
         assert self.accum_steps > 0
-        subbatch_size = self.batch_size // self.accum_steps
+        subbatch_size = math.ceil(self.batch_size / self.accum_steps)
 
         # tokenize
         q_tokens, q_masks = self.qry_tokenizer.tensorize(queries)
