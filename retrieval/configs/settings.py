@@ -15,7 +15,7 @@ class TokenizerSettings:
 @dataclass
 class ModelSettings:
     backbone_name_or_path: str = "../data/colbertv2.0/" # "bert-base-uncased"
-    dim: int = 69
+    dim: int = 128
     skip_punctuation: bool = True
     similarity: str = "cosine" # "L2" or "cosine"
     intra_batch_similarity: bool = False
@@ -31,7 +31,7 @@ class DocSettings:
 @dataclass
 class QuerySettings:
     query_maxlen: int = 32
-    attend_to_mask_tokens : bool = False
+    ignore_mask_tokens : bool = False
     interaction: str = "colbert"
 
 

@@ -7,17 +7,21 @@ import torch.nn as nn
 import torch.nn.functional as F
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
+from retrieval.configs import BaseConfig
+from retrieval.models.colbert.tokenizer import ColBERTTokenizer
+
 
 
 class ColBERT(nn.Module):
-    def __init__(self, config=None, device="cpu"):
+    def __init__(self, config: BaseConfig, tokenizer: ColBERTTokenizer, device="cpu"):
         super().__init__()
         self.config = config
         self.backbone_config = AutoConfig.from_pretrained(config.backbone_name_or_path)
         self.device = device
           
-        self.raw_tokenizer =AutoTokenizer.from_pretrained(config.tok_name_or_path)
+        self.tokenizer = tokenizer #AutoTokenizer.from_pretrained(config.tok_name_or_path)
         self.backbone = AutoModel.from_pretrained(config.backbone_name_or_path, config=self.backbone_config)
+        self.backbone.resize_token_embeddings(len(self.tokenizer))
   
         self.hid_dim = self.backbone.config.hidden_size
         self.linear = nn.Linear(self.hid_dim, config.dim, bias=False)
@@ -27,8 +31,8 @@ class ColBERT(nn.Module):
         if self.config.skip_punctuation:
             self.skiplist = {w: True
                              for symbol in string.punctuation
-                             for w in [symbol, self.raw_tokenizer.encode(symbol, add_special_tokens=False)[0]]}
-        self.pad_token_id = self.raw_tokenizer.pad_token_id
+                             for w in [symbol, self.tokenizer.tok.encode(symbol, add_special_tokens=False)[0]]}
+        self.pad_token_id = self.tokenizer.pad_token_id
 
         self.to(device=device)
         self.train()
@@ -114,6 +118,7 @@ class ColBERT(nn.Module):
                 # we need to negate, since we later want to maximize the similarity,
                 # and the closer they are, the smaller is the distance between two vectors
                 #print(Q[:, None, :, None].shape, D_padded[None, :, None].shape)
+                # TODO: try to improve this call, since it's extremly memory hungry
                 sim = -1.0 * (Q[:, None, :, None] - D_padded[None, :, None]).pow(2).sum(dim=-1)
                
             elif self.config.similarity.lower() == "cosine":                
@@ -173,7 +178,7 @@ class ColBERT(nn.Module):
 if __name__ == "__main__":
     from tqdm import tqdm
     from transformers import AutoTokenizer
-    from retrieval.configs import BaseConfig
+    #from retrieval.configs import BaseConfig
     
 
     queries = ["How are you today?", "Where do you live?"]

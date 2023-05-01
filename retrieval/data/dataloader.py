@@ -6,6 +6,7 @@ from retrieval.tokenization import QueryTokenizer, DocTokenizer
 from retrieval.data.queries import Queries
 from retrieval.data.passages import Passages
 from retrieval.data.triples import Triples
+from retrieval.models import ColBERTTokenizer
 
 
 
@@ -17,8 +18,9 @@ class DataIterator():
         self.psgs_per_qry = config.passages_per_query
         self.drop_last = config.drop_last
         
-        self.qry_tokenizer = QueryTokenizer(config)
-        self.doc_tokenizer = DocTokenizer(config)
+        #self.qry_tokenizer = QueryTokenizer(config)
+        #self.doc_tokenizer = DocTokenizer(config)
+        self.tokenizer = ColBERTTokenizer(config)
         self.position = 0
 
         self.triples = Triples(triples_path)
@@ -57,8 +59,8 @@ class DataIterator():
         subbatch_size = math.ceil(self.batch_size / self.accum_steps)
 
         # tokenize
-        q_tokens, q_masks = self.qry_tokenizer.tensorize(queries)
-        p_tokens, p_masks = self.doc_tokenizer.tensorize(passages)
+        q_tokens, q_masks = self.tokenizer.tensorize(queries, mode="query") # self.qry_tokenizer.tensorize(queries)
+        p_tokens, p_masks = self.tokenizer.tensorize(passages, mode="doc") # self.doc_tokenizer.tensorize(passages)
 
         # sort by paragraph length
         sorted_indices = p_masks.sum(dim=-1).sort(descending=True).indices
@@ -77,8 +79,8 @@ class DataIterator():
     def collate_fn_(self, queries, passages):
         size = len(queries)
 
-        q_tokens, q_masks = self.qry_tokenizer.tensorize(queries)
-        p_tokens, p_masks = self.doc_tokenizer.tensorize(passages)
+        q_tokens, q_masks = self.tokenizer.tensorize(queries, mode="query") # self.qry_tokenizer.tensorize(queries)
+        p_tokens, p_masks = self.tokenizer.tensorize(passages, mode="doc") # self.doc_tokenizer.tensorize(passages)
 
         assert self.accum_steps > 0
         subbatch_size = self.batch_size // self.accum_steps
