@@ -12,7 +12,7 @@ nltk.download("punkt")
 def clean_wiki(wiki, min_length=0, page_regex=None, parag_regex=None,
                max_heading_length=5, max_words_per_parag=250,
                print_statistics=True):
-    # removes wiki pages which are only 50 symbols long or which start with an URL
+    # removes wiki pages which are only 50 symbols long or which start with an URL(be careful)
     # important: this is an inplace operation
     raw_wiki[:] = [wiki_page for wiki_page in raw_wiki if wiki_filter(wiki_page, min_length=min_length, regex=page_regex)]
 
@@ -49,7 +49,7 @@ def wiki_filter(wiki_page, min_length, regex=None):
     return True
 
 
-def split_page_in_paragraphs(wiki_page, max_heading_length=5, max_words_per_parag=250, regex=None):
+def split_page_in_paragraphs(wiki_page, max_heading_length=5, max_words_per_parag=250, min_words_per_parag=20, regex=None):
     parags = wiki_page.split("\n")
 
     # first iteration: drop links and empty lines
@@ -85,6 +85,9 @@ def split_page_in_paragraphs(wiki_page, max_heading_length=5, max_words_per_para
             clean_parags.extend([f"[{last_parag_heading}] {sub_parag}" for sub_parag in sub_parags])
             
         else:
+            if len(prev_parag.split(" ")) <= min_words_per_parag:
+                clean_parags.pop(-1)
+                sub_parags = split_paragraphs(prev_parag + " " + parag, max_words_per_parag=max_words_per_parag)
             if last_parag_heading:
                 clean_parags.extend([f"[{last_parag_heading}] {sub_parag}" for sub_parag in sub_parags])
             else:
