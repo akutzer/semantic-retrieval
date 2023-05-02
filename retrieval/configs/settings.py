@@ -2,7 +2,6 @@
 from dataclasses import dataclass
 
 
-
 @dataclass
 class TokenizerSettings:
     tok_name_or_path: str = "../data/colbertv2.0/"

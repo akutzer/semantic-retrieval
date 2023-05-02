@@ -2,7 +2,7 @@
 import math
 import numpy as np
 
-from retrieval.tokenization import QueryTokenizer, DocTokenizer
+# from retrieval.tokenization import QueryTokenizer, DocTokenizer
 from retrieval.data.queries import Queries
 from retrieval.data.passages import Passages
 from retrieval.data.triples import Triples

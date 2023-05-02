@@ -31,7 +31,7 @@ class ColBERT(nn.Module):
         if self.config.skip_punctuation:
             self.skiplist = {w: True
                              for symbol in string.punctuation
-                             for w in [symbol, self.tokenizer.tok.encode(symbol, add_special_tokens=False)[0]]}
+                             for w in [symbol, self.tokenizer.encode(symbol, add_special_tokens=False)[0]]}
         self.pad_token_id = self.tokenizer.pad_token_id
 
         self.to(device=device)
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     queries = ["How are you today?", "Where do you live?"]
     passages = ["I'm great!", "Nowhere brudi."]
 
-    MODEL_PATH = "../../data/colbertv2.0/" # "bert-base-uncased"
+    MODEL_PATH = "bert-base-uncased" # "../../data/colbertv2.0/" 
     DEVICE = "cuda:0"
     EPOCHS = 25
 
@@ -197,7 +197,7 @@ if __name__ == "__main__":
     )
 
     tokenizer = AutoTokenizer.from_pretrained(config.tok_name_or_path)
-    colbert = ColBERT(config, device=DEVICE)
+    colbert = ColBERT(config, tokenizer, device=DEVICE)
 
     optimizer = torch.optim.AdamW(colbert.parameters(), lr=3e-4)
     criterion = nn.CrossEntropyLoss()

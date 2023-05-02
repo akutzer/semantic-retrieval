@@ -3,6 +3,7 @@ from transformers import AutoTokenizer
 from retrieval.configs import BaseConfig
 
 
+
 class ColBERTTokenizer():
     def __init__(self, config: BaseConfig):
         self.config = config
@@ -44,10 +45,16 @@ class ColBERTTokenizer():
             tokens = [prefix + tok_seq + suffix for tok_seq in tokens]
 
         return tokens
-
-    def encode(self, batch_text, mode, add_special_tokens=False, truncate=False):
-        assert type(batch_text) in [list, tuple], (type(batch_text))
+    
+    def encode(self, batch_text, mode="query", add_special_tokens=False, truncate=False):
+        #assert type(batch_text) in [list, tuple], (type(batch_text))
         assert isinstance(mode, str) and mode in ["query", "doc"]
+
+        string = False
+        if isinstance(batch_text, str):
+            batch_text = [batch_text]
+            string = True
+        
 
         batch_text = [" " + seq for seq in batch_text]
         ids = self.tok(batch_text, add_special_tokens=False, return_attention_mask=False)["input_ids"]
@@ -57,6 +64,9 @@ class ColBERTTokenizer():
             ids = [list(id_seq[:maxlen - 3]) for id_seq in ids]
 
         if not add_special_tokens:
+            if string:
+                return ids[0]
+
             return ids
         
         if mode == "query":
@@ -66,6 +76,9 @@ class ColBERTTokenizer():
         else:
             prefix, suffix = [self.cls_token_id, self.D_marker_token_id], [self.sep_token_id]
             ids = [prefix + id_seq + suffix for id_seq in ids]
+
+        if string:
+            return ids[0]
 
         return ids
 
@@ -134,11 +147,11 @@ if __name__ == "__main__":
     print("MODE: query")
     print("="*50)
     tokenize = tokenizer.tokenize(sentences, mode="query", add_special_tokens=True, truncate=True)
-    encode = tokenizer.encode(sentences, mode="query", add_special_tokens=True, truncate=True)
+    # encode = tokenizer.encode(sentences, mode="query", add_special_tokens=True, truncate=True)
     tensorize = tokenizer.tensorize(sentences, mode="query")[0]
 
     print(f"Tokenize: (len={len(tokenize[IDX])})", tokenize[IDX], sep="\n", end="\n\n")
-    print(f"Encode: (len={len(encode[IDX])})", encode[IDX], sep="\n", end="\n\n")
+    # print(f"Encode: (len={len(encode[IDX])})", encode[IDX], sep="\n", end="\n\n")
     print(f"Tensorize: (len={len(tensorize[IDX])})", tensorize[IDX], sep="\n", end="\n\n")
     print("Decode:", tokenizer.decode(tensorize[IDX]), end="\n\n\n")
 
@@ -146,10 +159,10 @@ if __name__ == "__main__":
     print("MODE: doc")
     print("="*50)
     tokenize = tokenizer.tokenize(sentences, mode="doc", add_special_tokens=True, truncate=True)
-    encode = tokenizer.encode(sentences, mode="doc", add_special_tokens=True, truncate=True)
+    # encode = tokenizer.encode(sentences, mode="doc", add_special_tokens=True, truncate=True)
     tensorize = tokenizer.tensorize(sentences, mode="doc")[0]
 
     print(f"Tokenize: (len={len(tokenize[IDX])})", tokenize[IDX], sep="\n", end="\n\n")
-    print(f"Encode: (len={len(encode[IDX])})", encode[IDX], sep="\n", end="\n\n")
+    # print(f"Encode: (len={len(encode[IDX])})", encode[IDX], sep="\n", end="\n\n")
     print(f"Tensorize: (len={len(tensorize[IDX])})", tensorize[IDX], sep="\n", end="\n\n")
     print("Decode:", tokenizer.decode(tensorize[IDX]), end="\n\n")
