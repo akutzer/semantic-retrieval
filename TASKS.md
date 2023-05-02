@@ -26,7 +26,7 @@ If we have time we might also download and extract multi-linguistic wikis.
 
 
 ## 2. Generate Dataset/Training Set
-### :exclamation: Generating the question-answer pairs (assigned: Aaron, Tommy)
+### :bangbang: Generating the question-answer pairs (assigned: Aaron, Tommy)
 For each wiki, generate two datasets of the following type:
  - QQP-Dataset: `{(q⁺,q⁻,p) | for most passages p in the wiki}`
  - QPP-Dataset: `{(q,p⁺,p⁻) | for most passages p⁺ in the wiki}`
@@ -108,7 +108,7 @@ The implementation should work with the previous described datasets class. In ca
 :heavy_check_mark: Implement the ColBERT model from the ColBERTv1 paper. \
 :heavy_check_mark: Add support for other backbones, like RoBERTa, TinyBERT, etc. \
 :hourglass_flowing_sand: Write dataloaders base on the dataset class. \
-Formulate the loss function, so that the training loop can just call .backward() on the loss. \
+:hourglass_flowing_sand: Formulate the loss function, so that the training loop can just call .backward() on the loss. \
 :hourglass_flowing_sand: Implement efficient inference using either re-ranking or full-retrieval.
 Focus on inference performance ("model performance"/FLOPs, "model performance"/inference time [µs]) \
 :hourglass_flowing_sand: Try torch.compile() to improve runtime performance.
@@ -122,7 +122,7 @@ Other exotic approaches can be interesting (probably not big problem if it doesn
 ## 4. Training loop
 
 ### Create a training script (assigned: Zhiwei)
-Write a script for training the neural IR models.
+Write a script for training the neural IR models. Have a look at the [ColBERT training script](https://github.com/stanford-futuredata/ColBERT/blob/main/colbert/training/training.py) as an example.
 
 It should use the dataset class for our datasets and the dataloader for the selected model. \
 :hourglass_flowing_sand: Add [Learning-Rate-Schedulers](https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate) (Warmup & LR-decay). \
@@ -132,7 +132,7 @@ It should use the dataset class for our datasets and the dataloader for the sele
 After each epoch, validate our model on the validation set using fitting evaluation metrics. \
 The loss calculation should be part of the model, so we only need to call .backward() in the training loop. \
 Implement Checkpoiting, where after a certain number of steps the model is saved. \
-Have a look at the [ColBERT training script](https://github.com/stanford-futuredata/ColBERT/blob/main/colbert/training/training.py) as an example.
+
 
 ### Train the models
 *tba*
@@ -141,7 +141,7 @@ Have a look at the [ColBERT training script](https://github.com/stanford-futured
 
 ## 5. Evaluation 
 ### Metrics (assigned: Florian, Till)
-Implement metrics, like top-k accuracy, mean reciprocal rank, precision/recall, etc., which are suitable for our models and datasets. \
+:hourglass_flowing_sand: Implement metrics, like top-k accuracy, mean reciprocal rank, precision/recall, etc., which are suitable for our models and datasets. \
 The metrics should use a fairly universal interface, so the outputs of the models can be easily converted into fitting data formats, that can interact with the metrics. \
 Count the parameters in a model, meassure the FLOPs and ms per answer-retrieval.
 (Parameters & FLOPs only necessary for neural IR approaches)
