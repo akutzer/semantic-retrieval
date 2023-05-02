@@ -10,7 +10,7 @@ nltk.download("punkt")
 
 
 def clean_wiki(wiki, min_length=0, page_regex=None, parag_regex=None,
-               max_heading_length=5, max_words_per_parag=250,
+               max_heading_length=5, max_words_per_parag=250, min_words_per_parag=20,
                print_statistics=True):
     # removes wiki pages which are only 50 symbols long or which start with an URL(be careful)
     # important: this is an inplace operation
@@ -24,7 +24,8 @@ def clean_wiki(wiki, min_length=0, page_regex=None, parag_regex=None,
         wiki_text = wiki["text"]
         parags = split_page_in_paragraphs(
             wiki_text, max_heading_length=max_heading_length,
-            max_words_per_parag=max_words_per_parag, regex=parag_regex
+            max_words_per_parag=max_words_per_parag, min_words_per_parag=min_words_per_parag,
+            regex=parag_regex
         )
         wiki["text"] = parags
         raw_wiki[i] = wiki
@@ -76,7 +77,7 @@ def split_page_in_paragraphs(wiki_page, max_heading_length=5, max_words_per_para
     last_parag_heading = ""
     for j, parag in enumerate(parags[1:], start=1):
         prev_parag = parags[j - 1]
-        sub_parags = split_paragraphs(parag, max_words_per_parag=max_words_per_parag)
+        sub_parags = split_paragraphs(parag, max_words_per_parag=max_words_per_parag, min_words_per_parag=min_words_per_parag)
         if len(prev_parag.split(" ")) <= max_heading_length:
             # remove the last line, since it was a heading, and merge it with
             # the current line
@@ -85,9 +86,9 @@ def split_page_in_paragraphs(wiki_page, max_heading_length=5, max_words_per_para
             clean_parags.extend([f"[{last_parag_heading}] {sub_parag}" for sub_parag in sub_parags])
             
         else:
-            if len(prev_parag.split(" ")) <= min_words_per_parag:
+            if len(prev_parag.split(" ")) <= min_words_per_parag and len(parag) > max_heading_length:
                 clean_parags.pop(-1)
-                sub_parags = split_paragraphs(prev_parag + " " + parag, max_words_per_parag=max_words_per_parag)
+                sub_parags = split_paragraphs(prev_parag + " " + parag, max_words_per_parag=max_words_per_parag, min_words_per_parag=min_words_per_parag)
             if last_parag_heading:
                 clean_parags.extend([f"[{last_parag_heading}] {sub_parag}" for sub_parag in sub_parags])
             else:
@@ -99,7 +100,7 @@ def split_page_in_paragraphs(wiki_page, max_heading_length=5, max_words_per_para
     return clean_parags
 
 # TODO: add min_words_per_parag
-def split_paragraphs(paragraph, max_words_per_parag):
+def split_paragraphs(paragraph, max_words_per_parag, min_words_per_parag):
     sentences = nltk.sent_tokenize(paragraph)
     sub_paragraphs = []
     current_sub_paragraph = ""
@@ -127,7 +128,10 @@ def split_paragraphs(paragraph, max_words_per_parag):
                     sub_paragraphs.append(current_sub_paragraph.strip())
                 current_sub_paragraph = sentence + " "
     
-    if current_sub_paragraph:
+    if len(current_sub_paragraph.split()) < min_words_per_parag and sub_paragraphs:
+        last_parag = sub_paragraphs.pop(-1)
+        sub_paragraphs.append(last_parag + " " + current_sub_paragraph)
+    elif current_sub_paragraph:
         sub_paragraphs.append(current_sub_paragraph.strip())
     
     return sub_paragraphs
@@ -203,7 +207,9 @@ if __name__ == "__main__":
     # soft upper bound for paragraphs, which can be exceeded
     MAX_WORDS_PER_PARAG = 120
 
-    
+    # lower bound for paragraphs
+    MIN_WORDS_PER_PARAG = 20
+
     for file in os.listdir(WIKI_PATHS):
         path_to_wiki = os.path.join(WIKI_PATHS, file)
 
@@ -221,7 +227,9 @@ if __name__ == "__main__":
         cleaned_wiki = clean_wiki(
             raw_wiki, min_length=MIN_LENGTH, parag_regex=parag_regex,
             max_heading_length=MAX_HEADING_LENGTH,
-            max_words_per_parag=MAX_WORDS_PER_PARAG, print_statistics=True)
+            max_words_per_parag=MAX_WORDS_PER_PARAG, 
+            min_words_per_parag=MIN_WORDS_PER_PARAG,
+            print_statistics=True)
 
         path_to_cleaned_wiki = os.path.join(os.path.split(WIKI_PATHS)[0], file.replace("_raw", ""))
         with open(path_to_cleaned_wiki, mode="w", encoding="utf-8") as f:
