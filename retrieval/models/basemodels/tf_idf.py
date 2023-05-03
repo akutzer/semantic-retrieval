@@ -62,7 +62,7 @@ def tfIDF(k, FOLDERS):
 
         metrics = Metrics(M, row_pid_mapping, col_qid_mapping, FOLDERS[i], qpp_triples=qpp_triples)
         metrics.isInBestK(5)
-        metrics.printTriples()
+
 
 
 def main():
