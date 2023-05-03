@@ -100,8 +100,14 @@ class Metrics:
         # should be big
         mrr_pos = 1/(self.meanIndexPositive()+1)
         mrr_neg = 1 - 1/(self.meanIndexNegative()+1)
-        mrr_combined = (mrr_pos + mrr_neg)/2
-        return mrr_pos, mrr_neg, mrr_combined
+        return mrr_pos, mrr_neg
+
+
+    def linearPositionScore(self):
+        num_p, _ = self.M.shape
+        lps_pos = (self.meanIndexPositive()-num_p)/-num_p
+        lps_neg = self.meanIndexNegative()/num_p
+        return lps_pos, lps_neg, (lps_pos+lps_neg)/2
 
 
     def confusionMatrix(self):
@@ -118,7 +124,7 @@ class Metrics:
     def precisionAndRecall(self):
         cm = self.confusionMatrix()
         TP, FP = cm[0]
-        FN, TN = cm[0]
+        FN, TN = cm[1]
         return TP/(TP + FP), TP/(TP + FN)
 
 
@@ -173,7 +179,8 @@ class Metrics:
         print(f"correct passage in top {k}: ", 100*self.isInBestK(k), "percent")
         print("precision/recall", self.precisionAndRecall())
         print(f"F-beta-score (beta = {beta})", self.FBetaScore(beta))
-        print("mean-reciprocal-rank(pos, neg, combined):", self.meanReciprocalRank())
+        print("mean-reciprocal-rank(pos, neg):", self.meanReciprocalRank())
+        print("linear-position-score(pos, neg, combined):", self.linearPositionScore())
 
 
 
