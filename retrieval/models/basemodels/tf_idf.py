@@ -60,7 +60,7 @@ def tfIDF(k, FOLDERS):
         X = X.toarray()
         M = X@Q
 
-        metrics = Metrics(M, row_pid_mapping, col_qid_mapping, FOLDERS[i], qpp_triples=qpp_triples)
+        metrics = Metrics(M, row_pid_mapping, col_qid_mapping, dataset_name=FOLDERS[i], qpp_triples=qpp_triples)
         metrics.isInBestK(5)
 
 
