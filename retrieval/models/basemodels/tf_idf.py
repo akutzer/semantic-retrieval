@@ -15,8 +15,8 @@ from retrieval.models.basemodels.metrics import Metrics
 #   (X@q_vec.T, where X is matrix of all paragraph vectors and q_vec is the query vector)
 '''
 
-FOLDERS = [#'../../../data/fandom_qa/harry_potter_qa_small'
-           '../../../data/fandom_qa/witcher_qa'
+FOLDERS = ['../../../data/fandom_qa/harry_potter_qa_small'
+           #'../../../data/fandom_qa/witcher_qa'
            ]
 
 # number of paragraphs that are acceptable for a question
@@ -62,6 +62,7 @@ def tfIDF(k, FOLDERS):
 
         metrics = Metrics(M, row_pid_mapping, col_qid_mapping, dataset_name=FOLDERS[i], qpp_triples=qpp_triples)
         metrics.isInBestK(5)
+        metrics.printStatistics(6,1)
 
 
 

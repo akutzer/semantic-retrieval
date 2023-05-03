@@ -128,9 +128,9 @@ class Metrics:
         return (beta**2 + 1)*(precision * recall)/(beta**2 * precision + recall)
 
 
-    #def printTriples(self):
-    #    for triple in self.qpp_triples:
-    #        print(triple)
+    def printTriples(self):
+        for triple in self.qpp_triples:
+            print(triple)
 
     #TODO FLOPS implmentieren
     def FLOPsPerAnswerRetrieval(self):
@@ -171,9 +171,9 @@ class Metrics:
     #TODO test statistics as soon as triples are working
     def printStatistics(self, k, beta):
         print("dataset name:", self.dataset_name)
-        print(f"correct passage in top{k}: ", 100*self.isInBestK(k), "percent")
+        print(f"correct passage in top {k}: ", 100*self.isInBestK(k), "percent")
         print("precision/recall", self.precisionAndRecall())
-        print(f"F-beta-score (beta = {beta})", self.precisionAndRecall())
+        print(f"F-beta-score (beta = {beta})", self.FBetaScore(beta))
         print("mean-reciprocal-rank(pos, neg, combined):", self.meanReciprocalRank())
 
 
