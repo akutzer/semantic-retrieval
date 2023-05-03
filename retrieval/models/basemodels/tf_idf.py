@@ -2,7 +2,6 @@ import pandas as pd
 import os 
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
-import swifter
 from retrieval.data.queries import Queries
 from retrieval.data.passages import Passages
 from retrieval.data.triples import Triples
@@ -16,8 +15,8 @@ from retrieval.models.basemodels.metrics import Metrics
 #   (X@q_vec.T, where X is matrix of all paragraph vectors and q_vec is the query vector)
 '''
 
-FOLDERS = [# '../../../data/fandom-qa/harry_potter_qa'
-           '../../../data/fandom-qa/witcher_qa_2'
+FOLDERS = [#'../../../data/fandom_qa/harry_potter_qa_small'
+           '../../../data/fandom_qa/witcher_qa'
            ]
 
 # number of paragraphs that are acceptable for a question
@@ -63,6 +62,7 @@ def tfIDF(k, FOLDERS):
 
         metrics = Metrics(M, row_pid_mapping, col_qid_mapping, FOLDERS[i], qpp_triples=qpp_triples)
         metrics.isInBestK(5)
+        metrics.printTriples()
 
 
 def main():
