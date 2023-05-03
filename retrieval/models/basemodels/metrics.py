@@ -168,7 +168,6 @@ class Metrics:
     def meanWallAndCPUTimePerAnswerRetrieval(self):
         return np.average(self.wall_times), np.average(self.cpu_times)
 
-    #TODO test statistics as soon as triples are working
     def printStatistics(self, k, beta):
         print("dataset name:", self.dataset_name)
         print(f"correct passage in top {k}: ", 100*self.isInBestK(k), "percent")
