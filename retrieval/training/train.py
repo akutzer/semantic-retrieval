@@ -21,7 +21,7 @@ torch.manual_seed(SEED)
 torch.cuda.manual_seed_all(SEED)
 
 
-MODEL_PATH = "roberta-base" #"bert-base-uncased" # "../../data/colbertv2.0/"
+MODEL_PATH = "roberta-base" # "bert-base-uncased" or "../../data/colbertv2.0/" or "roberta-base"
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 config = BaseConfig(
@@ -68,7 +68,7 @@ for epoch in range(1, config.epochs+1):
             loss *= 1 / config.batch_size
 
             # calculate the accuracy within a subbatch -> extremly inflated accuracy
-            accs += torch.sum(out.detach().max(dim=-1).indices == torch.arange(0, sub_B, device=DEVICE, dtype=torch.long))        
+            accs += torch.sum(out.detach().max(dim=-1).indices == torch.arange(0, sub_B, device=DEVICE, dtype=torch.long))
             
             # calculate & accumulate gradients, the update step is done after the entire batch
             # has been passed through the model
