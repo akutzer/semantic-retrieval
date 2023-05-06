@@ -81,8 +81,8 @@ It is extremely important that there is no overlap between the three data sets.
 
 Try to find a good split ratio (80%-10%-10%, ...), search for typical ratios for similarly sized datasets.
 
-### Classes for loading the dataset (assigned: Till)
-Write a Python class for efficient loading to be capable of working with both of the dataset types.
+### Classes for loading the dataset (assigned: Aaron)
+:hourglass_flowing_sand: Write a Python class for efficient loading to be capable of working with both of the dataset types.
 
 The task is to create a Python class that takes the paths to the dataset files as input and can be used as either a *map-style* dataset or an *iterable-style* dataset. \
 A *map-style* dataset works like a list, so given an index i, return the i-the triple.
@@ -102,14 +102,18 @@ Choose a dataset with is similar to our task & dataset (I think MS MARCO should 
 ## 3. Implement Models
 ### :hourglass_flowing_sand: Baseline: BM-25 or TF-IDF (assigned: Till, Florian)
 :heavy_check_mark: Implement the BM-25 or TF-IDF model, using an external library. \
+:hourglass_flowing_sand: Use the dataset class for the BM-25 or TF-IDF model \
+:exclamation: :hourglass_flowing_sand: Implement efficient inference, so given a query find the best passages as fast as possible; maybe try to precompute the wiki passages? \
 The implementation should work with the previous described datasets class. In case the output of the dataset class is not directly usable, you can write a dataloader, which for example tokenizes the data from the dataset class and then combines these into a batch of data, which is then directly feed into the model. I don't know if this is necessary tho. ^^
 
 ### :hourglass_flowing_sand: First Model: ColBERT (assigned: Aaron)
 :heavy_check_mark: Implement the ColBERT model from the ColBERTv1 paper. \
 :heavy_check_mark: Add support for other backbones, like RoBERTa, TinyBERT, etc. \
-:hourglass_flowing_sand: Write dataloaders base on the dataset class. \
+:heavy_check_mark: Write dataloaders base on the dataset class. \
+:hourglass_flowing_sand: Write dataloaders base on the dataset class and PyTorch dataloader class. \
 :hourglass_flowing_sand: Formulate the loss function, so that the training loop can just call .backward() on the loss. \
-:hourglass_flowing_sand: Implement efficient inference using either re-ranking or full-retrieval.
+Implement efficient inference using re-ranking (requires efficient TF-IDF or BM-25 implementation)\
+:hourglass_flowing_sand: Implement efficient inference using full-retrieval.
 Focus on inference performance ("model performance"/FLOPs, "model performance"/inference time [µs]) \
 :hourglass_flowing_sand: Try torch.compile() to improve runtime performance.
 
