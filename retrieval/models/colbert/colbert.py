@@ -16,7 +16,7 @@ class ColBERT(nn.Module):
     def __init__(self, config: BaseConfig, tokenizer: ColBERTTokenizer, device="cpu"):
         super().__init__()
         self.config = config
-        self.backbone_config = AutoConfig.from_pretrained(config.backbone_name_or_path)
+        self.backbone_config = self.__load_model_config(config)
         self.device = device
           
         self.tokenizer = tokenizer #AutoTokenizer.from_pretrained(config.tok_name_or_path)
@@ -24,7 +24,7 @@ class ColBERT(nn.Module):
         self.backbone.resize_token_embeddings(len(self.tokenizer))
   
         self.hid_dim = self.backbone.config.hidden_size
-        self.linear = nn.Linear(self.hid_dim, config.dim, bias=False)
+        self.linear = nn.Linear(self.hid_dim, self.config.dim, bias=False)
         if self.__load_linear_weights():
             print("Successfully loaded weights for last linear layer!")
 
@@ -33,6 +33,8 @@ class ColBERT(nn.Module):
                              for symbol in string.punctuation
                              for w in [symbol, self.tokenizer.encode(symbol, add_special_tokens=False)[0]]}
         self.pad_token_id = self.tokenizer.pad_token_id
+
+        print(self)
 
         self.to(device=device)
         self.train()
@@ -157,20 +159,34 @@ class ColBERT(nn.Module):
             
             if "pytorch_model" in file:
                 try:
-
                     with open(path_to_weights, mode="br") as f: 
                         parameters = torch.load(f)
 
                     if "linear.weight" in parameters.keys():
                         weights = parameters["linear.weight"]
-                        if weights.shape == self.linear.weight.shape:
-                            self.linear.weight.data = weights
+                        # replace the weights if the number of input features is the
+                        if weights.shape[-1] == self.linear.weight.shape[-1]:
+                            self.linear.weight.data = weights[:self.config.dim]
                             return True
 
                 except Exception as e:
                     print(f"Couldn't load linear weights: {e}")
 
         return False
+    
+    def __load_model_config(self, config):
+        backbone_config = AutoConfig.from_pretrained(config.backbone_name_or_path)
+
+        backbone_config.hidden_size = config.hidden_size
+        backbone_config.num_hidden_layers = config.num_hidden_layers
+        backbone_config.num_attention_heads = config.num_attention_heads
+        backbone_config.intermediate_size = config.intermediate_size
+        backbone_config.hidden_act = config.hidden_act
+        backbone_config.hidden_dropout_prob = config.dropout
+        backbone_config.attention_probs_dropout_prob = config.dropout
+
+        return backbone_config
+
 
 
 
@@ -184,7 +200,7 @@ if __name__ == "__main__":
     queries = ["How are you today?", "Where do you live?"]
     passages = ["I'm great!", "Nowhere brudi."]
 
-    MODEL_PATH = "bert-base-uncased" # "../../data/colbertv2.0/" 
+    MODEL_PATH = "bert-base-uncased" # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
     DEVICE = "cuda:0"
     EPOCHS = 25
 
@@ -193,13 +209,20 @@ if __name__ == "__main__":
         backbone_name_or_path=MODEL_PATH,
         similarity="l2",
         intra_batch_similarity=True,
-        epochs = EPOCHS
+        epochs = EPOCHS,
+        dim = 24,
+        hidden_size = 768,
+        num_hidden_layers = 6,
+        num_attention_heads = 8,
+        intermediate_size = 3072,
+        hidden_act = "gelu",
+        dropout = 0.3,
     )
 
     tokenizer = AutoTokenizer.from_pretrained(config.tok_name_or_path)
     colbert = ColBERT(config, tokenizer, device=DEVICE)
 
-    optimizer = torch.optim.AdamW(colbert.parameters(), lr=3e-4)
+    optimizer = torch.optim.AdamW(colbert.parameters(), lr=4e-5)
     criterion = nn.CrossEntropyLoss()
 
     Q = tokenizer(queries, return_token_type_ids=False, padding=True, return_tensors="pt")

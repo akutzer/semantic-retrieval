@@ -4,17 +4,20 @@ from dataclasses import dataclass
 
 @dataclass
 class TokenizerSettings:
-    tok_name_or_path: str = "../data/colbertv2.0/"
-    query_token_id: str = "[unused0]"
-    doc_token_id: str = "[unused1]"
+    tok_name_or_path: str = "bert-base-uncased" # pr "../data/colbertv2.0/" or "roberta-base"
     query_token: str = "[Q]"
     doc_token: str = "[D]"
 
 
 @dataclass
 class ModelSettings:
-    backbone_name_or_path: str = "../data/colbertv2.0/" # "bert-base-uncased"
-    dim: int = 128
+    backbone_name_or_path: str = "bert-base-uncased" # pr "../data/colbertv2.0/" or "roberta-base"
+    hidden_size: int = 768          # requires: <= 768
+    num_hidden_layers: int = 12     # requires: <= 12
+    num_attention_heads: int = 12   # requires: <= 12
+    intermediate_size: int = 3072
+    hidden_act: str = "gelu"
+    dropout: float = 0.1
     skip_punctuation: bool = True
     similarity: str = "cosine" # "L2" or "cosine"
     intra_batch_similarity: bool = False

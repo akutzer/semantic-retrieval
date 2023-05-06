@@ -32,7 +32,10 @@ config = BaseConfig(
     accum_steps = 2,    # sub_batch_size = ceil(batch_size / accum_steps)
     similarity="cosine",
     intra_batch_similarity=True,
-    dim=42)
+    num_hidden_layers = 12,
+    num_attention_heads = 12,
+    dropout = 0.1,
+    dim=32)
 
 writer = SummaryWriter()
 
