@@ -102,4 +102,4 @@ if __name__ == "__main__":
     for i, triple in enumerate(tqdm(dataset)):
         qid, pid_pos, *pid_neg = triple
         query, psg_pos, *psg_neg = dataset.id2string(triple)
-        print(triple, query, psg_pos, psg_neg, sep="\n", end="\n\n")
+        # print(triple, query, psg_pos, psg_neg, sep="\n", end="\n\n")
