@@ -32,10 +32,6 @@ class TripleDataset(torch.utils.data.Dataset):
 
         if self.output_string:
             triple = self.ids2strings(triple)
-            # if isinstance(index, slice):
-            #     triple = [self.replace_id_with_string(tri) for tri in triple]
-            # else: 
-            #     triple = self.replace_id_with_string(triple)
 
         return triple
     
@@ -102,7 +98,8 @@ if __name__ == "__main__":
     passages_path = "../../data/fandom-qa/witcher_qa/passages.train.tsv"
     dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QPP")
 
-    dataset.output_strings()
+    #dataset.output_strings()
     for i, triple in enumerate(tqdm(dataset)):
         qid, pid_pos, *pid_neg = triple
-        # print(triple)
+        query, psg_pos, *psg_neg = dataset.id2string(triple)
+        print(triple, query, psg_pos, psg_neg, sep="\n", end="\n\n")
