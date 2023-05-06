@@ -2,9 +2,11 @@
 :heavy_check_mark: Download and extract fandom dumps. \
 :heavy_check_mark: Clean up these dumps, i.e. remove wiki markdown syntax, remove tables, etc., using [WikiExtractor](https://github.com/attardi/wikiextractor)
 
-:bangbang: :hourglass_flowing_sand: Remove some pages, like the front page, and whatever else you can find.
+:bangbang: :hourglass_flowing_sand: Remove some pages, like the front page, and whatever else you can find. Update the passage RegEx pattern, which filters out passages, such as one of the type `__[\w*]__` or whatever.
 
-:bangbang: :hourglass_flowing_sand: Split the page content into paragraphs, by first splitting those paragraphs into sentences using sentence tokenizers and then merging them up to a certain passage length. If a single sentence is longer than the maximum passage length, we have to split it in half. If passages or paragraphs are very short, merge them together.
+:bangbang: :hourglass_flowing_sand: Split the page content into paragraphs, by first splitting those paragraphs into sentences using sentence tokenizers. Then split the Sentences into words (using a [WordPieceTokenizer](https://huggingface.co/docs/tokenizers/api/models#tokenizers.models.WordPiece)) to get it's length. After that start merging the sentences until a certain maximal passage length is reached, then start a new passage. This passage length should be a hard limit, so no passage is longer than it. If a single sentence is longer than the maximum passage length, we have to split it in half.
+
+:bangbang: :hourglass_flowing_sand: If passages or paragraphs are very short, merge them together.
 
 Save the final dump in a JSON with the following format:
 ```json
@@ -23,8 +25,8 @@ Save the final dump in a JSON with the following format:
 If we have time we might also download and extract multi-linguistic wikis.
 
 
-## 2. Generate Dataset/Training Set (assigned: :bangbang::bangbang:)
-### :exclamation: Generating the question-answer pairs
+## 2. Generate Dataset/Training Set
+### :bangbang: Generating the question-answer pairs (assigned: Aaron, Tommy)
 For each wiki, generate two datasets of the following type:
  - QQP-Dataset: `{(q⁺,q⁻,p) | for most passages p in the wiki}`
  - QPP-Dataset: `{(q,p⁺,p⁻) | for most passages p⁺ in the wiki}`
@@ -53,11 +55,16 @@ Each final datasets should then be saved in 4 files:
     as well as the list of PIDs, which refer to the passages that are part of this article
     - format:
     ```json
-    "WID":
-        "revid": int,
-        "url"  : string,
-        "title": string,
-        "PIDs" : list(int),
+    {
+        "WID":
+        {
+            "revid": int,
+            "url"  : string,
+            "title": string,
+            "PIDs" : list(int)
+        },
+        ...
+    }
     ```
 
 ### Splitting into Training, Validation & Test Set
@@ -74,7 +81,7 @@ It is extremely important that there is no overlap between the three data sets.
 
 Try to find a good split ratio (80%-10%-10%, ...), search for typical ratios for similarly sized datasets.
 
-### Classes for loading the dataset
+### Classes for loading the dataset (assigned: Till)
 Write a Python class for efficient loading to be capable of working with both of the dataset types.
 
 The task is to create a Python class that takes the paths to the dataset files as input and can be used as either a *map-style* dataset or an *iterable-style* dataset. \
@@ -99,11 +106,12 @@ The implementation should work with the previous described datasets class. In ca
 
 ### :hourglass_flowing_sand: First Model: ColBERT (assigned: Aaron)
 :heavy_check_mark: Implement the ColBERT model from the ColBERTv1 paper. \
-:hourglass_flowing_sand: Add support for other backbones, like RoBERTa, TinyBERT, etc. \
+:heavy_check_mark: Add support for other backbones, like RoBERTa, TinyBERT, etc. \
 :hourglass_flowing_sand: Write dataloaders base on the dataset class. \
-Formulate the loss function, so that the training loop can just call .backward() on the loss. \
-Implement efficient inference using either re-ranking or full-retrieval.
-Focus on inference performance ("model performance"/FLOPs, "model performance"/inference time [µs])
+:hourglass_flowing_sand: Formulate the loss function, so that the training loop can just call .backward() on the loss. \
+:hourglass_flowing_sand: Implement efficient inference using either re-ranking or full-retrieval.
+Focus on inference performance ("model performance"/FLOPs, "model performance"/inference time [µs]) \
+:hourglass_flowing_sand: Try torch.compile() to improve runtime performance.
 
 ### :bangbang: Second Model: ???
 Search for the code to the paper (e.g. https://paperswithcode.com/) or implement the model yourself using PyTorch (finding parameters would be very helpful for quicker training)
@@ -114,16 +122,17 @@ Other exotic approaches can be interesting (probably not big problem if it doesn
 ## 4. Training loop
 
 ### Create a training script (assigned: Zhiwei)
-Write a script for training the neural IR models.
+Write a script for training the neural IR models. Have a look at the [ColBERT training script](https://github.com/stanford-futuredata/ColBERT/blob/main/colbert/training/training.py) as an example.
 
 It should use the dataset class for our datasets and the dataloader for the selected model. \
-Add [Learning-Rate-Schedulers](https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate) (Warmup & LR-decay). \
-Look into [AMP](https://pytorch.org/docs/stable/amp.html?highlight=amp#module-torch.amp) and maybe add AMP support. \
-Look into [DistributedDataParallel](https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html#torch.nn.parallel.DistributedDataParallel) training. It is important, that we get this working on the HPC, otherwise it is useless for us, so reading into the HPC would be necessary too.\
-Look into logging, either using [Tensorboard](https://pytorch.org/docs/stable/tensorboard.html) or [Weights&Biases](https://docs.wandb.ai/guides/integrations/pytorch). \
+:hourglass_flowing_sand: Add [Learning-Rate-Schedulers](https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate) (Warmup & LR-decay). \
+:hourglass_flowing_sand: Look into [AMP](https://pytorch.org/docs/stable/amp.html?highlight=amp#module-torch.amp) and maybe add AMP support. \
+:hourglass_flowing_sand: Look into [DistributedDataParallel](https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html#torch.nn.parallel.DistributedDataParallel) training. It is important, that we get this working on the HPC, otherwise it is useless for us, so reading into the HPC would be necessary too.\
+:hourglass_flowing_sand: Look into logging, either using [Tensorboard](https://pytorch.org/docs/stable/tensorboard.html) or [Weights&Biases](https://docs.wandb.ai/guides/integrations/pytorch). \
 After each epoch, validate our model on the validation set using fitting evaluation metrics. \
-The loss calculation should be part of the model, so we only need to call .backward() in the training loop.
-Implement Checkpoiting, where after a certain number of steps the model is saved.
+The loss calculation should be part of the model, so we only need to call .backward() in the training loop. \
+Implement Checkpoiting, where after a certain number of steps the model is saved. \
+
 
 ### Train the models
 *tba*
@@ -131,11 +140,11 @@ Implement Checkpoiting, where after a certain number of steps the model is saved
 
 
 ## 5. Evaluation 
-### Metrics (assigned: Florian)
-Implement metrics, like top-k accuracy, mean reciprocal rank, precision/recall, etc., which are suitable for our models and datasets. \
+### Metrics (assigned: Florian, Till)
+:hourglass_flowing_sand: Implement metrics, like top-k accuracy, mean reciprocal rank, precision/recall, etc., which are suitable for our models and datasets. \
 The metrics should use a fairly universal interface, so the outputs of the models can be easily converted into fitting data formats, that can interact with the metrics. \
-Meassure the parameters in a model, meassure the FLOPs and ms per answer-retrieval.
-(Parameters & FLOPs only necessary for neural IR approches)
+Count the parameters in a model, meassure the FLOPs and ms per answer-retrieval.
+(Parameters & FLOPs only necessary for neural IR approaches)
 
 ### Meassuring
 Run the baseline and neural models on the test dataset and log their performance for later use in the paper. This script will probably look fairly similar to the training scripts.
