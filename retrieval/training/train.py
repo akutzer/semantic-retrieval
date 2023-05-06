@@ -6,7 +6,7 @@ import numpy as np
 
 
 from retrieval.configs import BaseConfig
-from retrieval.data import DataIterator
+from retrieval.data import TripleDataset, DataIterator
 from retrieval.models import ColBERT
 
 # tensorboard --logdir=runs
@@ -21,17 +21,22 @@ torch.manual_seed(SEED)
 torch.cuda.manual_seed_all(SEED)
 
 
-MODEL_PATH = "bert-base-uncased" # "../../data/colbertv2.0/"
+MODEL_PATH = "roberta-base" # "bert-base-uncased" or "../../data/colbertv2.0/" or "roberta-base"
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 config = BaseConfig(
     tok_name_or_path=MODEL_PATH,
     backbone_name_or_path=MODEL_PATH,
+    passages_per_query = 1,
     epochs = 10,
     batch_size = 32,
     accum_steps = 2,    # sub_batch_size = ceil(batch_size / accum_steps)
     similarity="cosine",
-    intra_batch_similarity=True)
+    intra_batch_similarity=True,
+    num_hidden_layers = 12,
+    num_attention_heads = 12,
+    dropout = 0.1,
+    dim=32)
 
 writer = SummaryWriter()
 
@@ -39,9 +44,10 @@ triples_path = "../../data/fandom-qa/witcher_qa/triples.train.tsv"
 queries_path = "../../data/fandom-qa/witcher_qa/queries.train.tsv"
 passages_path = "../../data/fandom-qa/witcher_qa/passages.train.tsv"
 
-data_iter = DataIterator(config, triples_path, queries_path, passages_path)
+dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QPP")
+data_iter = DataIterator(config, dataset)
 
-colbert = ColBERT(config, device=DEVICE)
+colbert = ColBERT(config, tokenizer=data_iter.tokenizer, device=DEVICE)
 
 optimizer = torch.optim.AdamW(colbert.parameters(), lr=5e-6, eps=1e-8)
 criterion = torch.nn.CrossEntropyLoss(reduction="sum")
@@ -62,7 +68,7 @@ for epoch in range(1, config.epochs+1):
             loss *= 1 / config.batch_size
 
             # calculate the accuracy within a subbatch -> extremly inflated accuracy
-            accs += torch.sum(out.detach().max(dim=-1).indices == torch.arange(0, sub_B, device=DEVICE, dtype=torch.long))        
+            accs += torch.sum(out.detach().max(dim=-1).indices == torch.arange(0, sub_B, device=DEVICE, dtype=torch.long))
             
             # calculate & accumulate gradients, the update step is done after the entire batch
             # has been passed through the model

@@ -69,7 +69,7 @@ if __name__ == "__main__":
 
         elif MODE.lower() == "json":
             with open(os.path.join(qa_dataset_path, "triples.train.json"), mode="w", encoding="utf-8") as trip_f:
-                json.dump(triples, trip_f)
+                json.dump(triples, trip_f, indent=0)
             
             with open(os.path.join(qa_dataset_path, "queries.train.json"), mode="w", encoding="utf-8") as q_f:
                 json.dump(qID_2_query, q_f, indent=0)
