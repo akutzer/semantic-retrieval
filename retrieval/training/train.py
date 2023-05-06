@@ -6,7 +6,7 @@ import numpy as np
 
 
 from retrieval.configs import BaseConfig
-from retrieval.data import DataIterator
+from retrieval.data import TripleDataset, DataIterator
 from retrieval.models import ColBERT
 
 # tensorboard --logdir=runs
@@ -27,6 +27,7 @@ DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 config = BaseConfig(
     tok_name_or_path=MODEL_PATH,
     backbone_name_or_path=MODEL_PATH,
+    passages_per_query = 1,
     epochs = 10,
     batch_size = 32,
     accum_steps = 2,    # sub_batch_size = ceil(batch_size / accum_steps)
@@ -43,7 +44,8 @@ triples_path = "../../data/fandom-qa/witcher_qa/triples.train.tsv"
 queries_path = "../../data/fandom-qa/witcher_qa/queries.train.tsv"
 passages_path = "../../data/fandom-qa/witcher_qa/passages.train.tsv"
 
-data_iter = DataIterator(config, triples_path, queries_path, passages_path)
+dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QPP")
+data_iter = DataIterator(config, dataset)
 
 colbert = ColBERT(config, tokenizer=data_iter.tokenizer, device=DEVICE)
 

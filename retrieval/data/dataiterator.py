@@ -4,7 +4,7 @@ import numpy as np
 
 # from retrieval.tokenization import QueryTokenizer, DocTokenizer
 from retrieval.configs import BaseConfig
-from retrieval.data import TripleDataset
+from retrieval.data.dataset import TripleDataset
 from retrieval.models import ColBERTTokenizer
 
 
@@ -110,4 +110,9 @@ if __name__ == "__main__":
         for sub_batch in batch:
             q_tokens, q_masks, p_tokens, p_masks = sub_batch
             Q, P = (q_tokens, q_masks), (p_tokens, p_masks)
+            data_iter.tokenizer.decode(Q[0][0])
+            print(Q[0][0], P[0][0])
+            print(data_iter.tokenizer.decode(Q[0][0]))
+            print(data_iter.tokenizer.decode(P[0][0]))
+            exit(0)
             #print(Q, P)
