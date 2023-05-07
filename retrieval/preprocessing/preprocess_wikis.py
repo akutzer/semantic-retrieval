@@ -117,7 +117,7 @@ def split_paragraphs(paragraph, max_words_per_parag, min_words_per_parag):
         else:
             if sentence_length > max_words_per_parag:
                 sub_paragraphs.append(current_sub_paragraph.strip())
-                sub_paragraphs.extend(split_sentence(sentence))
+                sub_paragraphs.extend(split_sentence(sentence, max_words_per_parag, min_words_per_parag))
                 current_sub_paragraph = ""
             elif 2*(max_words_per_parag - sub_paragraph_length) >= sentence_length:
                 current_sub_paragraph += sentence
@@ -138,16 +138,22 @@ def split_paragraphs(paragraph, max_words_per_parag, min_words_per_parag):
 
 # assumption: very long sentences use "," as separator
 # if not, then sentences will be doubled
-def split_sentence(sentence):
-    half_sentence = ""
+def split_sentence(sentence, max_words_per_parag, min_words_per_parag):
+    sub_sentence = ""
     short_sentences = []
-    sentence_halvelength = len(sentence.split())/2
     for subclause in sentence.split(", "):
-        if len(half_sentence.split()) <= sentence_halvelength:
-            half_sentence += subclause + ", "
+        sub_sentence_len = len(sub_sentence.split())
+        subclause_len = len(subclause.spit())
 
-    short_sentences.append(half_sentence)
-    short_sentences.append(sentence.replace(half_sentence, ""))
+        if  sub_sentence_len + subclause_len <= max_words_per_parag:
+            sub_sentence += subclause + ", "
+        else:
+            short_sentences.append(sub_sentence)
+            sub_sentence = subclause + ""
+
+    if sub_sentence < min_words_per_parag:
+        last_sentence = short_sentences.pop(-1)
+        short_sentences.append(last_sentence + ", " + sub_sentence)
 
     return short_sentences
 
