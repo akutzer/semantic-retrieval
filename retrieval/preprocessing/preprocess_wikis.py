@@ -12,7 +12,7 @@ nltk.download("punkt")
 def clean_wiki(wiki, min_length=0, page_regex=None, parag_regex=None,
                max_heading_length=5, max_words_per_parag=250, min_words_per_parag=20,
                print_statistics=True):
-    # removes wiki pages which are only 50 symbols long or which start with an URL(be careful)
+    # removes wiki pages which are only 50 symbols long or which start with an URL(be careful) or is a Mainpage ("__NOEDIT__")
     # important: this is an inplace operation
     raw_wiki[:] = [wiki_page for wiki_page in raw_wiki if wiki_filter(wiki_page, min_length=min_length, regex=page_regex)]
 
@@ -44,7 +44,7 @@ def wiki_filter(wiki_page, min_length, regex=None):
     if len(wiki_text.split(" ")) < min_length:
         return False
     
-    if regex is not None and regex.match(wiki_text):
+    if regex is not None and regex.search(wiki_text):
         return False
     
     return True
@@ -143,7 +143,7 @@ def split_sentence(sentence, max_words_per_parag, min_words_per_parag):
     short_sentences = []
     for subclause in sentence.split(", "):
         sub_sentence_len = len(sub_sentence.split())
-        subclause_len = len(subclause.spit())
+        subclause_len = len(subclause.split())
 
         if  sub_sentence_len + subclause_len <= max_words_per_parag:
             sub_sentence += subclause + ", "
@@ -151,7 +151,7 @@ def split_sentence(sentence, max_words_per_parag, min_words_per_parag):
             short_sentences.append(sub_sentence)
             sub_sentence = subclause + ""
 
-    if sub_sentence < min_words_per_parag:
+    if len(sub_sentence.split()) < min_words_per_parag:
         last_sentence = short_sentences.pop(-1)
         short_sentences.append(last_sentence + ", " + sub_sentence)
 
@@ -195,7 +195,7 @@ if __name__ == "__main__":
     WIKI_PATHS = "../../data/fandoms/dumps"
 
     # regex pattern for wiki pages, which should be removed, applies to the whole page
-    PAGE_ANTI_PATTERN = ""
+    PAGE_ANTI_PATTERN = "__[\w]*__"
     page_regex = re.compile(PAGE_ANTI_PATTERN)
 
     # regex pattern for paragraphs, which should be removed, will be applied to each paragraph
@@ -231,7 +231,9 @@ if __name__ == "__main__":
             raw_wiki = json.load(f)
         
         cleaned_wiki = clean_wiki(
-            raw_wiki, min_length=MIN_LENGTH, parag_regex=parag_regex,
+            raw_wiki, min_length=MIN_LENGTH, 
+            page_regex = page_regex, 
+            parag_regex=parag_regex,
             max_heading_length=MAX_HEADING_LENGTH,
             max_words_per_parag=MAX_WORDS_PER_PARAG, 
             min_words_per_parag=MIN_WORDS_PER_PARAG,
