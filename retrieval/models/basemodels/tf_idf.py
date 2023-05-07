@@ -7,6 +7,7 @@ from retrieval.data.triples import Triples
 from retrieval.data.dataset import TripleDataset
 from retrieval.models.basemodels.metrics import Metrics 
 from retrieval.configs import BaseConfig
+import time
 
 
 
@@ -40,15 +41,17 @@ class TfIdf():
             self.paragraphs = np.array([passages.values() for passages in list(zip(*self.folder_objects))[0]]).flatten()
 
         self.vectorizer, self.X = self.tfIDFCreatorFromArr(self.paragraphs)
+        self.X = self.X.toarray()
 
 
-    def answerQuestion(self, question):
+    def answerQuestion(self, question, k):
         Q = self.vectorizer.transform([question]).T
-        X = self.X.toarray()
-        M = X@Q
+        M = self.X@Q
 
-        max_ind = np.argmax(M)
-        return max_ind, self.paragraphs[max_ind]
+        max_ind = np.argsort(-M, axis=0).flatten()
+        best_k = [(max_ind[i],self.paragraphs[max_ind[i]])  for i in range(k)]
+        
+        return best_k
 
 
 
@@ -85,5 +88,9 @@ class TfIdf():
 
 if __name__ == "__main__":
     tf_idf = TfIdf(FOLDERS)
-    print(tf_idf.answerQuestion("who killed severus snape"))
+    import time
+    start_time = time.time()
+    print(tf_idf.answerQuestion("who killed severus snape", 5))
+    print("--- %s seconds ---" % (time.time() - start_time))
+
     # tf_idf.metrics(5)
