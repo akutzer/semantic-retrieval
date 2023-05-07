@@ -13,7 +13,6 @@ class ColBERTTokenizer():
         self.doc_maxlen = self.config.doc_maxlen
 
         self.tok.add_tokens([self.config.query_token, self.config.doc_token], special_tokens=True)
-        # TODO: add model.resize_token_embeddings(len(tokenizer))
 
         self.Q_marker_token, self.Q_marker_token_id = self.config.query_token, self.tok.convert_tokens_to_ids(self.config.query_token)
         self.D_marker_token, self.D_marker_token_id = self.config.doc_token, self.tok.convert_tokens_to_ids(self.config.doc_token)
@@ -27,7 +26,7 @@ class ColBERTTokenizer():
         assert type(batch_text) in [list, tuple], (type(batch_text))
         assert isinstance(mode, str) and mode in ["query", "doc"]
 
-        tokens = [self.tok.tokenize(" " + seq, add_special_tokens=False) for seq in batch_text]
+        tokens = [self.tok.tokenize(" " + seq, add_special_tokens=add_special_tokens) for seq in batch_text]
 
         if truncate:
             maxlen = self.query_maxlen if mode == "query" else self.doc_maxlen
@@ -57,7 +56,7 @@ class ColBERTTokenizer():
         
 
         batch_text = [" " + seq for seq in batch_text]
-        ids = self.tok(batch_text, add_special_tokens=False, return_attention_mask=False)["input_ids"]
+        ids = self.tok(batch_text, add_special_tokens=add_special_tokens, return_attention_mask=False)["input_ids"]
 
         if truncate:
             maxlen = self.query_maxlen if mode == "query" else self.doc_maxlen
@@ -99,14 +98,11 @@ class ColBERTTokenizer():
         # add placehold for the [Q]/[D] marker
         batch_text = [". " + seq for seq in batch_text]
 
-
         batch_encoding = self.tok(batch_text, padding=padding, truncation=True,
                        return_tensors=return_tensors, max_length=maxlen
                        )
 
         ids, mask = batch_encoding["input_ids"], batch_encoding["attention_mask"]
-
-
 
         # postprocess for the [Q]/[D] marker and the [MASK] augmentation
         ids[:, 1] = marker_id

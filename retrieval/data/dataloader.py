@@ -58,7 +58,7 @@ class DataIterator():
         # sort by paragraph length
         sorted_indices = p_masks.sum(dim=-1).sort(descending=True).indices
         q_tokens, q_masks = q_tokens[sorted_indices], q_masks[sorted_indices]
-        p_tokens, p_masks = p_tokens[sorted_indices], p_masks[sorted_indices] 
+        p_tokens, p_masks = p_tokens[sorted_indices], p_masks[sorted_indices]
 
         # split into sub-batches, while also removing unnecessary padding
         subbatch_p_maxlen = p_masks[::subbatch_size].sum(dim=-1)

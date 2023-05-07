@@ -16,16 +16,16 @@ class ColBERT(nn.Module):
     def __init__(self, config: BaseConfig, tokenizer: ColBERTTokenizer, device="cpu"):
         super().__init__()
         self.config = config
-        self.backbone_config = self.__load_model_config(config)
+        self.backbone_config = self._load_model_config(config)
         self.device = device
           
-        self.tokenizer = tokenizer #AutoTokenizer.from_pretrained(config.tok_name_or_path)
+        self.tokenizer = tokenizer
         self.backbone = AutoModel.from_pretrained(config.backbone_name_or_path, config=self.backbone_config)
         self.backbone.resize_token_embeddings(len(self.tokenizer))
   
         self.hid_dim = self.backbone.config.hidden_size
         self.linear = nn.Linear(self.hid_dim, self.config.dim, bias=False)
-        if self.__load_linear_weights():
+        if self._load_linear_weights():
             print("Successfully loaded weights for last linear layer!")
 
         if self.config.skip_punctuation:
@@ -33,8 +33,6 @@ class ColBERT(nn.Module):
                              for symbol in string.punctuation
                              for w in [symbol, self.tokenizer.encode(symbol, add_special_tokens=False)[0]]}
         self.pad_token_id = self.tokenizer.pad_token_id
-
-        print(self)
 
         self.to(device=device)
         self.train()
@@ -64,7 +62,8 @@ class ColBERT(nn.Module):
         Q = self.linear(Q)
 
         # normalize each vector
-        Q = F.normalize(Q, p=2, dim=-1)
+        if self.config.normalize:
+            Q = F.normalize(Q, p=2, dim=-1)
 
         return Q
 
@@ -77,7 +76,8 @@ class ColBERT(nn.Module):
         D = self.linear(D)
 
         # normalize each vector
-        D = F.normalize(D, p=2, dim=-1)
+        if self.config.normalize:
+            D = F.normalize(D, p=2, dim=-1)
 
         # mask the vectors representing the embedding of punctuation symbols
         mask = torch.tensor(self.mask(input_ids, skiplist=self.skiplist), device=self.device, dtype=torch.bool)
@@ -148,7 +148,7 @@ class ColBERT(nn.Module):
         mask = [[(tok not in skiplist) and (tok != self.pad_token_id) for tok in sample] for sample in input_ids.cpu().tolist()]
         return mask
     
-    def __load_linear_weights(self):
+    def _load_linear_weights(self):
         if not os.path.exists(self.config.backbone_name_or_path):
             return False
 
@@ -174,7 +174,7 @@ class ColBERT(nn.Module):
 
         return False
     
-    def __load_model_config(self, config):
+    def _load_model_config(self, config):
         backbone_config = AutoConfig.from_pretrained(config.backbone_name_or_path)
 
         backbone_config.hidden_size = config.hidden_size
@@ -212,23 +212,21 @@ if __name__ == "__main__":
         epochs = EPOCHS,
         dim = 24,
         hidden_size = 768,
-        num_hidden_layers = 6,
-        num_attention_heads = 8,
+        num_hidden_layers = 12,
+        num_attention_heads = 12,
         intermediate_size = 3072,
         hidden_act = "gelu",
-        dropout = 0.3,
+        dropout = 0.1,
     )
 
-    tokenizer = AutoTokenizer.from_pretrained(config.tok_name_or_path)
+    tokenizer = ColBERTTokenizer(config)
     colbert = ColBERT(config, tokenizer, device=DEVICE)
 
     optimizer = torch.optim.AdamW(colbert.parameters(), lr=4e-5)
     criterion = nn.CrossEntropyLoss()
 
-    Q = tokenizer(queries, return_token_type_ids=False, padding=True, return_tensors="pt")
-    P = tokenizer(passages, return_token_type_ids=False, padding=True, return_tensors="pt")
-
-    Q, P = (Q["input_ids"], Q["attention_mask"]), (P["input_ids"], Q["attention_mask"])
+    Q = tokenizer.tensorize(queries, mode="query", return_tensors="pt")
+    P = tokenizer.tensorize(passages, mode="doc", return_tensors="pt")
     out = colbert(Q, P)
 
 
