@@ -31,7 +31,7 @@ class ColBERTInference(ColBERT):
     
     def query_from_text(self, queries: List[str], to_cpu=False):
         # TODO: update batch_size, accum_steps and bucket_size in settings.py
-        bsize = self.config.accum_steps
+        bsize = math.ceil(self.config.batch_size / self.config.accum_steps)
         Qs = []
 
         with torch.inference_mode():
@@ -46,7 +46,7 @@ class ColBERTInference(ColBERT):
     
     def doc_from_text(self, doc: List[str], to_cpu=False):
         # TODO: update batch_size, accum_steps and bucket_size in settings.py
-        bsize = self.config.accum_steps
+        bsize = math.ceil(self.config.batch_size / self.config.accum_steps)
         Ds = []
 
         with torch.inference_mode():
@@ -75,7 +75,7 @@ if __name__ == "__main__":
         backbone_name_or_path=MODEL_PATH,
         similarity="l2",
         dim = 24,
-        accum_steps=16
+        accum_steps=1
     )
 
     tokenizer = ColBERTTokenizer(config)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from transformers import AutoTokenizer
 from retrieval.configs import BaseConfig
-
+from retrieval.models.colbert.utils import _split_into_batches
 
 
 class ColBERTTokenizer():
@@ -81,7 +81,7 @@ class ColBERTTokenizer():
 
         return ids
 
-    def tensorize(self, batch_text, mode, return_tensors="pt"):
+    def tensorize(self, batch_text, mode, bsize=None, return_tensors="pt"):
         assert type(batch_text) in [list, tuple], (type(batch_text))
         assert isinstance(mode, str) and mode in ["query", "doc"]
 
@@ -112,24 +112,27 @@ class ColBERTTokenizer():
         if self.config.ignore_mask_tokens:
             mask[ids == self.mask_token_id] = 1
             assert mask.sum().item() == mask.size(0) * mask.size(1), mask
+        
+        if bsize:
+            return _split_into_batches(ids, mask, bsize)
 
         return ids, mask
     
-    def decode(self, batch_ids, **kwars):
-        return self.tok.decode(batch_ids, **kwars)
+    def decode(self, batch_ids, **kwargs):
+        return self.tok.decode(batch_ids, **kwargs)
     
     def __len__(self):
         return len(self.tok)
 
 
-
 if __name__ == "__main__":
 
     sentences = [
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", 
-        #"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+        "1. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+        "2.. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", 
+        "3.. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+        "4. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
     ]
-
 
     base_tokenizers = ["bert-base-uncased", "roberta-base", "../../../data/colbertv2.0/"]
     config = BaseConfig(
@@ -138,6 +141,13 @@ if __name__ == "__main__":
 
     tokenizer = ColBERTTokenizer(config)
     IDX = 0
+
+    batches = tokenizer.tensorize(sentences, mode="doc", bsize=2)
+    for b in batches:
+        ids, mask = b
+        print(b)
+        print(tokenizer.decode(b[0][0]))
+    # exit(0)
     
     print("="*50)
     print("MODE: query")
