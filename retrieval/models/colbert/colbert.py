@@ -10,6 +10,10 @@ from transformers import AutoConfig, AutoModel, AutoTokenizer
 from retrieval.configs import BaseConfig
 from retrieval.models.colbert.tokenizer import ColBERTTokenizer
 
+# suppresses the warnings when loading a model with unused parameters 
+import logging
+logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
+
 
 
 class ColBERT(nn.Module):

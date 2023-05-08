@@ -107,10 +107,12 @@ class ColBERTTokenizer():
         # postprocess for the [Q]/[D] marker and the [MASK] augmentation
         ids[:, 1] = marker_id
         if mode == "query":
-            ids[ids == self.pad_token_id] = self.mask_token_id
+            bool_mask = ids == self.pad_token_id
+            ids[bool_mask] = self.mask_token_id
+            mask[bool_mask] = 1
 
         if self.config.ignore_mask_tokens:
-            mask[ids == self.mask_token_id] = 1
+            mask[ids == self.mask_token_id] = 0
             assert mask.sum().item() == mask.size(0) * mask.size(1), mask
             
         if bsize:
@@ -128,6 +130,7 @@ class ColBERTTokenizer():
 if __name__ == "__main__":
 
     sentences = [
+        "Query?",
         "1. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
         "2.. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", 
         "3.. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
@@ -136,18 +139,18 @@ if __name__ == "__main__":
 
     base_tokenizers = ["bert-base-uncased", "roberta-base", "../../../data/colbertv2.0/"]
     config = BaseConfig(
-        tok_name_or_path=base_tokenizers[2]
+        tok_name_or_path=base_tokenizers[0]
     )
 
     tokenizer = ColBERTTokenizer(config)
     IDX = 0
 
-    batches = tokenizer.tensorize(sentences, mode="doc", bsize=2)
+    batches = tokenizer.tensorize(sentences, mode="query", bsize=1)
     for b in batches:
         ids, mask = b
-        print(b)
+        print(b[0].shape)
         print(tokenizer.decode(b[0][0]))
-    # exit(0)
+    exit(0)
     
     print("="*50)
     print("MODE: query")

@@ -35,10 +35,8 @@ class ColBERTInference(ColBERT):
         Qs = []
 
         with torch.inference_mode():
-            for i in range(0, len(queries), bsize):
-                qry_batch = queries[i:i+bsize]
-                Q = self.tokenizer.tensorize(qry_batch, mode="query")
-                #print(Q)
+            batches = self.tokenizer.tensorize(queries, mode="query", bsize=bsize)
+            for Q in batches:
                 Q = self.query(*Q, to_cpu=to_cpu)
                 Qs.extend(Q)
 
@@ -50,9 +48,8 @@ class ColBERTInference(ColBERT):
         Ds = []
 
         with torch.inference_mode():
-            for i in range(0, len(doc), bsize):
-                doc_batch = doc[i:i+bsize]
-                D = self.tokenizer.tensorize(doc_batch, mode="doc")
+            batches = self.tokenizer.tensorize(doc, mode="doc", bsize=bsize)
+            for D in batches:
                 D = self.doc(*D, to_cpu=to_cpu)
                 Ds.extend(D)
 
@@ -65,17 +62,18 @@ if __name__ == "__main__":
     from tqdm import tqdm
 
     queries = ["Hi, how are you today?", "Wow, Where do you live?"]
-    passages = ["I'm ... let me think ... great!", "Nowhere, brudi."]
+    passages = ["I'm ... let me think ... great!", "Nowhere, brudi.", "ooohhh noooo..."]
 
     MODEL_PATH = "bert-base-uncased" # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
-    DEVICE = "cuda:0"
+    DEVICE = "cuda:0" # "cpu"
 
     config = BaseConfig(
         tok_name_or_path=MODEL_PATH,
         backbone_name_or_path=MODEL_PATH,
         similarity="l2",
         dim = 24,
-        accum_steps=1
+        batch_size = 3,
+        accum_steps = 1,
     )
 
     tokenizer = ColBERTTokenizer(config)
@@ -87,11 +85,10 @@ if __name__ == "__main__":
     qrys1 = colbert.query(*Q)
     qrys2 = colbert.query_from_text(queries)
     for qry1, qry2 in zip(qrys1, qrys2):
-        # print(torch.max(qry1 - qry2))
-        print(torch.allclose(qry1, qry2))
+        # print(qry1.shape, qry2.shape)
+        print(torch.allclose(qry1, qry2), torch.max(qry1 - qry2).item())
 
     psgs1 = colbert.doc(*P)
     psgs2 = colbert.doc_from_text(passages)
     for psg1, psg2 in zip(psgs1, psgs2):
-        # print(torch.max(psg1 - psg2))
-        print(torch.allclose(psg1, psg2))
+        print(torch.allclose(psg1, psg2), torch.max(psg1 - psg2).item())

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import pandas as pd
 
-
+# TODO: merge Passages & Queries Class 
 
 class Passages:
     def __init__(self, path=None):

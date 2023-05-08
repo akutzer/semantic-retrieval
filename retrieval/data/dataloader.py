@@ -40,12 +40,12 @@ class BucketIterator():
             raise StopIteration
         
         qry_batch, psg_batch = [], []
-        for i in range(offset, endpos):
+        for idx in range(offset, endpos):
             if self.dataset.is_qqp():
-                *qids,  pids = self.dataset[i]
+                *qids,  pids = self.dataset[idx]
                 pids = [pids]
             else:   # mode == "qpp"
-                qids, *pids = self.dataset[i]
+                qids, *pids = self.dataset[idx]
                 qids = [qids]
                 pids = pids[:self.config.passages_per_query]
             
