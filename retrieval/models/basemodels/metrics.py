@@ -6,7 +6,15 @@ from torchprofile import profile_macs
 import time
 
 class Metrics:
-    def __init__(self, M, row_pid_mapping, col_qid_mapping, dataset_name, qpp_triples:Triples=None, pqq_triples:Triples=None):
+    def __init__(self):
+        self.M = None
+        # CPU/Execution Time
+        self.wall_start_time = 0
+        self.cpu_start_time = 0
+        self.wall_times = []
+        self.cpu_times = []
+
+    def evaluateDatasetIntoM(self, M, row_pid_mapping, col_qid_mapping, dataset_name, qpp_triples:Triples=None, pqq_triples:Triples=None):
         self.M = np.array(M)
         self.row_pid_mapping = row_pid_mapping
         self.col_qid_mapping = col_qid_mapping
@@ -23,12 +31,6 @@ class Metrics:
         # inverse of mapping
         self.pid_row_mapping = {v: k for k, v in row_pid_mapping.items()}
         self.qid_col_mapping = {v: k for k, v in col_qid_mapping.items()}
-
-        # CPU/Execution Time
-        self.wall_start_time = 0
-        self.cpu_start_time = 0
-        self.wall_times = []
-        self.cpu_times = []
 
 
     # position where element would be if sorted
@@ -154,11 +156,11 @@ class Metrics:
 
     #TODO add start and end bevor and after function call
     def startCPUTime(self):
-        self.start_time = time.process_time()
+        self.cpu_start_time = time.process_time()
 
 
     def startWallTime(self):
-        self.start_time = time.time()
+        self.wall_start_time = time.time()
 
 
     def stopCPUTime(self):
@@ -168,20 +170,42 @@ class Metrics:
 
     def stopWallTime(self):
         elapsed_time = time.time() - self.wall_start_time
-        self.cpu_times.append(elapsed_time)
+        self.wall_times.append(elapsed_time)
 
 
     def meanWallAndCPUTimePerAnswerRetrieval(self):
-        return np.average(self.wall_times), np.average(self.cpu_times)
+        '''in miliseconds'''
+        mwallt = 0
+        mcput = 0
+        print(self.wall_times)
+        print(self.cpu_times)
+        if self.wall_times:
+            mwallt = np.average(self.wall_times)
+        if self.cpu_times:
+            mcput = np.average(self.cpu_times)
+        return mwallt, mcput
 
     def printStatistics(self, k, beta):
-        print("dataset name:", self.dataset_name)
-        print(f"correct passage in top {k}: ", 100*self.isInBestK(k), "percent")
-        print("precision/recall", self.precisionAndRecall())
-        print(f"F-beta-score (beta = {beta})", self.FBetaScore(beta))
-        print("mean-reciprocal-rank(pos, neg):", self.meanReciprocalRank())
-        print("linear-position-score(pos, neg, combined):", self.linearPositionScore())
+        if not self.M is None:
+            print("dataset name:", self.dataset_name)
+            print(f"correct passage in top {k}: ", 100*self.isInBestK(k), "percent")
+            print("precision/recall", self.precisionAndRecall())
+            print(f"F-beta-score (beta = {beta})", self.FBetaScore(beta))
+            print("mean-reciprocal-rank(pos, neg):", self.meanReciprocalRank())
+            print("linear-position-score(pos, neg, combined):", self.linearPositionScore())
+        else:
+            print("no dataset was evaluated!")
 
+    def printMeanWallAndCPUTime(self):
+        wall_time, cpu_time = self.meanWallAndCPUTimePerAnswerRetrieval()
+        if wall_time > 0:
+            print("mean wall time: ", wall_time)
+        else:
+            print("no data about wall time!")
+        if cpu_time > 0:
+            print("mean cpu time: ", cpu_time)
+        else:
+            print("no data about cpu time!")
 
 
 

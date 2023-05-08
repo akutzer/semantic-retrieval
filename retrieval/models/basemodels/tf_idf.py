@@ -17,7 +17,7 @@ import time
 #   (X@Q.T, where X is matrix of all paragraph vectors and Q is the query matrix)
 '''
 
-FOLDERS = ['../../../data/fandom-qa/harry_potter_qa'
+FOLDERS = ['../../../data/fandom-qa/harry_potter_qa_small_test'
            #'../../../data/fandom_qa/witcher_qa'
            ]
 
@@ -35,6 +35,7 @@ class TfIdf():
         self.triple_files = [x + '/' + y for x in folders for y in os.listdir(x) if 'triples' in y and '.tsv' in y]
 
         self.folder_objects = [(Passages(passage_file), Queries(question_file), Triples(triple_file, mode)) for passage_file,question_file, triple_file in zip(self.passage_files, self.question_files, self.triple_files)]
+        self.metrics = Metrics()
 
         self.paragraphs = None
         if combine_paragraphs:
@@ -45,12 +46,14 @@ class TfIdf():
 
 
     def answerQuestion(self, question, k):
+        self.metrics.startCPUTime()
+        self.metrics.startWallTime()
         Q = self.vectorizer.transform([question]).T
         M = self.X@Q
-
         max_ind = np.argsort(-M, axis=0).flatten()
-        best_k = [(max_ind[i],self.paragraphs[max_ind[i]])  for i in range(k)]
-        
+        best_k = [(max_ind[i],self.paragraphs[max_ind[i]]) for i in range(k)]
+        self.metrics.stopCPUTime()
+        self.metrics.stopWallTime()
         return best_k
 
 
@@ -62,10 +65,9 @@ class TfIdf():
         return vectorizer, X
     
     
-    def metrics(self,k):
+    def evaluate_folders(self,k,beta):
         for i in range(len(self.folders)):
             paragraphs, queries, qpp_triples = self.folder_objects[i]
-
             # order is the same i googled it
             row_pid_mapping = dict(enumerate(paragraphs.keys()))
             col_qid_mapping = dict(enumerate(queries.keys()))
@@ -79,18 +81,22 @@ class TfIdf():
             X = X.toarray()
             M = X@Q
 
-            metrics = Metrics(M, row_pid_mapping, col_qid_mapping, dataset_name=self.folders[i], qpp_triples=qpp_triples)
-            metrics.printStatistics(6,1)
+            self.metrics.evaluateDatasetIntoM(M, row_pid_mapping, col_qid_mapping, dataset_name=self.folders[i], qpp_triples=qpp_triples)
+            self.metrics.printStatistics(k, beta)
 
-
-
+    def printMeanWallAndCPUTime(self):
+        self.metrics.printMeanWallAndCPUTime()
 
 
 if __name__ == "__main__":
     tf_idf = TfIdf(FOLDERS)
     import time
-    start_time = time.time()
+    #start_time = time.time()
     print(tf_idf.answerQuestion("who killed severus snape", 5))
-    print("--- %s seconds ---" % (time.time() - start_time))
-
-    # tf_idf.metrics(5)
+    #print("--- %s seconds ---" % (time.time() - start_time))
+    print(tf_idf.answerQuestion("what is god", 5))
+    print(tf_idf.answerQuestion("is aaron god", 5))
+    print(tf_idf.answerQuestion("does god love me", 5))
+    tf_idf.evaluate_folders(8, 3)
+    tf_idf.printMeanWallAndCPUTime()
+    # tf_idf.metrics(5)S
