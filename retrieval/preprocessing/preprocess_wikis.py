@@ -82,13 +82,12 @@ def split_page_in_paragraphs(wiki_page, max_heading_length=5, max_words_per_para
             # remove the last line, since it was a heading, and merge it with
             # the current line
             clean_parags.pop(-1)
-            last_parag_heading = prev_parag[:-1] 
+            last_parag_heading = prev_parag[:-1]
             clean_parags.extend([f"[{last_parag_heading}] {sub_parag}" for sub_parag in sub_parags])
             
         else:
-            if len(prev_parag.split(" ")) <= min_words_per_parag and len(parag.split()) > max_heading_length:
-                clean_parags.pop(-1)
-                sub_parags = split_paragraphs(prev_parag + " " + parag, max_words_per_parag=max_words_per_parag, min_words_per_parag=min_words_per_parag)
+            if clean_parags and len(clean_parags[-1].split(" ")) <= min_words_per_parag and len(parag.split()) > max_heading_length:
+                sub_parags = split_paragraphs(clean_parags.pop(-1).replace(f"[{last_parag_heading}]", "") + " " + parag, max_words_per_parag=max_words_per_parag, min_words_per_parag=min_words_per_parag)
             if last_parag_heading:
                 clean_parags.extend([f"[{last_parag_heading}] {sub_parag}" for sub_parag in sub_parags])
             else:
@@ -96,6 +95,18 @@ def split_page_in_paragraphs(wiki_page, max_heading_length=5, max_words_per_para
     
     # drop empty sub paragraphs just in case
     clean_parags[:] = [parag.strip() for parag in clean_parags if len(parag.strip())]
+
+    # merge short paragraphs
+    parags = []
+    long_parag = ""
+    for parag in clean_parags:
+        if len(long_parag.split()) + len(parag.split()) <= min_words_per_parag:
+            long_parag += parag + " "
+        else:
+            if long_parag:
+                parags.append(long_parag)
+            long_parag = parag
+    clean_parags = parags
 
     return clean_parags
 
@@ -214,7 +225,7 @@ if __name__ == "__main__":
     MAX_WORDS_PER_PARAG = 120
 
     # lower bound for paragraphs
-    MIN_WORDS_PER_PARAG = 40
+    MIN_WORDS_PER_PARAG = 20
 
     for file in os.listdir(WIKI_PATHS):
         path_to_wiki = os.path.join(WIKI_PATHS, file)
