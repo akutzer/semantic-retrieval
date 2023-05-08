@@ -57,12 +57,14 @@ class BucketIterator():
     def collate_fn(self, queries, passages):
         size = len(queries)
 
+        subbatch_size = math.ceil(self.batch_size / self.config.accum_steps)
+
         if self.dataset.is_qqp():
-            q_batch_size = 2 * self.batch_size
-            p_batch_size = self.batch_size
+            q_batch_size = subbatch_size * 2
+            p_batch_size = subbatch_size
         else:   # mode == "qpp"
-            q_batch_size = self.batch_size
-            p_batch_size = self.batch_size * self.config.passages_per_query
+            q_batch_size = subbatch_size
+            p_batch_size = subbatch_size * self.config.passages_per_query
 
         Q_batches = self.tokenizer.tensorize(queries, mode="query", bsize=q_batch_size)
         P_batches = self.tokenizer.tensorize(passages, mode="doc", bsize=p_batch_size)
@@ -104,7 +106,11 @@ class BucketIterator():
 if __name__ == "__main__":
     from tqdm import tqdm
 
-    config = BaseConfig(batch_size=16, bucket_size=16*4, passages_per_query=1)
+    config = BaseConfig(
+        bucket_size=16*4,
+        batch_size=16,
+        accum_steps=2,
+        passages_per_query=1)
     triples_path = "../../data/fandom-qa/witcher_qa/triples.train.tsv"
     queries_path = "../../data/fandom-qa/witcher_qa/queries.train.tsv"
     passages_path = "../../data/fandom-qa/witcher_qa/passages.train.tsv"
@@ -112,12 +118,15 @@ if __name__ == "__main__":
     dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QPP")
     data_iter = BucketIterator(config, dataset)
 
+
+
     data_iter.shuffle()
     for i, bucket in enumerate(tqdm(data_iter)):
         for batch in bucket:
             Q, P = batch
             (q_tokens, q_masks), (p_tokens, p_masks) = Q, P
-            
+
+            # print(q_tokens.shape, q_masks.shape, p_tokens.shape, p_masks.shape)            
             # print(Q[0][0], P[0][0])
             # print(data_iter.tokenizer.decode(Q[0][0]))
             # print(data_iter.tokenizer.decode(P[0][0]))

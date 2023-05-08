@@ -6,7 +6,7 @@ import numpy as np
 
 
 from retrieval.configs import BaseConfig
-from retrieval.data import TripleDataset, DataIterator
+from retrieval.data import TripleDataset, BucketIterator
 from retrieval.models import ColBERT
 
 # tensorboard --logdir=runs
@@ -29,6 +29,7 @@ config = BaseConfig(
     backbone_name_or_path=MODEL_PATH,
     passages_per_query = 1,
     epochs = 10,
+    bucket_size = 32*10,
     batch_size = 32,
     accum_steps = 2,    # sub_batch_size = ceil(batch_size / accum_steps)
     similarity="cosine",
@@ -45,21 +46,22 @@ queries_path = "../../data/fandom-qa/witcher_qa/queries.train.tsv"
 passages_path = "../../data/fandom-qa/witcher_qa/passages.train.tsv"
 
 dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QPP")
-data_iter = DataIterator(config, dataset)
+bucket_iter = BucketIterator(config, dataset)
 
-colbert = ColBERT(config, tokenizer=data_iter.tokenizer, device=DEVICE)
+colbert = ColBERT(config, tokenizer=bucket_iter.tokenizer, device=DEVICE)
 
 optimizer = torch.optim.AdamW(colbert.parameters(), lr=5e-6, eps=1e-8)
 criterion = torch.nn.CrossEntropyLoss(reduction="sum")
 
 for epoch in range(1, config.epochs+1):
-    data_iter.shuffle()
-    for i, batch in enumerate(tqdm(data_iter)):
+    bucket_iter.shuffle()
+    for i, bucket in enumerate(tqdm(bucket_iter)):
         optimizer.zero_grad()
         losses, accs = 0, 0
-        for sub_batch in batch:
-            q_tokens, q_masks, p_tokens, p_masks = sub_batch
-            Q, P = (q_tokens, q_masks), (p_tokens, p_masks)
+        for j, batch in enumerate(bucket):
+            Q, P = batch
+            (q_tokens, q_masks), (p_tokens, p_masks) = Q, P
+
             sub_B = q_tokens.shape[0]
 
             out = colbert(Q, P)
@@ -75,11 +77,16 @@ for epoch in range(1, config.epochs+1):
             loss.backward()
 
             losses += loss.item()
-        
-        # update model parameters
-        optimizer.step() 
 
-        writer.add_scalar("Loss/train", losses, (epoch-1)*len(data_iter) + i)
-        writer.add_scalar("Accuracy/train", accs / config.batch_size, (epoch-1)*len(data_iter) + i)
+            # after accum_steps, update the weights + log the metrics
+            if (j + 1) % config.accum_steps == 0:
+                    # update model parameters
+                optimizer.step()
+                optimizer.zero_grad()
 
-    data_iter.reset()
+                # TODO: check if calculation is correct
+                writer.add_scalar("Loss/train", losses, (epoch-1)*len(bucket_iter) + i*config.bucket_size/config.batch_size + j/config.accum_steps)
+                writer.add_scalar("Accuracy/train", accs / config.batch_size, (epoch-1)*len(bucket_iter) + i*config.bucket_size/config.batch_size + j/config.accum_steps)
+                losses, accs = 0, 0
+
+    bucket_iter.reset()

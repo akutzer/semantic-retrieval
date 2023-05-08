@@ -112,7 +112,7 @@ class ColBERTTokenizer():
         if self.config.ignore_mask_tokens:
             mask[ids == self.mask_token_id] = 1
             assert mask.sum().item() == mask.size(0) * mask.size(1), mask
-        
+            
         if bsize:
             return _split_into_batches(ids, mask, bsize)
 

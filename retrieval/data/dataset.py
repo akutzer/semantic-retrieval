@@ -87,7 +87,7 @@ class TripleDataset(torch.utils.data.Dataset):
         self.output_string = False
     
     def is_qqp(self):
-        return self.mode == "qpp"
+        return self.mode == "qqp"
     
     def is_qpp(self):
         return self.mode == "qpp"
