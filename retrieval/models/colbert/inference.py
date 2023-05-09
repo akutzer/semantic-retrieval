@@ -29,9 +29,10 @@ class ColBERTInference(ColBERT):
 
         return D
     
-    def query_from_text(self, queries: List[str], to_cpu=False):
+    def query_from_text(self, queries: List[str], to_cpu=False, bsize=None):
         # TODO: update batch_size, accum_steps and bucket_size in settings.py
-        bsize = math.ceil(self.config.batch_size / self.config.accum_steps)
+        if not bsize:
+            bsize = math.ceil(self.config.batch_size / self.config.accum_steps)
         Qs = []
 
         with torch.inference_mode():
@@ -42,9 +43,10 @@ class ColBERTInference(ColBERT):
 
         return Qs
     
-    def doc_from_text(self, doc: List[str], to_cpu=False):
+    def doc_from_text(self, doc: List[str], to_cpu=False, bsize=None):
         # TODO: update batch_size, accum_steps and bucket_size in settings.py
-        bsize = math.ceil(self.config.batch_size / self.config.accum_steps)
+        if not bsize:
+            bsize = math.ceil(self.config.batch_size / self.config.accum_steps)
         Ds = []
 
         with torch.inference_mode():

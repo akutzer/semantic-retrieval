@@ -117,6 +117,7 @@ Implement efficient inference using re-ranking (requires efficient TF-IDF or BM-
 Focus on inference performance ("model performance"/FLOPs, "model performance"/inference time [µs]) \
 Try torch.compile() to improve runtime performance. \
 Implement Model/Tokenizer saving and loading.
+Improve code quuality (comments, typing, docstrings,...)
 
 ### :bangbang: Second Model: ???
 Search for the code to the paper (e.g. https://paperswithcode.com/) or implement the model yourself using PyTorch (finding parameters would be very helpful for quicker training)
