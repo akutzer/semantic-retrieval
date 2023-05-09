@@ -4,6 +4,7 @@ import torch
 from torch.nn.modules.transformer import Transformer
 from torchprofile import profile_macs
 import time
+#from pypapi import events, papi_high as high
 
 class Metrics:
     def __init__(self):
@@ -13,6 +14,7 @@ class Metrics:
         self.cpu_start_time = 0
         self.wall_times = []
         self.cpu_times = []
+        self.FLOPs = []
 
     def evaluateDatasetIntoM(self, M, row_pid_mapping, col_qid_mapping, dataset_name, qpp_triples:Triples=None, pqq_triples:Triples=None):
         self.M = np.array(M)
@@ -154,36 +156,47 @@ class Metrics:
         macs = profile_macs(model, inputs)
         print('transformer: {:.4g} G'.format(macs / 1e9))
 
-    #TODO add start and end bevor and after function call
+    #def startFLOPCount(self):
+    #    high.start_counters([events.PAPI_FP_OPS,])
+
+    #def stopFLOPCounter(self):
+    #    self.FLOPs.append(high.stop_counter())
+
+
     def startCPUTime(self):
         self.cpu_start_time = time.process_time()
 
 
-    def startWallTime(self):
-        self.wall_start_time = time.time()
-
-
-    def stopCPUTime(self):
+    def stopCPUTime(self, q_count):
         elapsed_time = time.process_time() - self.cpu_start_time
-        self.cpu_times.append(elapsed_time)
+        avg = elapsed_time/q_count
+        if avg > 0:
+            self.cpu_times.append(avg)
 
 
-    def stopWallTime(self):
-        elapsed_time = time.time() - self.wall_start_time
-        self.wall_times.append(elapsed_time)
+    def startWallTime(self):
+        self.wall_start_time = time.perf_counter_ns()
 
 
-    def meanWallAndCPUTimePerAnswerRetrieval(self):
+    def stopWallTime(self, q_count):
+        elapsed_time = time.perf_counter_ns() - self.wall_start_time
+        avg = elapsed_time/q_count
+        print("hello", avg)
+        if avg > 0:
+            self.wall_times.append(avg)
+
+
+    def meanCounts(self):
         '''in miliseconds'''
-        mwallt = 0
-        mcput = 0
-        print(self.wall_times)
-        print(self.cpu_times)
+        mwallt = -1
+        mcput = -1
         if self.wall_times:
             mwallt = np.average(self.wall_times)
         if self.cpu_times:
             mcput = np.average(self.cpu_times)
-        return mwallt, mcput
+        if self.FLOPs:
+            FLOPs = np.average(self.cpu_times)
+        return mwallt, mcput, FLOPs
 
     def printStatistics(self, k, beta):
         if not self.M is None:
@@ -197,15 +210,23 @@ class Metrics:
             print("no dataset was evaluated!")
 
     def printMeanWallAndCPUTime(self):
-        wall_time, cpu_time = self.meanWallAndCPUTimePerAnswerRetrieval()
-        if wall_time > 0:
-            print("mean wall time: ", wall_time)
+        wall_time, cpu_time, FLOPs = self.meanCounts()
+        if wall_time >= 0:
+            print("mean wall time: ", wall_time/1000000, " ms")
         else:
             print("no data about wall time!")
-        if cpu_time > 0:
-            print("mean cpu time: ", cpu_time)
+        if cpu_time >= 0:
+            print("mean cpu time: ", cpu_time*1000, "ms")
         else:
             print("no data about cpu time!")
+        if FLOPs >= 0:
+            print("mean FLOPs: ", FLOPs, "FLOP")
+        else:
+            print("no data about FLOPs!")
+
+        print("wall times", self.wall_times)
+        print("cpu times", self.cpu_times)
+        print("FLOPs", self.FLOPs)
 
 
 
