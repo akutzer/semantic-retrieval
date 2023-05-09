@@ -35,7 +35,7 @@ class ColBERT(nn.Module):
         if self.config.skip_punctuation:
             self.skiplist = {w: True
                              for symbol in string.punctuation
-                             for w in [symbol, self.tokenizer.encode(symbol, add_special_tokens=False)[0]]}
+                             for w in [symbol, self.tokenizer.encode(symbol, mode="query", add_special_tokens=False)[0]]}
         self.pad_token_id = self.tokenizer.pad_token_id
 
         self.to(device=device)

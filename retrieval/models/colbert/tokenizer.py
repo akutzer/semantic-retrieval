@@ -124,7 +124,13 @@ class ColBERTTokenizer():
 
         return ids[0] if is_single_str else ids
 
-    def tensorize(self, text: Union[str, List[str]], mode: str, bsize: Union[None, int] = None, return_tensors: str = "pt") -> torch.Tensor:
+    def tensorize(self, text: Union[str, List[str]], mode: str, bsize: Union[None, int] = None, return_tensors: str = "pt") -> torch.IntTensor:
+        """
+        Tokenizes and pads the input sequence(s) and returns them as a Tensor if no bsize is given or
+        as a List of Tensors if a bsize was given.
+        Note: The output will always be a 2-d Tensor of shape [bsize, seq_length]
+        """
+
         assert isinstance(text, str) or (isinstance(text, list) and all(isinstance(t, str) for t in text))
         assert isinstance(mode, str) and mode in ["query", "doc"]
 
@@ -163,12 +169,13 @@ class ColBERTTokenizer():
         if bsize:
             return _split_into_batches(ids, mask, bsize)
 
-        return (ids[0], mask[0]) if is_single_str else (ids, mask)
+        # return (ids[0], mask[0]) if is_single_str else (ids, mask)
+        return (ids, mask)
     
-    def decode(self, ids: Union[List[int], torch.Tensor], **kwargs) -> str:
+    def decode(self, ids: Union[List[int], torch.IntTensor], **kwargs) -> str:
         return self.tok.decode(ids, **kwargs)
     
-    def batch_decode(self, ids: Union[List[List[int]], torch.Tensor], **kwargs) -> List[str]:
+    def batch_decode(self, ids: Union[List[List[int]], torch.IntTensor], **kwargs) -> List[str]:
         return self.tok.batch_decode(ids, **kwargs)
 
 
@@ -207,8 +214,8 @@ if __name__ == "__main__":
     print("="*50)
     print(f"Tokenize: (len={len(tokenize)})", tokenize, sep="\n", end="\n\n")
     print(f"Encode: (len={len(encode)})", encode, sep="\n", end="\n\n")
-    print(f"Tensorize: (len={len(tensorize)})", tensorize, sep="\n", end="\n\n")
-    print("Decoded:", tokenizer.decode(tensorize), end="\n\n\n")
+    print(f"Tensorize: (len={len(tensorize[0])})", tensorize, sep="\n", end="\n\n")
+    print("Decoded:", tokenizer.decode(tensorize[0]), end="\n\n\n")
 
 
     # batch tokenization for a document
