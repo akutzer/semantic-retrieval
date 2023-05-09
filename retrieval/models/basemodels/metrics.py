@@ -190,6 +190,7 @@ class Metrics:
         '''in miliseconds'''
         mwallt = -1
         mcput = -1
+        FLOPs = -1
         if self.wall_times:
             mwallt = np.average(self.wall_times)
         if self.cpu_times:
