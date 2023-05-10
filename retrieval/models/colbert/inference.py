@@ -1,6 +1,7 @@
 import torch
 from typing import List, Union
 import math
+from tqdm import tqdm
 
 from retrieval.configs import BaseConfig
 from retrieval.models.colbert.colbert import ColBERT
@@ -32,7 +33,7 @@ class ColBERTInference(ColBERT):
         """
         Calculates the ColBERT embedding for a tokenized document/passage.
         """
-        with torch.no_grad():
+        with torch.inference_mode():
             D, mask = super().doc(input_ids, attention_mask, return_mask=True)
         
         if to_cpu:
@@ -45,17 +46,20 @@ class ColBERTInference(ColBERT):
         return D
     
     
-    def query_from_text(self, query: Union[str, List[str]], bsize: Union[None, int] = None, to_cpu: bool = False) -> List[torch.Tensor]:
+    def query_from_text(self, query: Union[str, List[str]], bsize: Union[None, int] = None, to_cpu: bool = False, show_progress: bool = False) -> List[torch.Tensor]:
         """
         Calculates the ColBERT embedding for a query or list of queries represented as strings.
         """
         is_single_query = isinstance(query, str)
-        if is_single_query:
-            query = [query]
         Qs = []
 
         with torch.inference_mode():
             batches = self.tokenizer.tensorize(query, mode="query", bsize=bsize)
+            if bsize is None:
+                batches = [batches]
+            if show_progress:
+                total = math.ceil(len(query) / bsize) if bsize is not None else 1
+                batches = tqdm(batches, total=total)
 
             for Q in batches:
                 Q = self.query(*Q, to_cpu=to_cpu)
@@ -63,17 +67,20 @@ class ColBERTInference(ColBERT):
 
         return Qs[0] if is_single_query else Qs
     
-    def doc_from_text(self, doc: Union[str, List[str]], bsize: Union[None, int] = None, to_cpu: bool = False) -> List[torch.Tensor]:
+    def doc_from_text(self, doc: Union[str, List[str]], bsize: Union[None, int] = None, to_cpu: bool = False, show_progress: bool = False) -> List[torch.Tensor]:
         """
         Calculates the ColBERT embedding for a document/passages or list of document/passages represented as strings.
         """
         is_single_doc = isinstance(doc, str)
-        if is_single_doc:
-            doc = [doc]
         Ds = []
 
         with torch.inference_mode():
             batches = self.tokenizer.tensorize(doc, mode="doc", bsize=bsize)
+            if bsize is None:
+                batches = [batches]
+            if show_progress:
+                total = math.ceil(len(doc) / bsize) if bsize is not None else 1
+                batches = tqdm(batches, total=total)
 
             for D in batches:
                 D = self.doc(*D, to_cpu=to_cpu)

@@ -2,7 +2,7 @@ import faiss
 import time
 import torch
 
-from retrieval.indexing.indexer import ColBERTIndexer
+from retrieval.indexing.colbert_indexer import ColBERTIndexer
 
 
 class FaissIndex():

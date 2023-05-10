@@ -1,11 +1,11 @@
+import math
+from typing import Iterable, Tuple
+import torch
 
 
-def _split_into_batches(ids, mask, bsize):
-    total = ids.shape[0]
-
-    for i in range(0, total, bsize):
-        b_ids = ids[i:i+bsize]
-        b_mask = mask[i:i+bsize]
+def _split_into_batches(ids: torch.Tensor, mask: torch.Tensor, bsize: int) -> Iterable[Tuple[torch.Tensor, torch.Tensor]]:
+    num_batches = math.ceil(ids.shape[0] / bsize)
+    for b_ids, b_mask in zip(torch.chunk(ids, num_batches), torch.chunk(mask, num_batches)):
         b_maxlen = b_mask.sum(dim=-1).max()
         # remove unnecessary padding
         b_ids = b_ids[:, :b_maxlen]
@@ -13,7 +13,7 @@ def _split_into_batches(ids, mask, bsize):
         yield b_ids, b_mask
 
 
-def _split_into_batches_sorted(ids, mask, bsize):
+def _split_into_batches_sorted(ids: torch.Tensor, mask: torch.Tensor, bsize: int):
     total = ids.shape[0]
 
     # sort by paragraph length
