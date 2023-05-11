@@ -2,6 +2,7 @@
 import os
 import re
 import json
+import math
 import numpy as np
 
 import nltk
@@ -18,8 +19,6 @@ def clean_wiki(wiki, min_length=0, page_regex=None, parag_regex=None,
 
     # split to long paragraphs into seperate sub-paragraphs and adds the last
     # heading at the beginning of each new sub-paragraph
-    # TODO: maybe merge to short paragraphs, since sometime more than 95% of all
-    # paragraphs are shorter than 6 words
     for i, wiki in enumerate(raw_wiki):
         wiki_text = wiki["text"]
         parags = split_page_in_paragraphs(
@@ -44,7 +43,8 @@ def wiki_filter(wiki_page, min_length, regex=None):
     if len(wiki_text.split(" ")) < min_length:
         return False
     
-    if regex is not None and regex.search(wiki_text):
+    if regex is not None and regex.match(wiki_text):
+        print(wiki_text)
         return False
     
     return True
@@ -72,8 +72,6 @@ def split_page_in_paragraphs(wiki_page, max_heading_length=5, max_words_per_para
     # (1) merge a line with it's previous line, in case the former was a heading
     # (2) creates a new paragraph after `max_words_per_parag`, but still allows to
     #     finish the sentence, so lines can be longer
-    # TODO:
-    # (a) maybe merge short paragraphs?
     last_parag_heading = ""
     for j, parag in enumerate(parags[1:], start=1):
         prev_parag = parags[j - 1]
@@ -86,8 +84,13 @@ def split_page_in_paragraphs(wiki_page, max_heading_length=5, max_words_per_para
             clean_parags.extend([f"[{last_parag_heading}] {sub_parag}" for sub_parag in sub_parags])
             
         else:
-            if clean_parags and len(clean_parags[-1].split(" ")) <= min_words_per_parag and len(parag.split()) > max_heading_length:
-                sub_parags = split_paragraphs(clean_parags.pop(-1).replace(f"[{last_parag_heading}]", "") + " " + parag, max_words_per_parag=max_words_per_parag, min_words_per_parag=min_words_per_parag)
+            # merge paragraphs inside a heading if the last sub-paragraph was shorter than
+            # the required minimal length of a sub-paragraph and the current paragraph is no heading
+            is_heading = len(parag.split()) <= max_heading_length
+            if len(clean_parags[-1].split(" ")) < min_words_per_parag and not is_heading:
+                last_sub_parag = clean_parags.pop(-1).replace(f"[{last_parag_heading}] ", "")
+                sub_parags = split_paragraphs(f"{last_sub_parag} {parag}", max_words_per_parag=max_words_per_parag, min_words_per_parag=min_words_per_parag)
+
             if last_parag_heading:
                 clean_parags.extend([f"[{last_parag_heading}] {sub_parag}" for sub_parag in sub_parags])
             else:
@@ -100,29 +103,29 @@ def split_page_in_paragraphs(wiki_page, max_heading_length=5, max_words_per_para
     parags = []
     long_parag = ""
     for parag in clean_parags:
-        if len(long_parag.split()) + len(parag.split()) <= min_words_per_parag:
+        if len(long_parag.split()) + len(parag.split()) < min_words_per_parag:
             long_parag += parag + " "
         else:
             if long_parag:
-                parags.append(long_parag)
+                parags.append(long_parag.strip())
             long_parag = parag
-            
-    if long_parag:
-        parags.append(long_parag)
 
+    if long_parag:
+        if parags and len(long_parag.split(" ")) < min_words_per_parag:
+            parags[-1] = f"{parags[-1]} {long_parag}".strip()
+        else:
+            parags.append(long_parag.strip())
+    
     clean_parags = parags
 
     return clean_parags
 
-# TODO: add min_words_per_parag
+
 def split_paragraphs(paragraph, max_words_per_parag, min_words_per_parag):
     sentences = nltk.sent_tokenize(paragraph)
     sub_paragraphs = []
     current_sub_paragraph = ""
 
-    #TODO:
-    # (a) if a sentence is 50% longer than max_words_per_parag or so,
-    #     it must be split into sub-sentences
     for sentence in sentences:
         sentence_length = len(sentence.split())
         sub_paragraph_length = len(current_sub_paragraph.split())
@@ -151,26 +154,17 @@ def split_paragraphs(paragraph, max_words_per_parag, min_words_per_parag):
     
     return sub_paragraphs
 
-# assumption: very long sentences use "," as separator
-# if not, then sentences will be doubled
+
 def split_sentence(sentence, max_words_per_parag, min_words_per_parag):
-    sub_sentence = ""
-    short_sentences = []
-    for subclause in sentence.split(", "):
-        sub_sentence_len = len(sub_sentence.split())
-        subclause_len = len(subclause.split())
+    # if sentence is longer than max_words_per_parag it is split into
+    # equally long subsentences
+    words = sentence.split(" ")
+    n_parts = math.ceil(len(words) / max_words_per_parag)
+    parts_len = math.ceil(len(words) / n_parts)
 
-        if  sub_sentence_len + subclause_len <= max_words_per_parag:
-            sub_sentence += subclause + ", "
-        else:
-            short_sentences.append(sub_sentence)
-            sub_sentence = subclause + ""
+    sentence_parts = [" ".join(words[i:i+parts_len]) for i in range(0, len(words), parts_len)]
 
-    if len(sub_sentence.split()) < min_words_per_parag:
-        last_sentence = short_sentences.pop(-1)
-        short_sentences.append(last_sentence + ", " + sub_sentence)
-
-    return short_sentences
+    return sentence_parts
 
 
 def print_stats(wiki):
@@ -210,12 +204,12 @@ if __name__ == "__main__":
     WIKI_PATHS = "../../data/fandoms/dumps"
 
     # regex pattern for wiki pages, which should be removed, applies to the whole page
-    PAGE_ANTI_PATTERN = "__[\w]*__"
+    PAGE_ANTI_PATTERN = r"__[\w]*__"
     page_regex = re.compile(PAGE_ANTI_PATTERN)
 
     # regex pattern for paragraphs, which should be removed, will be applied to each paragraph
     # in a page seperatly
-    PARAGRAPH_ANTI_PATTERN = "^&lt;"
+    PARAGRAPH_ANTI_PATTERN = r"(&lt;|__[\w]*__)"
     parag_regex = re.compile(PARAGRAPH_ANTI_PATTERN)
 
     # wikis with less than `MIN_LENGTH` words will be discarded
