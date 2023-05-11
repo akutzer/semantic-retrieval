@@ -44,7 +44,6 @@ def wiki_filter(wiki_page, min_length, regex=None):
         return False
     
     if regex is not None and regex.match(wiki_text):
-        print(wiki_text)
         return False
     
     return True
