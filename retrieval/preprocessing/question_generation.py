@@ -8,6 +8,8 @@ import os
 import sys
 import pandas as pd
 
+TIMEOUT=20
+
 
 def getProxyList():
     # opening the file in read mode
@@ -110,7 +112,7 @@ class Completion:
                     #'https': PROXIES[2416]
                 }
             try:
-                request = requests.post(url, headers=Completion.headers, json=json_data, proxies=proxies, timeout=12)
+                request = requests.post(url, headers=Completion.headers, json=json_data, proxies=proxies, timeout=TIMEOUT)
                 break
             except KeyboardInterrupt:
                 # quit
