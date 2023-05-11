@@ -103,7 +103,7 @@ def split_page_in_paragraphs(wiki_page, max_heading_length=5, max_words_per_para
     parags = []
     long_parag = ""
     for parag in clean_parags:
-        if len(long_parag.split()) + len(parag.split()) <= min_words_per_parag:
+        if len(long_parag.split()) + len(parag.split()) < min_words_per_parag:
             long_parag += parag + " "
         else:
             if long_parag:
@@ -111,8 +111,11 @@ def split_page_in_paragraphs(wiki_page, max_heading_length=5, max_words_per_para
             long_parag = parag
 
     if long_parag:
-        parags.append(long_parag.strip())
-
+        if parags and len(long_parag.split(" ")) < min_words_per_parag:
+            parags[-1] = f"{parags[-1]} {long_parag}".strip()
+        else:
+            parags.append(long_parag.strip())
+    
     clean_parags = parags
 
     return clean_parags
