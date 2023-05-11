@@ -198,7 +198,7 @@ def mainLoop(import_path, export_file):
 
     if os.path.isfile(export_file):
         df_prev = pd.read_csv(export_file)
-        already_done = [ (row[1], row[2]) for row in list(df_prev.itertuples(index=False))]
+        already_done = [ (row[0], row[1]) for row in list(df_prev.itertuples(index=False))]
     else:
         already_done = []
         df_prev = pd.DataFrame()
