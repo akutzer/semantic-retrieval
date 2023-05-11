@@ -69,15 +69,15 @@ for epoch in range(1, config.epochs+1):
             loss = criterion(out, torch.arange(0, sub_B, device=DEVICE, dtype=torch.long))
             loss *= 1 / config.batch_size
 
-            # calculate the accuracy within a subbatch -> extremly inflated accuracy
-            accs += torch.sum(out.detach().max(dim=-1).indices == torch.arange(0, sub_B, device=DEVICE, dtype=torch.long))
-            
             # calculate & accumulate gradients, the update step is done after the entire batch
             # has been passed through the model
             loss.backward()
 
-            losses += loss.item()
-
+            with torch.inference_mode():
+                losses += loss.item()
+                # calculate the accuracy within a subbatch -> extremly inflated accuracy
+                accs += torch.sum(out.detach().max(dim=-1).indices == torch.arange(0, sub_B, device=DEVICE, dtype=torch.long))
+            
             # after accum_steps, update the weights + log the metrics
             if (j + 1) % config.accum_steps == 0:
                     # update model parameters

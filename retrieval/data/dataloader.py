@@ -108,7 +108,7 @@ if __name__ == "__main__":
 
     config = BaseConfig(
         bucket_size=16*4,
-        batch_size=16,
+        batch_size=32,
         accum_steps=2,
         passages_per_query=1)
     triples_path = "../../data/fandom-qa/witcher_qa/triples.train.tsv"
