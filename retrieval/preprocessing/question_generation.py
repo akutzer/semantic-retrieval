@@ -14,6 +14,7 @@ import tqdm
 
 # specify timeout here
 TIMEOUT=5
+worked_once_list = []
 
 
 def getProxyList():
@@ -120,6 +121,8 @@ class Completion:
                 request = requests.post(url, headers=Completion.headers, json=json_data, proxies=proxies, timeout=TIMEOUT)
                 break
             except KeyboardInterrupt:
+                global worked_once_list
+                print(worked_once_list)
                 # quit
                 sys.exit()
             except:
@@ -254,6 +257,9 @@ def mainLoop(import_path, export_file):
             continue
 
         setTrueProxies(current_ind)
+        global worked_once_list
+        worked_once_list.append(current_ind)
+        
         
         positive, negative = extract_questions(response['text'])
         new_passages.append({
