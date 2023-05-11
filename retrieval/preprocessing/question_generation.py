@@ -9,7 +9,11 @@ import sys
 import pandas as pd
 import tqdm
 
-TIMEOUT=15
+
+# to get the proxy file use this command: curl https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt -o http.txt
+
+# specify timeout here
+TIMEOUT=5
 
 
 def getProxyList():
@@ -106,7 +110,7 @@ class Completion:
 
         while True:
             https = getProxy()
-            # print(https)
+            print('currently trying proxy ' + https)
 
             proxies= {
                     "https": https
@@ -204,6 +208,7 @@ def mainLoop(import_path, export_file):
         df_prev = pd.DataFrame()
 
     pairs_ind = [pair for pair in pairs_ind if pair not in already_done]
+    print(pairs_ind[:10])
 
     
     new_df = df_prev
@@ -214,6 +219,7 @@ def mainLoop(import_path, export_file):
     pbar = tqdm.tqdm(total=len(pairs_ind))
     while pairs_ind:
         i,j = pairs_ind.pop(0)
+        print("current indices: " + str(i) +" and "+ str(j))
 
         retry_count = 0
         skip_passage = False
@@ -231,7 +237,7 @@ def mainLoop(import_path, export_file):
                     break
             except Exception as e:
                 time.sleep(3)
-                # print(e)
+                print(e)
             
             retry_count += 1
             if retry_count > 3:
@@ -243,7 +249,6 @@ def mainLoop(import_path, export_file):
             time.sleep(3)
         
 
-        i = i + 1
         if skip_passage:
             pairs_ind.append((i,j))
             continue
