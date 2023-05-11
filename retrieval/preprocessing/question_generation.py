@@ -7,8 +7,9 @@ import time
 import os
 import sys
 import pandas as pd
+import tqdm
 
-TIMEOUT=20
+TIMEOUT=15
 
 
 def getProxyList():
@@ -80,7 +81,7 @@ class Completion:
         temperature: float = 1,
         model: str = "gpt-3.5-turbo",
     ):
-        print(parentMessageId, prompt)
+        # print(parentMessageId, prompt)
 
         json_data = {
             "openaiKey": "",
@@ -105,7 +106,7 @@ class Completion:
 
         while True:
             https = getProxy()
-            print(https)
+            # print(https)
 
             proxies= {
                     "https": https
@@ -210,7 +211,7 @@ def mainLoop(import_path, export_file):
         
     PROMPT = generate_prompt(2, 2)
     new_passages = []
-
+    pbar = tqdm.tqdm(total=len(pairs_ind))
     while pairs_ind:
         i,j = pairs_ind.pop(0)
 
@@ -230,7 +231,7 @@ def mainLoop(import_path, export_file):
                     break
             except Exception as e:
                 time.sleep(3)
-                print(e)
+                # print(e)
             
             retry_count += 1
             if retry_count > 3:
@@ -263,8 +264,10 @@ def mainLoop(import_path, export_file):
             new_df.to_csv(export_file, index=False)
 
         new_passages = []
+        pbar.update(1)
 
     new_df
+    pbar.close()
 
 
 
