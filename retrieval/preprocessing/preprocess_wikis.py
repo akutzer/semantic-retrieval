@@ -106,6 +106,10 @@ def split_page_in_paragraphs(wiki_page, max_heading_length=5, max_words_per_para
             if long_parag:
                 parags.append(long_parag)
             long_parag = parag
+            
+    if long_parag:
+        parags.append(long_parag)
+
     clean_parags = parags
 
     return clean_parags
