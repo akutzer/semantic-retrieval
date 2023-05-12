@@ -2,14 +2,17 @@ import json
 import os
 
 paths_input = ["../../data/fandom_qa_2/harry_potter_qa/harry_potter.json",
+                "../../data/fandom_qa_2/elder_scrolls_qa/elder_scrolls.json",
                 "../../data/fandom_qa_2/witcher_qa/witcher.json"
                ]
 paths_output = ["../../data/fandom_qa_2/harry_potter_qa",
+                "../../data/fandom_qa_2/elder_scrolls_qa",
                 "../../data/fandom_qa_2/witcher_qa"
                 ]
+wiki_names = ["harry", "elder", "witcher"]
 wiki_page_min_paragraph_count = 6
 paragraph_min_character_count = 600
-distribution = [250, 150, 100]
+distribution = [600, 400, 200]
 count_people = 5
 
 if __name__ == "__main__":
@@ -58,7 +61,7 @@ if __name__ == "__main__":
                     print("how many paragraphs:", len(output))
 
                     # Write the output dictionary to a JSON file
-                    filename = "pqq_blueprint" + str(person_id) + ".json"
+                    filename = wiki_names[i] + "_pqq_blueprint" + str(person_id) + ".json"
                     with open(os.path.join(paths_output[i], filename), mode="w", encoding="utf-8") as f:
                         json.dump(output, f, indent=0)
                     output = {}
