@@ -30,8 +30,8 @@ if __name__ == "__main__":
             # Extract the relevant keys and values
             #id = item['id']
             #revid = item['revid']
-            #url = item['url']
-            #title = item['title']
+            url = item['url']
+            title = item['title']
             text = item['text']
             if len(text) < wiki_page_min_paragraph_count:
                 continue
@@ -41,6 +41,8 @@ if __name__ == "__main__":
                 if len(p) < paragraph_min_character_count:
                     continue
                 output[pid] = {
+                    'title': title,
+                    'url': url,
                     'passage': p,
                     'pos_query': ["...", "...", "..."],
                     'neg_query': ["...", "...", "..."]
