@@ -13,10 +13,11 @@ wiki_names = ["harry", "elder", "witcher"]
 wiki_page_min_paragraph_count = 6
 paragraph_min_character_count = 600
 distribution = [600, 400, 200]
+indexes_for_distribution = [600, 1000, 1200]
 count_people = 5
 
 if __name__ == "__main__":
-
+    pid = 0
     for i in range(0, len(paths_input)):
         # Open the JSON file and load its contents into a variable
         with open(paths_input[i], 'r') as f:
@@ -26,7 +27,7 @@ if __name__ == "__main__":
         output = {}
 
         # Loop through each dictionary in the list
-        pid = 0
+
         p_index = 0
         person_id = 0
         for item in data:
