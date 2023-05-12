@@ -12,6 +12,20 @@ import threading
 import ast
 import random
 
+'''
+Problem: Server denies further requests if too many requests were sent. 
+Possible Solution: Use Proxies
+Problem: Server blocked some and some dont work
+Solutions:
+Threads are used for generating questions for multiple passages at once
+Threads are used for trying to request answers from the servers at the same time
+
+Problem: still slow
+
+Script tries to ask for different question words if frequency of #what# gets too hight - does not always work
+'''
+
+
 
 # surpress warings
 import warnings
@@ -21,7 +35,7 @@ sys.tracebacklimit = 0
 
 # to get the proxy file use this command: curl https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt -o http.txt
 
-# specify timeout here
+# specify timeout interval here
 TIMEOUT=5
 thread_value=None
 lock = threading.Lock()
@@ -47,6 +61,7 @@ def getProxyList():
 PROXIES = getProxyList()
 
 
+# class copied and then adjusted from https://github.com/xtekky/gpt4free
 class Completion:
     headers = {
         "authority": "ai.usesless.com",
@@ -134,7 +149,7 @@ class Completion:
         return to_json
     
 
-
+# function copied from aarons example script
 def extract_questions(answer):
     positive, negative = [], [] 
     all_positive = False
@@ -155,7 +170,7 @@ def extract_questions(answer):
     
     return positive, negative
 
-
+# function copied from aarons example script
 def generate_prompt(n_pos_questions, n_neg_questions, what=False):
 
     if what:
@@ -271,15 +286,8 @@ def getDistributionQuestionWords(df):
 
 
 def mainLoop(import_path, export_file,num_threads=15):
-    '''
-    if not os.path.isfile(export_file):
-        with open(export_file, "w") as text_file:
-            text_file.write(",i,j,positive,negative,passage")
-    '''
-
     f=import_path
     df = pd.read_json(f, orient ='records')
-
 
     pairs_ind = [ (i,j) for i in range(df.shape[0]) for j in range(len(df["text"].iloc[i]))]
 
