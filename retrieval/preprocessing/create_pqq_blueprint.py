@@ -13,7 +13,6 @@ wiki_names = ["harry", "elder", "witcher"]
 wiki_page_min_paragraph_count = 6
 paragraph_min_character_count = 600
 distribution = [600, 400, 200]
-indexes_for_distribution = [600, 1000, 1200]
 count_people = 5
 
 if __name__ == "__main__":
