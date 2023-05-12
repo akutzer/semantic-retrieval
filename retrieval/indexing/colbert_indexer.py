@@ -2,6 +2,7 @@ import faiss
 import time
 from tqdm import tqdm
 import torch
+import torch.nn.functional as F
 from collections import defaultdict
 from typing import Union, List
 
@@ -29,7 +30,7 @@ class ColBERTIndexer(IndexerInterface):
         self.tokenizer = ColBERTTokenizer(self.config)
         self.inference = ColBERTInference(self.config, self.tokenizer, device=self.device)
         
-    def index(self, path_to_passages: str, bsize: int = 16):
+    def index(self, path_to_passages: str, bsize: int = 16, dtype=torch.float32):
         passages = Passages(path_to_passages)
         data = passages.values().tolist()
         pids = passages.keys().tolist()
@@ -51,45 +52,40 @@ class ColBERTIndexer(IndexerInterface):
         self.embeddings = torch.cat([self.embeddings, *embeddings], dim=0)
     
     def search(self, query: torch.Tensor, k: int):
-        # add batch dimension if query is a 2-d Tensor
-        if query.dim() == 2:
+        # add batch dimension if query is a single vector
+        if query.dim() == 1:
             query = query[None]
-        # query shape: (B, L_q, D)
+        # query shape: (B * L_q, D)
         
-        # TODO: improve performance
+        
         if self.similarity == "l2":
-            query = query[:, :, None]  # shape : (B, L_q, 1, D)
-            print(query.shape, self.embeddings.shape)
-            sim = -1.0 * (query - self.embeddings).pow(2).sum(dim=-1)
+            query = query[:, None]  # shape : (B * L_q, 1, D)
+            # print(query.shape, self.embeddings.shape)
+            sim = -1.0 * (query - self.embeddings).pow(2).sum(dim=-1) # shape: (B * L_q, N_embs)
+            # sim = -1.0 * torch.norm(query - self.embeddings, ord=2, dim=-1) # shape: (B * L_q, N_embs)
 
         elif self.similarity == "cosine":
-            print(query.shape, self.embeddings.shape)
-            sim = query @ self.embeddings.T
+            # print(query.shape, self.embeddings.shape)
+            sim = query @ self.embeddings.T # shape: (B * L_q, N_embs)
         else:
             raise ValueError()
         
-        k_hat = 2 * k
-        B, Q, D = sim.shape
-        top_iids = sim.reshape(B, -1).topk(k_hat).indices  # shape: (B, k_hat)
-        top_iids %= D
-        top_iids = top_iids.tolist()
-        pids = [[self.iid2pid[iid] for iid in batch_iids] for batch_iids in top_iids]
-
-        # remove duplicates in pids while mainting the order of the list
-        cleaned_pids = []
-        for batch_pids in pids:
-            cleaned_batch_pids = []
-            for pid in batch_pids:
-                if pid not in cleaned_batch_pids:
-                    cleaned_batch_pids.append(pid)
-                if len(cleaned_batch_pids) == k:
-                    break
-            cleaned_pids.append(cleaned_batch_pids)
-
-        return cleaned_pids
-        # embs = get_pid_embedding(top_iids)
-        # return top_iids, pids
+        topk_sim, topk_iids = sim.topk(k)
+        return topk_sim, topk_iids
     
+    def iids_to_pids(self, iids, bsize: int = 1):
+        iids = iids.reshape(bsize, -1)
+        pids = []
+
+        for query_iids in iids:
+            query_pids = []
+            for iid in query_iids:
+                pid = self.iid2pid[iid.item()]
+                if pid not in query_pids:
+                    query_pids.append(pid)
+            pids.append(query_pids)
+
+        return pids
 
     def get_pid_embedding(self, pids: Union[int, List[int]]):
         is_single_pid = isinstance(pids, int)
@@ -161,14 +157,19 @@ if __name__ == "__main__":
     # print(indexer.iid2pid[IDX], indexer.embeddings[IDX])
     # print(indexer.get_pid_embedding(indexer.iid2pid[IDX]))
     indexer.load(INDEX_PATH)
-    indexer.similarity = config.similarity
+    # indexer.similarity = config.similarity
 
     query = "Who is the author of 'The Witcher'?" #"Who do NPCs react if it rains?" #"What is the largest island of the Skellige Islands?" # "Where can I find NPCs if it rains?" #"Who was Cynthia?"
 
     Q = indexer.inference.query_from_text(query)
+    if Q.dim() == 2:
+        Q = Q[None]
     print(Q.shape)
 
-    pids = indexer.search(Q, k=20)
+    B, L_q, D = Q.shape
+    Q = Q.reshape(B*L_q, -1)
+    sim, iids = indexer.search(Q, k=10)
+    pids = indexer.iids_to_pids(iids, bsize=B)
     print(pids)
 
     passages = Passages(PATH)
