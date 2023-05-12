@@ -54,9 +54,9 @@ class ColBERTIndexer(IndexerInterface):
         # add batch dimension if query is a 2-d Tensor
         if query.dim() == 2:
             query = query[None]
-
-        # query shape: (B, L_q, D)    
+        # query shape: (B, L_q, D)
         
+        # TODO: improve performance
         if self.similarity == "l2":
             query = query[:, :, None]  # shape : (B, L_q, 1, D)
             print(query.shape, self.embeddings.shape)
@@ -132,8 +132,14 @@ if __name__ == "__main__":
     torch.cuda.manual_seed_all(SEED)
 
 
+
+    MODEL_PATH = "../../data/colbertv2.0/" # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
+
     config = BaseConfig(
-        dim = 32,
+        tok_name_or_path=MODEL_PATH,
+        backbone_name_or_path=MODEL_PATH,
+        similarity="cosine",
+        dim = 128,
         batch_size = 16,
         accum_steps = 1,
     )
@@ -143,24 +149,52 @@ if __name__ == "__main__":
     INDEX_PATH = "../../data/fandom-qa/witcher_qa/passages.train.indices.pt"
     IDX = 3
 
+
+
     indexer = ColBERTIndexer(config, device="cuda:0")
     # since we are not sorting by length, small batch sizes seem to be more efficient,
     # because there is less padding
     # indexer.index(PATH, bsize=8)
-
-    # exit(0)
     # indexer.save(INDEX_PATH)
-    # # print(indexer.pid2iid)
+
+    # print(indexer.pid2iid)
     # print(indexer.iid2pid[IDX], indexer.embeddings[IDX])
     # print(indexer.get_pid_embedding(indexer.iid2pid[IDX]))
-
-    indexer = ColBERTIndexer(config, device="cpu")
     indexer.load(INDEX_PATH)
-    indexer.similarity = "cosine"
-    pids = indexer.search(torch.randn(16, 24, config.dim), k=4)
+    indexer.similarity = config.similarity
+
+    query = "Who is the author of 'The Witcher'?" #"Who do NPCs react if it rains?" #"What is the largest island of the Skellige Islands?" # "Where can I find NPCs if it rains?" #"Who was Cynthia?"
+
+    Q = indexer.inference.query_from_text(query)
+    print(Q.shape)
+
+    pids = indexer.search(Q, k=20)
     print(pids)
-    embs = [indexer.get_pid_embedding(batch_pids) for batch_pids in pids]
-    print(len(embs), len(embs[0]))
+
+    passages = Passages(PATH)
+    print(passages[2])
+    # for pid in pids:
+    #     print(passages[pid].values)
+    
+    embs = [(batch_pids, indexer.get_pid_embedding(batch_pids)) for batch_pids in pids]
+
+    for pids, topk_embs in embs:
+        sims = []
+        for pid_emb in topk_embs:
+            # print(Q.shape, pid_emb.shape)
+            out = Q @ pid_emb.T
+            sim = out.max(dim=-1).values.sum()
+            sims.append(sim)
+        values, indices = torch.sort(torch.tensor(sims), descending=True)
+        sorted_pids = torch.tensor(pids)[indices]
+        print(pids, values, indices)
+        print(sorted_pids)
+    
+        for sim, pid in zip(values, sorted_pids[:10]):
+            print(round(sim.item(), 3), pid.item(),  passages[pid.item()])
+    
+    # e
+    # print(len(embs), len(embs[0]))
     
 
     # print(indexer.iid2pid[IDX], indexer.embeddings[IDX])
