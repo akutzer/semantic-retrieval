@@ -37,8 +37,6 @@ sys.tracebacklimit = 0
 
 # specify timeout interval here
 TIMEOUT=10
-thread_value=None
-lock = threading.Lock()
 lock_outter = threading.Lock()
 threads_passages = []
 
@@ -344,7 +342,7 @@ def mainLoop(import_path, export_file,num_threads=1):
             threads.append(t)
             t.start()
             proxies_ind = (proxies_ind + step) % len(PROXIES)
-            time.sleep(0.05)
+            time.sleep(0.02)
         for t in threads:
             t.join()
 
