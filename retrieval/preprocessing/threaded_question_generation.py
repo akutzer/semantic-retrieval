@@ -118,7 +118,7 @@ class Completion:
             try:
                 ii = ii + 1
                 # print(proxy_https)
-                request = requests.post(url, headers=Completion.headers, json=json_data, proxies=proxies, timeout=TIMEOUT, verify=False)
+                request = requests.post(url, headers=Completion.headers, json=json_data, proxies=proxies, timeout=TIMEOUT, verify=True)
                 break
             except KeyboardInterrupt:
                 # quit
@@ -189,7 +189,7 @@ def generate_prompt(n_pos_questions, n_neg_questions, what=False):
 
         Please generate {n_pos_questions} questions that are answered by the passage paragraph and {n_neg_questions} questions that are not answered by it.
         Try to use synonyms in your questions.
-        The questions should begin with Which, Who, Where, Why, When, How or Whose.
+        The questions should NOT begin with what.
         The output !!MUST!! be in the following form:
         """
 
@@ -249,7 +249,7 @@ def getResponse(df,i,j,start_ind, end_ind, what_prop=0.5, what_prop_limit=0.5):
     #         pass
             
     except Exception as e:
-        print(e)
+        # print(e)
         response = None
         pass
 
@@ -319,7 +319,7 @@ def mainLoop(import_path, export_file,num_threads=1):
     step = num_threads
 
     # number of threads for different passages
-    num_threads_outer=50
+    num_threads_outer=2000
 
 
     threads=[]
@@ -362,6 +362,8 @@ def mainLoop(import_path, export_file,num_threads=1):
             new_df.to_csv(export_file, index=False)
 
         pbar.update(len(new_passages))
+        if(len(new_passages) == 0):
+            time.sleep(1800)
         new_passages = []
 
     pbar.close()
@@ -369,4 +371,4 @@ def mainLoop(import_path, export_file,num_threads=1):
 
 
 if __name__ == "__main__":
-    mainLoop(import_path="../../data/fandoms/harry_potter.json", export_file="harry_potter4.csv")
+    mainLoop(import_path="../../data/fandoms/harry_potter.json", export_file="harry_potter_questions_a.csv")
