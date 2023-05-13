@@ -36,7 +36,7 @@ sys.tracebacklimit = 0
 # to get the proxy file use this command: curl https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt -o http.txt
 
 # specify timeout interval here
-TIMEOUT=5
+TIMEOUT=10
 thread_value=None
 lock = threading.Lock()
 lock_outter = threading.Lock()
@@ -134,10 +134,10 @@ class Completion:
         content = request.content
 
         response = Completion.__response_to_json(content)
-        lock.acquire()
-        global thread_value
-        thread_value=response
-        lock.release()
+        # lock.acquire()
+        # global thread_value
+        # thread_value=response
+        # lock.release()
         return response
 
     @classmethod
@@ -225,20 +225,22 @@ def getResponse(df,i,j,start_ind, end_ind, what_prop=0.5, what_prop_limit=0.5):
         message_id=""
         threads = []
         global PROXIES
-        
+
+        results = []
         for https in PROXIES[start_ind:end_ind]:
-            t = threading.Thread(target=Completion.create, kwargs={'prompt':passage_prompt, "parentMessageId": message_id, "proxy_https": https})
-            threads.append(t)
-            t.start()
+            from multiprocessing.pool import ThreadPool
+            pool = ThreadPool(processes=1)
+            async_result = pool.apply_async(Completion.create, kwds={'prompt':passage_prompt, "parentMessageId": message_id, "proxy_https": https})
+            results.append(async_result)
             time.sleep(0.4)
-        # response = Completion.create(prompt=passage_prompt, parentMessageId=message_id)
+        
+        response=None
+        for result in results:
+            res=result.get()
+            if res != None:
+                response = res
+            
 
-        for t in threads:
-            t.join()
-
-        global thread_value
-        response=thread_value
-        thread_value = None
         if response == None:
             skip_passage = True
 
@@ -247,7 +249,10 @@ def getResponse(df,i,j,start_ind, end_ind, what_prop=0.5, what_prop_limit=0.5):
     #         pass
             
     except Exception as e:
+        print(e)
+        response = None
         pass
+
 
     global threads_passages
     global lock_outter
@@ -285,7 +290,7 @@ def getDistributionQuestionWords(df):
 
 
 
-def mainLoop(import_path, export_file,num_threads=15):
+def mainLoop(import_path, export_file,num_threads=1):
     f=import_path
     df = pd.read_json(f, orient ='records')
 
@@ -314,7 +319,7 @@ def mainLoop(import_path, export_file,num_threads=15):
     step = num_threads
 
     # number of threads for different passages
-    num_threads_outer=10
+    num_threads_outer=50
 
 
     threads=[]
@@ -337,7 +342,7 @@ def mainLoop(import_path, export_file,num_threads=15):
             threads.append(t)
             t.start()
             proxies_ind = (proxies_ind + step) % len(PROXIES)
-            time.sleep(0.4)
+            time.sleep(0.05)
         for t in threads:
             t.join()
 
