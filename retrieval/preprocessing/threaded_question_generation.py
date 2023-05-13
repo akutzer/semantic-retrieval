@@ -337,6 +337,8 @@ def mainLoop(import_path, export_file,num_threads=1):
             what_prop = 0.0
         
         for _ in range(num_threads_outer):
+            if len(pairs_ind) == 0:
+                break
             i,j = pairs_ind.pop(0)
             t = threading.Thread(target=getResponse, kwargs={'i':i, "j": j, "df": df, "start_ind": proxies_ind, "end_ind": proxies_ind+step, "what_prop": what_prop, "what_prop_limit":what_limit_prop})
             threads.append(t)
