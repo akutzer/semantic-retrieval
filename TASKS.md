@@ -1,12 +1,12 @@
-## :bangbang: 1. Fandom crawl (assigned: Tommy)
+## heavy_check_mark 1. Fandom crawl
 :heavy_check_mark: Download and extract fandom dumps. \
 :heavy_check_mark: Clean up these dumps, i.e. remove wiki markdown syntax, remove tables, etc., using [WikiExtractor](https://github.com/attardi/wikiextractor)
 
-:bangbang: :hourglass_flowing_sand: Remove some pages, like the front page, and whatever else you can find. Update the passage RegEx pattern, which filters out passages, such as one of the type `__[\w*]__` or whatever.
+:heavy_check_mark: Remove some pages, like the front page, and whatever else you can find. Update the passage RegEx pattern, which filters out passages, such as one of the type `__[\w*]__` or whatever.
 
-:bangbang: :hourglass_flowing_sand: Split the page content into paragraphs, by first splitting those paragraphs into sentences using sentence tokenizers. Then split the Sentences into words (using a [WordPieceTokenizer](https://huggingface.co/docs/tokenizers/api/models#tokenizers.models.WordPiece)) to get it's length. After that start merging the sentences until a certain maximal passage length is reached, then start a new passage. This passage length should be a hard limit, so no passage is longer than it. If a single sentence is longer than the maximum passage length, we have to split it in half.
+:heavy_check_mark: Split the page content into paragraphs, by first splitting those paragraphs into sentences using sentence tokenizers. Then split the Sentences into words (using a [WordPieceTokenizer](https://huggingface.co/docs/tokenizers/api/models#tokenizers.models.WordPiece)) to get it's length. After that start merging the sentences until a certain maximal passage length is reached, then start a new passage. This passage length should be a hard limit, so no passage is longer than it. If a single sentence is longer than the maximum passage length, we have to split it in half.
 
-:bangbang: :hourglass_flowing_sand: If passages or paragraphs are very short, merge them together.
+:heavy_check_mark: If passages or paragraphs are very short, merge them together.
 
 Save the final dump in a JSON with the following format:
 ```json
@@ -26,7 +26,7 @@ If we have time we might also download and extract multi-linguistic wikis.
 
 
 ## 2. Generate Dataset/Training Set
-### :bangbang: Generating the question-answer pairs (assigned: Aaron, Tommy)
+### :bangbang: :hourglass_flowing_sand: Generating the question-answer pairs (assigned: Till, Tommy, Florian)
 For each wiki, generate two datasets of the following type:
  - QQP-Dataset: `{(q⁺,q⁻,p) | for most passages p in the wiki}`
  - QPP-Dataset: `{(q,p⁺,p⁻) | for most passages p⁺ in the wiki}`
@@ -100,10 +100,10 @@ Choose a dataset with is similar to our task & dataset (I think MS MARCO should 
 
 
 ## 3. Implement Models
-### :hourglass_flowing_sand: Baseline: BM-25 or TF-IDF (assigned: Till, Florian)
+### :white_check_mark: Baseline: BM-25 or TF-IDF (assigned: Till, Florian)
 :heavy_check_mark: Implement the BM-25 or TF-IDF model, using an external library. \
 :hourglass_flowing_sand: Use the dataset class for the BM-25 or TF-IDF model \
-:exclamation: :hourglass_flowing_sand: Implement efficient inference, so given a query find the best passages as fast as possible; maybe try to precompute the wiki passages? \
+:exclamation: :white_check_mark: Implement efficient inference, so given a query find the best passages as fast as possible; maybe try to precompute the wiki passages? \
 The implementation should work with the previous described datasets class. In case the output of the dataset class is not directly usable, you can write a dataloader, which for example tokenizes the data from the dataset class and then combines these into a batch of data, which is then directly feed into the model. I don't know if this is necessary tho. ^^
 
 ### :hourglass_flowing_sand: First Model: ColBERT (assigned: Aaron)
@@ -115,7 +115,9 @@ The implementation should work with the previous described datasets class. In ca
 Implement efficient inference using re-ranking (requires efficient TF-IDF or BM-25 implementation)\
 :hourglass_flowing_sand: Implement efficient inference using full-retrieval.
 Focus on inference performance ("model performance"/FLOPs, "model performance"/inference time [µs]) \
-:hourglass_flowing_sand: Try torch.compile() to improve runtime performance.
+Try torch.compile() to improve runtime performance. \
+Implement Model/Tokenizer saving and loading. \
+Improve code quality (comments, typing, docstrings,...)
 
 ### :bangbang: Second Model: ???
 Search for the code to the paper (e.g. https://paperswithcode.com/) or implement the model yourself using PyTorch (finding parameters would be very helpful for quicker training)
@@ -125,7 +127,7 @@ Other exotic approaches can be interesting (probably not big problem if it doesn
 
 ## 4. Training loop
 
-### Create a training script (assigned: Zhiwei)
+### :hourglass_flowing_sand: Create a training script (assigned: Zhiwei)
 Write a script for training the neural IR models. Have a look at the [ColBERT training script](https://github.com/stanford-futuredata/ColBERT/blob/main/colbert/training/training.py) as an example.
 
 It should use the dataset class for our datasets and the dataloader for the selected model. \
@@ -145,7 +147,7 @@ Implement Checkpoiting, where after a certain number of steps the model is saved
 
 ## 5. Evaluation 
 ### Metrics (assigned: Florian, Till)
-:hourglass_flowing_sand: Implement metrics, like top-k accuracy, mean reciprocal rank, precision/recall, etc., which are suitable for our models and datasets. \
+:white_check_mark: Implement metrics, like top-k accuracy, mean reciprocal rank, precision/recall, etc., which are suitable for our models and datasets. \
 The metrics should use a fairly universal interface, so the outputs of the models can be easily converted into fitting data formats, that can interact with the metrics. \
 Count the parameters in a model, meassure the FLOPs and ms per answer-retrieval.
 (Parameters & FLOPs only necessary for neural IR approaches)
