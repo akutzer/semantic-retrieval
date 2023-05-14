@@ -71,40 +71,41 @@ class ColBERTIndexer(IndexerInterface):
         topk_sim, topk_iids = sim.topk(k, dim=-1) # both shapes: (B, L_q, k)
         return topk_sim, topk_iids
     
+
+    
     def iids_to_pids(self, iids: torch.IntTensor):
         # iids shape: (B, L_q, k)
         B = iids.shape[0]
         iids = iids.reshape(B, -1)
         pids = []
 
-        for query_iids in iids:
-            query_pids = []
-            for iid in query_iids:
-                pid = self.iid2pid[iid.item()]
-                if pid not in query_pids:
-                    query_pids.append(pid)
+        for query_iids in iids.tolist():
+            query_pids = list(set(self.iid2pid[iid] for iid in query_iids))
             pids.append(query_pids)
 
         return pids
+    
+    def get_pid_embedding(self, pids, pad=False):
 
-    def get_pid_embedding(self, pids: Union[int, List[int]], pad=False):
         is_single_pid = isinstance(pids, int)
         if is_single_pid:
             pids = [pids]
-            
-        embs = [torch.stack([self.embeddings[iid] for iid in self.pid2iid[pid]], dim=0) for pid in pids]
+        
+        iids = [self.pid2iid[pid] for pid in pids]
+        max_iids = max(len(iid_list) for iid_list in iids)
+        embs = torch.zeros((len(pids), max_iids, self.embeddings.shape[-1]), device=self.device)  # Initialize tensor to store embeddings
+        for i, iid_list in enumerate(iids):
+            embs[i, :len(iid_list)] = self.embeddings[iid_list]
+        
         if pad:
-            emb_lens = [len(emb) for emb in embs]
-            mask = torch.zeros((len(embs), max(emb_lens)), dtype=torch.bool)
-            for row, emb_len in zip(mask, emb_lens):
-                row[:emb_len] = True
-            embs = torch.nn.utils.rnn.pad_sequence(embs, batch_first=True, padding_value=0)
-            
+            mask = torch.arange(max_iids, device=self.device)[None, :] < torch.tensor([len(iid_list) for iid_list in iids], device=self.device)[:, None]
+            embs = embs[:, :mask.sum(dim=1).max()]  # Trim the tensor to the maximum sequence length
+
         if is_single_pid:
             embs = embs[0]
             if pad:
                 mask = mask[0]
-
+        
         return embs, mask if pad else embs
 
     def save(self, path):
