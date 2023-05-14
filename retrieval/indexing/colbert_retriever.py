@@ -22,34 +22,54 @@ class ColBERTRetriever:
 
     def full_retrieval(self, query, k: int):
         # embed the query
-        Q = self.inference.query_from_text(query)
-        if Q.dim() == 2:
-            Q = Q[None]
+        Qs = self.inference.query_from_text(query)
+        if Qs.dim() == 2:
+            Qs = Qs[None]
 
-        B, L_q, D = Q.shape
-        Q = Q.reshape(B*L_q, -1)
+        # B, L_q, D = Q.shape
+        # Q = Q.reshape(B*L_q, -1)
 
         # search for the best PIDs
         k_hat = math.ceil(k / 2)
-        sim, iids = self.indexer.search(Q, k=k_hat)
-        pids = self.indexer.iids_to_pids(iids, bsize=B)
+        sim, iids = self.indexer.search(Qs, k=k_hat)
+        pids = self.indexer.iids_to_pids(iids)
 
         # get the pre-computed embeddings for the PIDs
-        Ps = [self.indexer.get_pid_embedding(batch_pids) for batch_pids in pids]
+        Ps = [self.indexer.get_pid_embedding(query_best_pids, pad=True) for query_best_pids in pids]
 
         reranked_pids = []
-        for topk_pids, batch_P in zip(pids, Ps):
-            sims = []
-            for P in batch_P:
-                # print(Q.shape, pid_emb.shape)
-                out = Q @ P.T
-                sim = out.max(dim=-1).values.sum()
-                sims.append(sim)
-            k_ = min(len(sims), k)
-            values, indices = torch.topk(torch.tensor(sims), k=k_)
-            # print(values, imd)
-            sorted_pids = torch.tensor(topk_pids)[indices]
+        for Q, topk_pids, (topk_embs, mask) in zip(Qs, pids, Ps):
+            # topk_embs @ Q.mT instead of Q @ topk_embs.mT because of the masking later on
+            sim = topk_embs @ Q.mT # (N_doc, L_d, L_q)
+
+            # replace the similarity results for padding vectors
+            sim[~mask] = -torch.inf
+
+            # calculate the sum of max similarities
+            sms = sim.max(dim=1).values.sum(dim=-1)
+            # print(sim.shape, max_sim.shape)
+
+
+            k_ = min(sms.shape[0], k)
+            values, indices = torch.topk(sms, k=k_)
+            sorted_pids = torch.tensor(topk_pids, device=indices.device)[indices]
             reranked_pids.append([values.tolist(), sorted_pids.tolist()])
+
+
+
+        # reranked_pids = []
+        # for topk_pids, batch_P in zip(pids, Ps):
+        #     sims = []
+        #     for P in batch_P:
+        #         # print(Q.shape, pid_emb.shape)
+        #         out = Q @ P.T
+        #         sim = out.max(dim=-1).values.sum()
+        #         sims.append(sim)
+        #     k_ = min(len(sims), k)
+        #     values, indices = torch.topk(torch.tensor(sims), k=k_)
+        #     # print(values, imd)
+        #     sorted_pids = torch.tensor(topk_pids)[indices]
+        #     reranked_pids.append([values.tolist(), sorted_pids.tolist()])
         
         return reranked_pids
 

@@ -29,7 +29,8 @@ class ColBERTIndexer(IndexerInterface):
         # TODO: implement correctly
         self.tokenizer = ColBERTTokenizer(self.config)
         self.inference = ColBERTInference(self.config, self.tokenizer, device=self.device)
-        
+    
+    # TODO: upadate to also use list of string for path_to_passages
     def index(self, path_to_passages: str, bsize: int = 16, dtype=torch.float32):
         passages = Passages(path_to_passages)
         data = passages.values().tolist()
@@ -52,29 +53,28 @@ class ColBERTIndexer(IndexerInterface):
         self.embeddings = torch.cat([self.embeddings, *embeddings], dim=0)
     
     def search(self, query: torch.Tensor, k: int):
-        # add batch dimension if query is a single vector
-        if query.dim() == 1:
+        # add batch dimension
+        if query.dim() == 2:
             query = query[None]
-        # query shape: (B * L_q, D)
-        
-        
+        # query shape: (B, L_q, D)
+
+        # TODO: use similarity from model config
         if self.similarity == "l2":
-            query = query[:, None]  # shape : (B * L_q, 1, D)
-            # print(query.shape, self.embeddings.shape)
             sim = -1.0 * (query - self.embeddings).pow(2).sum(dim=-1) # shape: (B * L_q, N_embs)
             # sim = -1.0 * torch.norm(query - self.embeddings, ord=2, dim=-1) # shape: (B * L_q, N_embs)
 
         elif self.similarity == "cosine":
-            # print(query.shape, self.embeddings.shape)
-            sim = query @ self.embeddings.T # shape: (B * L_q, N_embs)
+            sim = query @ self.embeddings.mT # shape: (B, L_q, N_embs)
         else:
             raise ValueError()
         
-        topk_sim, topk_iids = sim.topk(k)
+        topk_sim, topk_iids = sim.topk(k, dim=-1) # both shapes: (B, L_q, k)
         return topk_sim, topk_iids
     
-    def iids_to_pids(self, iids, bsize: int = 1):
-        iids = iids.reshape(bsize, -1)
+    def iids_to_pids(self, iids: torch.IntTensor):
+        # iids shape: (B, L_q, k)
+        B = iids.shape[0]
+        iids = iids.reshape(B, -1)
         pids = []
 
         for query_iids in iids:
@@ -87,16 +87,25 @@ class ColBERTIndexer(IndexerInterface):
 
         return pids
 
-    def get_pid_embedding(self, pids: Union[int, List[int]]):
+    def get_pid_embedding(self, pids: Union[int, List[int]], pad=False):
         is_single_pid = isinstance(pids, int)
         if is_single_pid:
             pids = [pids]
             
         embs = [torch.stack([self.embeddings[iid] for iid in self.pid2iid[pid]], dim=0) for pid in pids]
+        if pad:
+            emb_lens = [len(emb) for emb in embs]
+            mask = torch.zeros((len(embs), max(emb_lens)), dtype=torch.bool)
+            for row, emb_len in zip(mask, emb_lens):
+                row[:emb_len] = True
+            embs = torch.nn.utils.rnn.pad_sequence(embs, batch_first=True, padding_value=0)
+            
         if is_single_pid:
             embs = embs[0]
+            if pad:
+                mask = mask[0]
 
-        return embs
+        return embs, mask if pad else embs
 
     def save(self, path):
         parameters = {
@@ -111,10 +120,9 @@ class ColBERTIndexer(IndexerInterface):
         self.iid2pid = parameters["iid2pid"]
         self.pid2iid = parameters["pid2iid"]
         self.embeddings = parameters["embeddings"].to(self.device)
-    
-    
-    
-    
+
+
+
 
 
 if __name__ == "__main__":
@@ -164,35 +172,56 @@ if __name__ == "__main__":
     Q = indexer.inference.query_from_text(query)
     if Q.dim() == 2:
         Q = Q[None]
-    print(Q.shape)
+    # print(Q.shape)
 
-    B, L_q, D = Q.shape
-    Q = Q.reshape(B*L_q, -1)
     sim, iids = indexer.search(Q, k=10)
-    pids = indexer.iids_to_pids(iids, bsize=B)
-    print(pids)
+    # print(sim.shape, iids.shape)
+    pids = indexer.iids_to_pids(iids)
+    # print(pids)
 
     passages = Passages(PATH)
-    print(passages[2])
+    # print(passages[2])
     # for pid in pids:
     #     print(passages[pid].values)
     
-    embs = [(batch_pids, indexer.get_pid_embedding(batch_pids)) for batch_pids in pids]
+    embs = [(query_best_pids, *indexer.get_pid_embedding(query_best_pids, pad=True)) for query_best_pids in pids]
+    print(len(embs), embs[0][1].shape, embs[0][2].shape)
+    # exit(0)
 
-    for pids, topk_embs in embs:
-        sims = []
-        for pid_emb in topk_embs:
-            # print(Q.shape, pid_emb.shape)
-            out = Q @ pid_emb.T
-            sim = out.max(dim=-1).values.sum()
-            sims.append(sim)
-        values, indices = torch.sort(torch.tensor(sims), descending=True)
-        sorted_pids = torch.tensor(pids)[indices]
-        print(pids, values, indices)
-        print(sorted_pids)
-    
+    for q, (pids, topk_embs, mask) in zip(Q, embs):
+        print(Q.shape, topk_embs.shape, mask.shape)
+        # topk_embs @ Q.mT instead of Q @ topk_embs.mT because of the masking later on
+        sim = topk_embs @ Q.mT # (N_doc, L_d, L_q)
+
+        # replace the similarity results for padding vectors
+        sim[~mask] = -torch.inf
+
+        # calculate the sum of max similarities
+        sms = sim.max(dim=1).values.sum(dim=-1)
+        print(sim.shape, sms.shape)
+
+        values, indices = torch.sort(sms, descending=True)
+        sorted_pids = torch.tensor(pids, device=indices.device)[indices]
+        # print(pids, values, indices)
+        # print(sorted_pids)
+
         for sim, pid in zip(values, sorted_pids[:10]):
             print(round(sim.item(), 3), pid.item(),  passages[pid.item()])
+        
+
+        # sims = []
+        # for pid_emb in topk_embs:
+        #     # print(Q.shape, pid_emb.shape)
+        #     out = Q @ pid_emb.T
+        #     sim = out.max(dim=-1).values.sum()
+        #     sims.append(sim)
+        # values, indices = torch.sort(torch.tensor(sims), descending=True)
+        # sorted_pids = torch.tensor(pids)[indices]
+        # print(pids, values, indices)
+        # print(sorted_pids)
+    
+        # for sim, pid in zip(values, sorted_pids[:10]):
+        #     print(round(sim.item(), 3), pid.item(),  passages[pid.item()])
     
     # e
     # print(len(embs), len(embs[0]))
