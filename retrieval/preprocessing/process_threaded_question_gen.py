@@ -101,7 +101,7 @@ if __name__ == "__main__":
     df
 
     # %%
-    df.to_json("harr_potter_q_a", orient='records', indent=4)
+    df.to_json(output_path_dir + "processed_wiki.json", orient='records', indent=4)
     df2 = df.copy()
     df2.columns
 

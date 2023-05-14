@@ -18,6 +18,22 @@
 - [generate_qa_dataset.py](/src/preprocessing/generate_qa_dataset.py):
     - splits the JSON file containing the question-answer pairs into smaller JSON or TSV files (triples, queries, passages, docs), which reduces redundant information and fits the data format required for ColBERT & co.
 
+- [threaded_question_generation.py](/src/preprocessing/threaded_question_generation.py):
+    - takes as an input a processed wiki json filepath, and a output-file path
+    - proxies taken from http.txt
+    - uses threads that use different proxies to efficiently take advantage of the free ai.usesless.com gpt 3.5 server to generate positive and negative questions for a passage
+    - Completion class was copied and adjusted for proxy support from https://github.com/xtekky/gpt4free. 
+    - prompt generation and processing functions were copied from ./another_question_gen_script.py
+
+- [process_threaded_question_gen.py](/src/preprocessing/threaded_question_generation.py):
+    - executed after threaded_question_generation has generated questions
+    - direct translation of the .ipynb notebook
+    - takes as an input a processed wiki json filepath, a output-file path and a output directory
+    - adjusts the processed wiki json to include the generated questions and outputs a new file
+    - outputs triples.tsv, passages.tsv, queries.tsv, wiki.json
+
+
+
 
 ### How to run
 
