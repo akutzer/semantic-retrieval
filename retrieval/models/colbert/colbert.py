@@ -89,7 +89,7 @@ class ColBERT(nn.Module):
 
         return D, mask if return_mask else D
    
-    def similarity(self, Q, D_padded, D_mask, intra_batch=False):
+    def similarity(self, Q, D_padded, D_mask=None, intra_batch=False):
         # Q shape:        (B*psgs_per_qry, L_q, out_features)
         # D_padded shape: (B*psgs_per_qry, L_d, out_features)
         # D_mask shape:   (B*psgs_per_qry, L_d)
@@ -107,7 +107,8 @@ class ColBERT(nn.Module):
                 raise ValueError(f"Invalid similarity function {self.config.similarity} given. Must be either 'l2' or 'cosine'")
             
             # ignore the similarities for padding and punctuation tokens
-            sim.mT[~D_mask] = float("-inf")
+            if D_mask:
+                sim.mT[~D_mask] = float("-inf")
 
             # calculate the sum of maximum similarity (sms)
             # sim shape: (B*psgs_per_qry, L_q, L_d)
@@ -139,8 +140,9 @@ class ColBERT(nn.Module):
                 raise ValueError(f"Invalid similarity function {self.config.similarity} given. Must be either 'l2' or 'cosine'")
             
             # ignore the similarities for padding and punctuation tokens
-            D_mask = D_mask[None].repeat_interleave(B, dim=0)
-            sim.mT[~D_mask] = float("-inf")
+            if D_mask:
+                D_mask = D_mask[None].repeat_interleave(B, dim=0)
+                sim.mT[~D_mask] = float("-inf")
 
             # calculate the sum of maximum similarity (sms)
             # sim shape: (B*psgs_per_qry, B*psgs_per_qry, L_q, L_d)
