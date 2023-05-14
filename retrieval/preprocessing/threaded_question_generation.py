@@ -43,7 +43,7 @@ threads_passages = []
 
 def getProxyList():
     # opening the file in read mode
-    my_file = open("http.txt", "r")
+    my_file = open("./proxies/http.txt", "r")
     
     # reading the file
     data = my_file.read()
