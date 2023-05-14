@@ -325,7 +325,14 @@ def mainLoop(import_path, export_file,num_threads=1):
     # limit of what prob
     what_limit_prop = 0.25
 
+    b = 0
+
     while pairs_ind:
+        b = b + 1
+        if (b % 50) == 0:
+            print('now sleeping for 1000s')
+            time.sleep(1000)
+
         if not df_prev.empty:
             try:
                 what_prop = getDistributionQuestionWords(new_df)['what']
