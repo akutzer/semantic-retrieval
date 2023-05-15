@@ -116,7 +116,7 @@ class Completion:
             try:
                 ii = ii + 1
                 # print(proxy_https)
-                request = requests.post(url, headers=Completion.headers, json=json_data, proxies=proxies, timeout=TIMEOUT, verify=True)
+                request = requests.post(url, headers=Completion.headers, json=json_data, proxies=proxies, timeout=TIMEOUT, verify=False)
                 break
             except KeyboardInterrupt:
                 # quit
@@ -329,7 +329,7 @@ def mainLoop(import_path, export_file,num_threads=1):
 
     while pairs_ind:
         b = b + 1
-        if (b % 50) == 0:
+        if (b % 30) == 0:
             print('now sleeping for 1000s')
             time.sleep(1000)
 
