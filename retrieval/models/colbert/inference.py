@@ -14,6 +14,7 @@ from retrieval.models.colbert.tokenizer import ColBERTTokenizer
 class ColBERTInference(ColBERT):
     def __init__(self, config: BaseConfig, tokenizer: ColBERTTokenizer, device="cpu"):
         super().__init__(config, tokenizer, device)
+        self.tokenizer = tokenizer
         self.eval()
     
     def query(self, input_ids: torch.IntTensor, attention_mask: torch.BoolTensor, to_cpu: bool = False) -> List[torch.Tensor]:
