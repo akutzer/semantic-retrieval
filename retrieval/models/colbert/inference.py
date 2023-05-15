@@ -26,7 +26,7 @@ class ColBERTInference(ColBERT):
         if to_cpu:
             Q = Q.cpu()
         # split the tensor of shape (B, L, dim) into a list of d tensors with shape (1, L, dim)
-        Q = [q.squeeze(0) for q in torch.split(Q, 1, dim=0)]
+        # Q = [q.squeeze(0) for q in torch.split(Q, 1, dim=0)]
         return Q
     
     def doc(self, input_ids: torch.IntTensor, attention_mask: torch.BoolTensor, to_cpu: bool = False) -> List[torch.Tensor]:
@@ -46,24 +46,33 @@ class ColBERTInference(ColBERT):
         return D
     
     
-    def query_from_text(self, query: Union[str, List[str]], bsize: Union[None, int] = None, to_cpu: bool = False, show_progress: bool = False) -> List[torch.Tensor]:
+    def query_from_text(self, query: Union[str, List[str]], bsize: Union[None, int] = None, to_cpu: bool = False, show_progress: bool = False) -> torch.Tensor:
         """
         Calculates the ColBERT embedding for a query or list of queries represented as strings.
         """
         is_single_query = isinstance(query, str)
-        Qs = []
-
+        if is_single_query:
+            query = [query]
+        
+        if bsize is None:
+            bsize = len(query)
+        
         with torch.inference_mode():
+            device = "cpu" if to_cpu else self.device
+            Qs = torch.empty(len(query), self.config.query_maxlen, self.config.dim, device=device)
+            
+            # iterator of batches which contain of a (B, L_q, D) shaped index tensor
+            # and a (B, L_q) shaped attention mask tensor
             batches = self.tokenizer.tensorize(query, mode="query", bsize=bsize)
-            if bsize is None:
-                batches = [batches]
+
             if show_progress:
                 total = math.ceil(len(query) / bsize) if bsize is not None else 1
                 batches = tqdm(batches, total=total)
 
-            for Q in batches:
+            for i, Q in enumerate(batches):
                 Q = self.query(*Q, to_cpu=to_cpu)
-                Qs.extend(Q)
+                Qs[i : i+bsize] = Q
+                # Qs.extend(Q)
 
         return Qs[0] if is_single_query else Qs
     
@@ -109,10 +118,12 @@ if __name__ == "__main__":
     tokenizer = ColBERTTokenizer(config)
     colbert = ColBERTInference(config, tokenizer, device=DEVICE)
 
-    
+    queries = queries[0]
     Q = tokenizer.tensorize(queries, mode="query")
     qrys1 = colbert.query(*Q)
     qrys2 = colbert.query_from_text(queries, bsize=BSIZE)
+    if isinstance(queries, str):
+        qrys2 = qrys2[None]
     for qry1, qry2 in zip(qrys1, qrys2):
         print(torch.allclose(qry1, qry2), torch.max(qry1 - qry2).item())
 
