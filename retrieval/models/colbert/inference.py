@@ -1,6 +1,7 @@
-import torch
-from typing import List, Union
 import math
+from typing import List, Union
+
+import torch
 from tqdm import tqdm
 
 from retrieval.configs import BaseConfig
@@ -9,20 +10,23 @@ from retrieval.models.colbert.tokenizer import ColBERTTokenizer
 
 
 
-
-
-class ColBERTInference(ColBERT):
-    def __init__(self, config: BaseConfig, tokenizer: ColBERTTokenizer, device="cpu"):
-        super().__init__(config, tokenizer, device)
+class ColBERTInference():
+    def __init__(self, colbert: ColBERT, tokenizer: ColBERTTokenizer, device: str = "cpu"):
+        self.colbert = colbert
         self.tokenizer = tokenizer
-        self.eval()
+        self.colbert.register_tokenizer(tokenizer)
+
+        self.device = device
+        self.colbert.device = self.device
+        self.colbert.to(device=self.device)        
+        self.colbert.eval()
     
     def query(self, input_ids: torch.IntTensor, attention_mask: torch.BoolTensor, to_cpu: bool = False) -> List[torch.Tensor]:
         """
         Calculates the ColBERT embedding for a tokenized query.
         """
         with torch.inference_mode():
-            Q = super().query(input_ids, attention_mask)
+            Q = self.colbert.query(input_ids, attention_mask)
             
         if to_cpu:
             Q = Q.cpu()
@@ -35,7 +39,7 @@ class ColBERTInference(ColBERT):
         Calculates the ColBERT embedding for a tokenized document/passage.
         """
         with torch.inference_mode():
-            D, mask = super().doc(input_ids, attention_mask, return_mask=True)
+            D, mask = self.colbert.doc(input_ids.to(self.device), attention_mask.to(self.device), return_mask=True)
         
         if to_cpu:
             D, mask = D.cpu(), mask.cpu()
@@ -45,7 +49,6 @@ class ColBERTInference(ColBERT):
         D = [d[m].squeeze(0) for d, m in zip(D, mask)]
         
         return D
-    
     
     def query_from_text(self, query: Union[str, List[str]], bsize: Union[None, int] = None, to_cpu: bool = False, show_progress: bool = False) -> torch.Tensor:
         """
@@ -60,7 +63,7 @@ class ColBERTInference(ColBERT):
         
         with torch.inference_mode():
             device = "cpu" if to_cpu else self.device
-            Qs = torch.empty(len(query), self.config.query_maxlen, self.config.dim, device=device)
+            Qs = torch.empty(len(query), self.tokenizer.query_maxlen, self.colbert.out_features, device=device)
             
             # iterator of batches which contain of a (B, L_q, D) shaped index tensor
             # and a (B, L_q) shaped attention mask tensor
@@ -97,6 +100,15 @@ class ColBERTInference(ColBERT):
                 Ds.extend(D)
 
         return Ds[0] if is_single_doc else Ds
+    
+    @classmethod
+    def from_pretrained(cls, directory: str, device: str = "cpu"):
+        tokenizer = ColBERTTokenizer.from_pretrained(directory)
+        colbert = ColBERT.from_pretrained(directory, device)
+        colbert.register_tokenizer(tokenizer)
+
+        model = cls(colbert, tokenizer)
+        return model
 
 
 
@@ -117,7 +129,12 @@ if __name__ == "__main__":
     )
 
     tokenizer = ColBERTTokenizer(config)
-    colbert = ColBERTInference(config, tokenizer, device=DEVICE)
+    model = ColBERT(config)
+    colbert = ColBERTInference(model, tokenizer, device=DEVICE)
+
+    # colbert = ColBERTInference.from_pretrained("testchen")
+    # tokenizer = colbert.tokenizer
+    # print(colbert)
 
     queries = queries[0]
     Q = tokenizer.tensorize(queries, mode="query")

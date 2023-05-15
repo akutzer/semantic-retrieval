@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
+import os
 from typing import Union, List
+import json
+from dataclasses import asdict, is_dataclass
 
 import torch
 from transformers import AutoTokenizer
 
-from retrieval.configs import BaseConfig
+from retrieval.configs import BaseConfig, save_config, load_config
 from retrieval.models.colbert.utils import _split_into_batches
 
 
@@ -180,7 +183,33 @@ class ColBERTTokenizer():
     
     def batch_decode(self, ids: Union[List[List[int]], torch.IntTensor], **kwargs) -> List[str]:
         return self.tok.batch_decode(ids, **kwargs)
+    
+    def save(self, save_directory: str, store_config: bool = True):
+        # create the directory if it doesn't exist
+        os.makedirs(save_directory, exist_ok=True)
 
+        # save the tokenizer
+        self.tok.save_pretrained(save_directory)
+        
+        # save the model's config if available
+        if store_config:
+            config_path = os.path.join(save_directory, "colbert_config.json")
+            save_config(self.config, config_path)
+    
+    @classmethod
+    def from_pretrained(cls, directory: str):
+        # load the model's config if available
+        config_path = os.path.join(directory, "colbert_config.json")
+        config = load_config(config_path)
+        if not config:
+            print("Warning: colbert_config.json does not exist, loading default config.")
+            config = BaseConfig()
+        
+        tokenizer = cls(config)
+        # load the tokenizers's parameters if available
+        tokenizer.tok = AutoTokenizer.from_pretrained(directory)
+
+        return tokenizer
 
 if __name__ == "__main__":
 
@@ -194,10 +223,13 @@ if __name__ == "__main__":
 
     base_tokenizers = ["bert-base-uncased", "roberta-base", "../../../data/colbertv2.0/"]
     config = BaseConfig(
-        tok_name_or_path=base_tokenizers[0]
+        tok_name_or_path=base_tokenizers[1]
     )
 
     tokenizer = ColBERTTokenizer(config)
+
+    # tokenizer.save("testchen")
+    # tokenizer_ = ColBERTTokenizer.from_pretrained("testchen")
 
     # testing the bsize attribute in the tensorize methode
     batches = tokenizer.tensorize(sentences, mode="query", bsize=1)

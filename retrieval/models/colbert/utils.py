@@ -29,10 +29,3 @@ def _split_into_batches_sorted(ids: torch.Tensor, mask: torch.Tensor, bsize: int
         b_mask = mask[i:i+bsize, :batch_maxlen[i//bsize]]
         b_indices = indices[i:i+bsize]
         yield b_ids, b_mask, b_indices
-
-
-def load_colbert_and_tokenizer(self):
-    pass
-
-def get_colbert_and_tokenizer(self):
-    pass
