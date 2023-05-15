@@ -7,7 +7,7 @@ from tqdm import tqdm
 from retrieval.configs import BaseConfig
 from retrieval.models.colbert.colbert import ColBERT
 from retrieval.models.colbert.tokenizer import ColBERTTokenizer
-
+from retrieval.models.colbert.load import load_colbert_and_tokenizer, get_colbert_and_tokenizer
 
 
 class ColBERTInference():
@@ -103,10 +103,7 @@ class ColBERTInference():
     
     @classmethod
     def from_pretrained(cls, directory: str, device: str = "cpu"):
-        tokenizer = ColBERTTokenizer.from_pretrained(directory)
-        colbert = ColBERT.from_pretrained(directory, device)
-        colbert.register_tokenizer(tokenizer)
-
+        colbert, tokenizer = load_colbert_and_tokenizer(directory, device)
         model = cls(colbert, tokenizer)
         return model
 
@@ -128,11 +125,10 @@ if __name__ == "__main__":
         backbone_name_or_path=MODEL_PATH,
     )
 
-    tokenizer = ColBERTTokenizer(config)
-    model = ColBERT(config)
+    model, tokenizer = get_colbert_and_tokenizer(config)
     colbert = ColBERTInference(model, tokenizer, device=DEVICE)
 
-    # colbert = ColBERTInference.from_pretrained("testchen")
+    # colbert = ColBERTInference.from_pretrained("testchen", device=DEVICE)
     # tokenizer = colbert.tokenizer
     # print(colbert)
 
