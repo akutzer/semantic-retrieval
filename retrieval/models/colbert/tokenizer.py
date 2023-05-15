@@ -207,7 +207,7 @@ class ColBERTTokenizer():
         
         tokenizer = cls(config)
         # load the tokenizers's parameters if available
-        tokenizer.tok = AutoTokenizer.from_pretrained(directory)
+        tokenizer.tok = AutoTokenizer.from_pretrained(directory, use_auth_token=False)
 
         return tokenizer
 
