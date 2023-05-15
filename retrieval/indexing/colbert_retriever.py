@@ -3,9 +3,9 @@ import torch
 import time
 
 from retrieval.configs import BaseConfig
-from retrieval.data import Passages, Queries, TripleDataset
+from retrieval.data import Passages, Queries, TripleDataset, BucketIterator
 from retrieval.models import ColBERTTokenizer, ColBERTInference
-from retrieval.indexing.colbert_indexer import ColBERTIndexer, instance_time, stacking_time, mask_time, padding_time
+from retrieval.indexing.colbert_indexer import ColBERTIndexer
 
 
 query_from_text_time = 0
@@ -29,31 +29,43 @@ class ColBERTRetriever:
 
     def full_retrieval(self, query, k: int):
         global query_from_text_time, search_time, iids_to_pids_time, get_pid_embedding_time, reranked_pids_time
-        global instance_time, stacking_time, mask_time, padding_time
 
-        # embed the query
+        
         start = time.time()
-        Qs = self.inference.query_from_text(query)
+        # embed the query, performed on the GPU
+        Qs = self.inference.query_from_text(query) # (B, L_q, D)
         if Qs.dim() == 2:
             Qs = Qs[None]
         query_from_text_time += time.time() - start
 
-        # B, L_q, D = Q.shape
-        # Q = Q.reshape(B*L_q, -1)
 
-        # search for the best PIDs
         start = time.time()
-        k_hat = math.ceil(k / 2)
-        sim, iids = self.indexer.search(Qs, k=k_hat)
+        # for each query embedding vector, search for the best k_hat index vectors in the passages embedding matrix
+        # performed on the GPU      
+        k_hat = math.ceil(k/10)
+        sim, iids = self.indexer.search(Qs, k=k_hat) # (B, L_q, k_hat)
         search_time += time.time() - start
+
         start = time.time()
-        pids = self.indexer.iids_to_pids(iids)
+        # for each query get the PIDs containing the best index vectors
+        # performed in the cpu
+        pids = self.indexer.iids_to_pids(iids.cpu())  # List[List[int]]
+        # outer list is of length B
+        # inner list is of variable length N_pids, since there are a different number of 
+        # pids for each query
         iids_to_pids_time += time.time() - start
 
         start = time.time()
         # get the pre-computed embeddings for the PIDs
         Ps = [self.indexer.get_pid_embedding(query_best_pids, pad=True) for query_best_pids in pids]
+        # List[Tensor(N_pids, L_d, D), Tensor(N_pids, L_d)]
+        # first Tensor contains all the embeddings of matching passages for
+        # the given query; the second tensor is a boolean mask, which is needed 
+        # since this Tensor is padded (because the number of embedding vectors
+        # for each PID is variable), so we can later ignore the similarity scores
+        # for those padding vectors
         get_pid_embedding_time += time.time() - start
+
 
         start = time.time()
         reranked_pids = []
@@ -113,7 +125,7 @@ if __name__ == "__main__":
         backbone_name_or_path=MODEL_PATH,
         similarity="cosine",
         dim = 128,
-        batch_size = 16,
+        batch_size = 32,
         accum_steps = 1,
     )
 
@@ -139,47 +151,53 @@ if __name__ == "__main__":
     
     import cProfile
     
-    LEN = 1000 #len(dataset) #10_000
+    LEN = len(dataset) #len(dataset) #len(dataset) #20_000
     dataset.shuffle()
+    sub_dataset = dataset[:LEN]
+    BSIZE = 16
     
     top1, top5, top10, top25, top100 = 0, 0, 0, 0, 0
     k = 100
     with cProfile.Profile() as pr:
-        for i, triple in enumerate(tqdm(dataset[:LEN])):
+        query_batch = []
+        target_batch = []
+        for i, triple in enumerate(tqdm(sub_dataset)):
             qid, pid_pos, *pid_neg = triple
             query, psg_pos, *psg_neg = dataset.id2string(triple)
+            query_batch.append(query)
+            target_batch.append(pid_pos)
 
-            pids = retriever.full_retrieval(query, k)[0][1]
-            
-            if pid_pos in pids[:100]:
-                top100 += 1
-                if pid_pos in pids[:25]:
-                    top25 += 1
-                    if pid_pos in pids[:10]:
-                        top10 += 1
-                        if pid_pos in pids[:5]:
-                            top5 += 1
-                            if pid_pos == pids[0]:
-                                top1 += 1
-    
+            if len(query_batch) == BSIZE or i + 1 == len(sub_dataset):
+                pids = retriever.full_retrieval(query_batch, k)
+                
+                for i, ((sims, pred_pids), target_pit) in enumerate(zip(pids, target_batch)):
+                    if target_pit in pred_pids[:100]:
+                        top100 += 1
+                        if target_pit in pred_pids[:25]:
+                            top25 += 1
+                            if target_pit in pred_pids[:10]:
+                                top10 += 1
+                                if target_pit in pred_pids[:5]:
+                                    top5 += 1
+                                    if target_pit == pred_pids[0]:
+                                        top1 += 1
+
+                    
+                
+                query_batch = []
+                target_batch = []
+
         pr.print_stats()
 
 
-    print(round((100 * top1) / LEN, 3))
-    print(round((100 * top5) / LEN, 3))
-    print(round((100 * top10) / LEN, 3))
-    print(round((100 * top25) / LEN, 3))
-    print(round((100 * top100) / LEN, 3))
+    print(round((100 * top1) / len(sub_dataset), 3))
+    print(round((100 * top5) / len(sub_dataset), 3))
+    print(round((100 * top10) / len(sub_dataset), 3))
+    print(round((100 * top25) / len(sub_dataset), 3))
+    print(round((100 * top100) / len(sub_dataset), 3))
 
     print(f"query_from_text_time = {query_from_text_time}")
     print(f"search_time = {search_time}")
     print(f"iids_to_pids_time = {iids_to_pids_time}")
     print(f"get_pid_embedding_time = {get_pid_embedding_time}")
     print(f"reranked_pids_time = {reranked_pids_time}")
-    print()
-
-    print(f"instance_time = {instance_time}")
-    print(f"stacking_time = {stacking_time}")
-    print(f"mask_time = {mask_time}")
-    print(f"padding_time = {padding_time}")
-

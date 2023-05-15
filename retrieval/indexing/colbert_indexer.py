@@ -36,21 +36,23 @@ class ColBERTIndexer(IndexerInterface):
         data = passages.values().tolist()
         pids = passages.keys().tolist()
 
-        embeddings = self.inference.doc_from_text(data, bsize=bsize, show_progress=True)
-        assert len(embeddings) == len(pids)
-        
-        # update the iid2pid and pid2iid mappings
-        for pid, emb in zip(pids, embeddings):
-            # adds new iids in the range [next_iid, next_iid + n_embeddings)
-            start_iid, end_iid = self.next_iid, self.next_iid + emb.shape[0]
-            new_iids = range(start_iid, end_iid)
-            self.pid2iid[pid].extend(new_iids)
-            self.iid2pid.update({iid: pid for iid in new_iids})
-            self.next_iid = end_iid
-        
-        # concatenate the new embeddings onto the previous embedding matrix
-        # TODO: this does not remove old embeddings for the same PID
-        self.embeddings = torch.cat([self.embeddings, *embeddings], dim=0)
+        with torch.inference_mode():
+            embeddings = self.inference.doc_from_text(data, bsize=bsize, show_progress=True)
+            assert len(embeddings) == len(pids)
+            
+            # TODO: test copying to cpu
+            # update the iid2pid and pid2iid mappings
+            for pid, emb in zip(pids, embeddings):
+                # adds new iids in the range [next_iid, next_iid + n_embeddings)
+                start_iid, end_iid = self.next_iid, self.next_iid + emb.shape[0]
+                new_iids = range(start_iid, end_iid)
+                self.pid2iid[pid].extend(new_iids)
+                self.iid2pid.update({iid: pid for iid in new_iids})
+                self.next_iid = end_iid
+            
+            # concatenate the new embeddings onto the previous embedding matrix
+            # TODO: this does not remove old embeddings for the same PID
+            self.embeddings = torch.cat([self.embeddings, *embeddings], dim=0)
     
     def search(self, query: torch.Tensor, k: int):
         # add batch dimension
@@ -70,9 +72,7 @@ class ColBERTIndexer(IndexerInterface):
         
         topk_sim, topk_iids = sim.topk(k, dim=-1) # both shapes: (B, L_q, k)
         return topk_sim, topk_iids
-    
-
-    
+            
     def iids_to_pids(self, iids: torch.IntTensor):
         # iids shape: (B, L_q, k)
         B = iids.shape[0]
@@ -85,8 +85,7 @@ class ColBERTIndexer(IndexerInterface):
 
         return pids
     
-    def get_pid_embedding(self, pids, pad=False):
-
+    def get_pid_embedding(self, pids: List[List[int]], pad=False):
         is_single_pid = isinstance(pids, int)
         if is_single_pid:
             pids = [pids]
@@ -105,7 +104,7 @@ class ColBERTIndexer(IndexerInterface):
             embs = embs[0]
             if pad:
                 mask = mask[0]
-        
+
         return embs, mask if pad else embs
 
     def save(self, path):
@@ -121,6 +120,43 @@ class ColBERTIndexer(IndexerInterface):
         self.iid2pid = parameters["iid2pid"]
         self.pid2iid = parameters["pid2iid"]
         self.embeddings = parameters["embeddings"].to(self.device)
+    
+
+    # def iids_to_pids_and_embedding(self, iids: torch.IntTensor, pad=False):
+    #     # iids shape: (B, L_q, k)
+    #     B, L_q, k = iids.shape
+    #     iids = iids.reshape(B * L_q * k)
+
+    #     unique_iids, inverse_indices = torch.unique(iids, return_inverse=True)
+
+    #     unique_pids = []
+    #     for iid in unique_iids:
+    #         if iid in self.iid2pid:
+    #             unique_pids.append(self.iid2pid[iid])
+    #     unique_pids = torch.unique(torch.tensor(unique_pids, device=self.device))
+
+    #     pid_to_index = {pid: index for index, pid in enumerate(unique_pids)}
+    #     pids = []
+    #     for query_iids in iids.reshape(B, L_q, k):
+    #         query_pids = [pid_to_index[self.iid2pid[iid]] if iid in self.iid2pid else None for iid in query_iids]
+    #         pids.append(query_pids)
+
+    #     embs = self.embeddings[unique_iids]
+
+    #     if pad:
+    #         max_iids = max(len(iid_list) for iid_list in pids)
+    #         mask = torch.arange(max_iids, device=self.device)[None, :] < torch.tensor([len(iid_list) for iid_list in pids], device=self.device)[:, None]
+    #         embs = embs[torch.unique(inverse_indices)]
+    #         embs = embs[:, :mask.sum(dim=1).max()]
+
+    #         pids_padded = []
+    #         for query_pids in pids:
+    #             query_pids_padded = query_pids + [None] * (max_iids - len(query_pids))
+    #             pids_padded.append(query_pids_padded)
+
+    #         pids = pids_padded
+
+    #     return embs.reshape(B, L_q, -1), pids if pad else embs.reshape(B, L_q, -1)
 
 
 
@@ -159,13 +195,14 @@ if __name__ == "__main__":
     indexer = ColBERTIndexer(config, device="cuda:0")
     # since we are not sorting by length, small batch sizes seem to be more efficient,
     # because there is less padding
-    # indexer.index(PATH, bsize=8)
-    # indexer.save(INDEX_PATH)
+    indexer.index(PATH, bsize=8)
+    indexer.save(INDEX_PATH)
 
+    
+    indexer.load(INDEX_PATH)
     # print(indexer.pid2iid)
     # print(indexer.iid2pid[IDX], indexer.embeddings[IDX])
     # print(indexer.get_pid_embedding(indexer.iid2pid[IDX]))
-    indexer.load(INDEX_PATH)
     # indexer.similarity = config.similarity
 
     query = "Who is the author of 'The Witcher'?" #"Who do NPCs react if it rains?" #"What is the largest island of the Skellige Islands?" # "Where can I find NPCs if it rains?" #"Who was Cynthia?"
