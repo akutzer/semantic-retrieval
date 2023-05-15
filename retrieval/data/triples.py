@@ -21,7 +21,7 @@ class Triples:
         return len(self.data)
 
     def __iter__(self):
-        return iter(self.data)
+        return iter(self.data.values)
 
     def __getitem__(self, idx):
         return self.data.iloc[idx].values.tolist()

@@ -21,6 +21,7 @@ class ModelSettings:
     skip_punctuation: bool = True
     similarity: str = "cosine" # "L2" or "cosine"
     intra_batch_similarity: bool = False
+    normalize: bool = True
 
 
 @dataclass
@@ -40,7 +41,13 @@ class QuerySettings:
 @dataclass
 class TrainingSettings:
     epochs: int = 10
+    bucket_size: int = 128*10
     batch_size: int = 128
     accum_steps: int = 16
     passages_per_query: int = 1
     drop_last: bool = False
+
+
+@dataclass
+class IndexerSettings:
+    n_clusters: int = 100

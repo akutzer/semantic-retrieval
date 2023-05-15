@@ -38,11 +38,11 @@ class TripleDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.triples)
     
-    def output_strings(self):
-        self.output_string = True
+    def queries_items(self):
+        return self.queries.items()
     
-    def output_ids(self):
-        self.output_string = False
+    def passages_items(self):
+        return self.passages.items()    
     
     def id2string(self, triple):
         if self.mode == "qqp":
@@ -72,20 +72,25 @@ class TripleDataset(torch.utils.data.Dataset):
         return triples
     
     def qid2string(self, qid):
-        if isinstance(qid, list):
-            return [self.queries[q] for q in qid]
-        else:
-            return self.queries[qid]
-
+        return self.queries.qid2string(qid)
+    
     def pid2string(self, pid):
-        if isinstance(pid, list):
-            return [self.passages[p] for p in pid]
-        else:
-            return self.passages[pid]
+        return self.passages.pid2string(pid)
         
     def shuffle(self, reset_index=False):
         self.triples.shuffle(reset_index=reset_index)
     
+    def output_strings(self):
+        self.output_string = True
+    
+    def output_ids(self):
+        self.output_string = False
+    
+    def is_qqp(self):
+        return self.mode == "qqp"
+    
+    def is_qpp(self):
+        return self.mode == "qpp"
 
 
 
