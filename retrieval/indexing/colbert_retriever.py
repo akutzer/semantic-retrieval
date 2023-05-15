@@ -4,19 +4,17 @@ from typing import List
 
 from retrieval.configs import BaseConfig
 from retrieval.data import Passages, Queries, TripleDataset, BucketIterator
-from retrieval.models import ColBERTTokenizer, ColBERTInference
+from retrieval.models import ColBERTTokenizer, ColBERTInference, get_colbert_and_tokenizer
 from retrieval.indexing.colbert_indexer import ColBERTIndexer
 
 
 
 class ColBERTRetriever:
-    def __init__(self, config: BaseConfig, device):
-        self.config = config
+    def __init__(self, inference, device):
         self.device = device
 
-        self.tokenizer = ColBERTTokenizer(self.config)
-        self.inference = ColBERTInference(self.config, self.tokenizer, device=device)
-        self.indexer = ColBERTIndexer(config, device=device)
+        self.inference = inference
+        self.indexer = ColBERTIndexer(inference, device=device)
 
 
     def full_retrieval(self, query: List[str], k: int):
@@ -90,7 +88,9 @@ if __name__ == "__main__":
         accum_steps = 1,
     )
 
-    retriever = ColBERTRetriever(config, device="cuda:0")
+    colbert, tokenizer = get_colbert_and_tokenizer(config)
+    inference = ColBERTInference(colbert, tokenizer)
+    retriever = ColBERTRetriever(inference, device="cuda:0")
     retriever.indexer.load(INDEX_PATH)
 
     dataset = TripleDataset(config,
@@ -98,7 +98,6 @@ if __name__ == "__main__":
         queries_path="../../data/fandom-qa/witcher_qa/queries.train.tsv",
         passages_path="../../data/fandom-qa/witcher_qa/passages.train.tsv",
         mode="qpp")
-
     dataset.shuffle()
 
     BSIZE = 16
