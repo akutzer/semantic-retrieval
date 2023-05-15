@@ -8,18 +8,18 @@ from typing import Union, List, Tuple
 
 from retrieval.configs import BaseConfig
 from retrieval.data import Passages
-from retrieval.models import ColBERTTokenizer, ColBERTInference
+from retrieval.models import ColBERTTokenizer, ColBERTInference, get_colbert_and_tokenizer
 from retrieval.indexing.indexer import IndexerInterface
 
 
 
 class ColBERTIndexer(IndexerInterface):
-    def __init__(self, config, device="cpu"):
-        self.config = config
+    def __init__(self, inference, device="cpu"):
+        self.inference = inference
+        self.inference.to(device)
         self.device = device
-        self.load_model()
-        
-        self.similarity = self.config.similarity
+        self.similarity = self.inference.colbert.config.similarity
+
         self.embeddings = torch.tensor([], device=self.device)
         self.iid2pid = torch.empty(0, device=self.device, dtype=torch.int64)
         self.pid2iid = torch.empty((0, 0), device=self.device, dtype=torch.int64)
@@ -126,12 +126,7 @@ class ColBERTIndexer(IndexerInterface):
         self.iid2pid = parameters["iid2pid"].to(self.device)
         self.pid2iid = parameters["pid2iid"].to(self.device)
         self.embeddings = parameters["embeddings"].to(self.device)
-    
-    def load_model(self):
-        # TODO: implement correctly
-        self.tokenizer = ColBERTTokenizer(self.config)
-        self.inference = ColBERTInference(self.config, self.tokenizer, device=self.device)
-    
+        
     def _new_passages(self, passages: List[str], pids: List[str]) -> Tuple[List[str], List[str]]:
         passages_, pids_ = [], []
 
@@ -173,14 +168,14 @@ if __name__ == "__main__":
         batch_size = 16,
         accum_steps = 1,
     )
-    indexer = ColBERTIndexer(config, device=DEVICE)
+    colbert, tokenizer = get_colbert_and_tokenizer(config)
+    inference = ColBERTInference(colbert, tokenizer, device=DEVICE)
+    indexer = ColBERTIndexer(inference, device=DEVICE)
 
     passages = Passages(PASSAGES_PATH)
     data = passages.values().tolist()
     pids = passages.keys().tolist()
-
     
-
     # test indexing of already seen data
     indexer.index(data[:1], pids[:1], bsize=8)
     indexer.index(data[1:2], pids[1:2], bsize=8)
@@ -195,8 +190,8 @@ if __name__ == "__main__":
     test_embs = indexer.get_pid_embedding(test_pids)
 
     # index the entire data
-    # indexer.index(data, pids, bsize=8)
-    # indexer.save(INDEX_PATH)
+    indexer.index(data, pids, bsize=8)
+    indexer.save(INDEX_PATH)
     indexer.load(INDEX_PATH)
     print(indexer.embeddings.shape)
 

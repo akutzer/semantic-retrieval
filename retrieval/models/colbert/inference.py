@@ -16,9 +16,7 @@ class ColBERTInference():
         self.tokenizer = tokenizer
         self.colbert.register_tokenizer(tokenizer)
 
-        self.device = device
-        self.colbert.device = self.device
-        self.colbert.to(device=self.device)        
+        self.to(device)     
         self.colbert.eval()
     
     def query(self, input_ids: torch.IntTensor, attention_mask: torch.BoolTensor, to_cpu: bool = False) -> List[torch.Tensor]:
@@ -106,6 +104,11 @@ class ColBERTInference():
         colbert, tokenizer = load_colbert_and_tokenizer(directory, device)
         model = cls(colbert, tokenizer)
         return model
+    
+    def to(self, device):
+        self.device = device
+        self.colbert.device = device
+        self.colbert.to(device=device)        
 
 
 

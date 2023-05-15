@@ -9,12 +9,12 @@ from retrieval.models import ColBERTTokenizer
 
 
 class BucketIterator():
-    def __init__(self, config: BaseConfig, dataset: TripleDataset):
+    def __init__(self, config: BaseConfig, dataset: TripleDataset, tokenizer: ColBERTTokenizer):
         self.config = config
         self.bucket_size = config.bucket_size
         self.batch_size = config.batch_size
 
-        self.tokenizer = ColBERTTokenizer(config)
+        self.tokenizer = tokenizer
         self.dataset = dataset
 
         self.drop_last = config.drop_last
