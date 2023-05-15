@@ -11,7 +11,7 @@ from retrieval.models.colbert.utils import _split_into_batches
 class ColBERTTokenizer():
     def __init__(self, config: BaseConfig):
         self.config = config
-        self.tok = AutoTokenizer.from_pretrained(config.tok_name_or_path)    
+        self.tok = AutoTokenizer.from_pretrained(config.tok_name_or_path)
 
         self.query_maxlen = self.config.query_maxlen
         self.doc_maxlen = self.config.doc_maxlen
