@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 import os
-import json
 import string
-from dataclasses import asdict, is_dataclass
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformers import AutoConfig, AutoModel, AutoTokenizer, PretrainedConfig
+from transformers import AutoConfig, AutoModel
 
-from retrieval.configs import BaseConfig
+from retrieval.configs import BaseConfig, save_config, load_config
 from retrieval.models.colbert.tokenizer import ColBERTTokenizer
 
 # suppresses the warnings when loading a model with unused parameters
@@ -24,6 +22,7 @@ class ColBERT(nn.Module):
         self.config = config
         self.backbone_config = self._load_model_config(config)
         self.device = device
+        self.out_features = config.dim
           
         # load backbone and load/initialize output layer
         self.backbone = AutoModel.from_pretrained(config.backbone_name_or_path, config=self.backbone_config)  
@@ -202,7 +201,7 @@ class ColBERT(nn.Module):
 
         return backbone_config
     
-    def save_model(self, save_directory: str):
+    def save(self, save_directory: str):
         # create the directory if it doesn't exist
         os.makedirs(save_directory, exist_ok=True)
 
@@ -211,28 +210,23 @@ class ColBERT(nn.Module):
         torch.save(self.state_dict(), model_path)
     
         # save the model's config if available
-        config_path = os.path.join(save_directory, "config.json")
-        if is_dataclass(self.config):
-            config_dict = asdict(self.config)
-            with open(config_path, "w") as config_file:
-                json.dump(config_dict, config_file)
+        config_path = os.path.join(save_directory, "colbert_config.json")
+        save_config(self.config, config_path)
+
             
     @classmethod
-    def load_model(cls, model_directory: str, device: str = "cpu"):
+    def from_pretrained(cls, directory: str, device: str = "cpu"):
         # load the model's config if available
-        config_path = os.path.join(model_directory, "config.json")
-        if os.path.exists(config_path):
-            with open(config_path, "r") as config_file:
-                config_dict = json.load(config_file)
-                config = BaseConfig(**config_dict)
-        else:
-            print("Warning: config.json does not exist, loading default config.")
+        config_path = os.path.join(directory, "colbert_config.json")
+        config = load_config(config_path)
+        if not config:
+            print("Warning: colbert_config.json does not exist, loading default config.")
             config = BaseConfig()
         
         model = cls(config, device)
 
         # load the model's parameters if available
-        model_path = os.path.join(model_directory, "model.pt")
+        model_path = os.path.join(directory, "model.pt")
         if os.path.exists(model_path):
             # Load the state dict, ignoring size mismatch errors
             state_dict = torch.load(model_path)
@@ -251,15 +245,12 @@ class ColBERT(nn.Module):
 
 
 if __name__ == "__main__":
-    from tqdm import tqdm
-    from transformers import AutoTokenizer
-    #from retrieval.configs import BaseConfig
     
 
     queries = ["How are you today?", "Where do you live?"]
     passages = ["I'm great!", "Nowhere brudi."]
 
-    MODEL_PATH = "bert-base-uncased" # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
+    MODEL_PATH = "roberta-base" # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
     DEVICE = "cuda:0"
     EPOCHS = 25
 
@@ -281,6 +272,14 @@ if __name__ == "__main__":
     tokenizer = ColBERTTokenizer(config)
     colbert = ColBERT(config, device=DEVICE)
     colbert.register_tokenizer(tokenizer)
+
+    # colbert.save("testchen")
+    # colbert = ColBERT.from_pretrained("testchen", device=DEVICE)
+    # config = colbert.config
+    # tokenizer = ColBERTTokenizer(config)
+    # colbert.register_tokenizer(tokenizer)
+    # print(colbert.linear.weight)
+    # print(colbert_.linear.weight)
 
     optimizer = torch.optim.AdamW(colbert.parameters(), lr=3e-5)
     criterion = nn.CrossEntropyLoss()
