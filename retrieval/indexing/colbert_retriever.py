@@ -15,10 +15,55 @@ class ColBERTRetriever:
 
         self.inference = inference
         self.indexer = ColBERTIndexer(inference, device=device)
+    
 
+    def rerank(self, query: List[str], k: int):
+        # embed the query
+        Qs = self.inference.query_from_text(query) # (B, L_q, D)
+        if Qs.dim() == 2:
+            Qs = Qs[None]
+        
+
+        # for each query search for the best k PIDs using TF-IDF
+        batch_iids = tfidf.search(query, k=k) # shape: (B, k)
+
+        #######################################################################
+        # THE REST COULD BE SIMILAR TO SOMETHING LIKE THIS:
+        #######################################################################
+
+        # get the pre-computed embeddings for the PIDs
+        batch_embs, batch_masks = self.indexer.get_pid_embedding(batch_pids)
+        # batch_embs: List[Tensor(k, L_d, D)]
+        #   contains for each query the embeddings of the topk documents/passages
+        # 
+        # batch_masks: List[Tensor(k, L_d)]
+        #   boolean mask, which is needed since the embedding tensors are padded
+        #   (because the number of embedding vectors for each PID is variable),
+        #   so we can later ignore the similarity scores for those padding vectors
+
+        reranked_pids = []
+        for Q, pids, embs, mask in zip(Qs, batch_pids, batch_embs, batch_masks):
+            # calculate cosine similarity (all vectors are already normalized)
+            # `embs @ Q.mT` instead of `Q @ topk_embs.mT` because of the masking later on
+            sim = embs @ Q.mT # (N_doc, L_d, L_q)
+
+            # replace the similarity results for padding vectors
+            sim[~mask] = -torch.inf
+
+            # calculate the sum of max similarities
+            sms = sim.max(dim=1).values.sum(dim=-1)
+
+            # select the top-k PIDs and their similarity score wrt. query
+            k_ = min(sms.shape[0], k)
+            topk_sims, topk_indices = torch.topk(sms, k=k_)
+            topk_pids = pids[topk_indices]
+            reranked_pids.append([topk_sims.tolist(), topk_pids.tolist()])
+        
+        return reranked_pids
+    
 
     def full_retrieval(self, query: List[str], k: int):
-        # embed the query, performed on the GPU
+        # embed the query
         Qs = self.inference.query_from_text(query) # (B, L_q, D)
         if Qs.dim() == 2:
             Qs = Qs[None]
