@@ -5,38 +5,35 @@ import string
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformers import AutoConfig, AutoModel, AutoTokenizer
+from transformers import AutoConfig, AutoModel
 
-from retrieval.configs import BaseConfig
+from retrieval.configs import BaseConfig, save_config, load_config
 from retrieval.models.colbert.tokenizer import ColBERTTokenizer
 
-# suppresses the warnings when loading a model with unused parameters 
+# suppresses the warnings when loading a model with unused parameters
 import logging
 logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
 
 
 
 class ColBERT(nn.Module):
-    def __init__(self, config: BaseConfig, tokenizer: ColBERTTokenizer, device="cpu"):
+    def __init__(self, config: BaseConfig, device="cpu"):
         super().__init__()
         self.config = config
         self.backbone_config = self._load_model_config(config)
         self.device = device
+        self.out_features = config.dim
           
-        self.tokenizer = tokenizer
-        self.backbone = AutoModel.from_pretrained(config.backbone_name_or_path, config=self.backbone_config)
-        self.backbone.resize_token_embeddings(len(self.tokenizer))
-  
+        # load backbone and load/initialize output layer
+        self.backbone = AutoModel.from_pretrained(config.backbone_name_or_path, config=self.backbone_config)  
         self.hid_dim = self.backbone.config.hidden_size
         self.linear = nn.Linear(self.hid_dim, self.config.dim, bias=False)
         if self._load_linear_weights():
             print("Successfully loaded weights for last linear layer!")
 
         if self.config.skip_punctuation:
-            self.skiplist = {w: True
-                             for symbol in string.punctuation
-                             for w in [symbol, self.tokenizer.encode(symbol, mode="query", add_special_tokens=False)[0]]}
-        self.pad_token_id = self.tokenizer.pad_token_id
+            self.skiplist = {}
+        self.pad_token_id = None
 
         self.to(device=device)
         self.train()
@@ -89,7 +86,7 @@ class ColBERT(nn.Module):
 
         return D, mask if return_mask else D
    
-    def similarity(self, Q, D_padded, D_mask, intra_batch=False):
+    def similarity(self, Q, D_padded, D_mask=None, intra_batch=False):
         # Q shape:        (B*psgs_per_qry, L_q, out_features)
         # D_padded shape: (B*psgs_per_qry, L_d, out_features)
         # D_mask shape:   (B*psgs_per_qry, L_d)
@@ -107,7 +104,8 @@ class ColBERT(nn.Module):
                 raise ValueError(f"Invalid similarity function {self.config.similarity} given. Must be either 'l2' or 'cosine'")
             
             # ignore the similarities for padding and punctuation tokens
-            sim.mT[~D_mask] = float("-inf")
+            if D_mask:
+                sim.mT[~D_mask] = float("-inf")
 
             # calculate the sum of maximum similarity (sms)
             # sim shape: (B*psgs_per_qry, L_q, L_d)
@@ -139,8 +137,9 @@ class ColBERT(nn.Module):
                 raise ValueError(f"Invalid similarity function {self.config.similarity} given. Must be either 'l2' or 'cosine'")
             
             # ignore the similarities for padding and punctuation tokens
-            D_mask = D_mask[None].repeat_interleave(B, dim=0)
-            sim.mT[~D_mask] = float("-inf")
+            if D_mask is not None:
+                D_mask = D_mask[None].repeat_interleave(B, dim=0)
+                sim.mT[~D_mask] = float("-inf")
 
             # calculate the sum of maximum similarity (sms)
             # sim shape: (B*psgs_per_qry, B*psgs_per_qry, L_q, L_d)
@@ -152,6 +151,17 @@ class ColBERT(nn.Module):
         mask = [[(tok not in skiplist) and (tok != self.pad_token_id) for tok in sample] for sample in input_ids.cpu().tolist()]
         return mask
     
+    def register_tokenizer(self, tokenizer: ColBERTTokenizer):
+        # resize the embedding matrix if necessary
+        self.backbone.resize_token_embeddings(len(tokenizer))
+
+        if self.config.skip_punctuation:
+            self.skiplist = {w: True
+                             for symbol in string.punctuation
+                             for w in [symbol, tokenizer.encode(symbol, mode="query", add_special_tokens=False)[0]]}
+
+        self.pad_token_id = tokenizer.pad_token_id
+
     def _load_linear_weights(self):
         if not os.path.exists(self.config.backbone_name_or_path):
             return False
@@ -190,21 +200,57 @@ class ColBERT(nn.Module):
         backbone_config.attention_probs_dropout_prob = config.dropout
 
         return backbone_config
+    
+    def save(self, save_directory: str):
+        # create the directory if it doesn't exist
+        os.makedirs(save_directory, exist_ok=True)
 
+        # save the model state dict
+        model_path = os.path.join(save_directory, "model.pt")
+        torch.save(self.state_dict(), model_path)
+    
+        # save the model's config if available
+        config_path = os.path.join(save_directory, "colbert_config.json")
+        save_config(self.config, config_path)
 
+            
+    @classmethod
+    def from_pretrained(cls, directory: str, device: str = "cpu"):
+        # load the model's config if available
+        config_path = os.path.join(directory, "colbert_config.json")
+        config = load_config(config_path)
+        if not config:
+            print("Warning: colbert_config.json does not exist, loading default config.")
+            config = BaseConfig()
+        
+        model = cls(config, device)
+
+        # load the model's parameters if available
+        model_path = os.path.join(directory, "model.pt")
+        if os.path.exists(model_path):
+            # Load the state dict, ignoring size mismatch errors
+            state_dict = torch.load(model_path)
+
+            # extend the embedding matrix in case the checkpoint had a larger
+            # embedding matrix
+            if "backbone.embeddings.word_embeddings.weight" in state_dict:
+                n_embs = state_dict["backbone.embeddings.word_embeddings.weight"].shape[0]
+                model.backbone.resize_token_embeddings(n_embs)
+            model.load_state_dict(state_dict, strict=True)
+        else:
+            print("Warning: model.pt does not exist, returning randomly initialized model.")
+
+        return model
 
 
 
 if __name__ == "__main__":
-    from tqdm import tqdm
-    from transformers import AutoTokenizer
-    #from retrieval.configs import BaseConfig
     
 
     queries = ["How are you today?", "Where do you live?"]
     passages = ["I'm great!", "Nowhere brudi."]
 
-    MODEL_PATH = "bert-base-uncased" # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
+    MODEL_PATH = "roberta-base" # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
     DEVICE = "cuda:0"
     EPOCHS = 25
 
@@ -224,9 +270,18 @@ if __name__ == "__main__":
     )
 
     tokenizer = ColBERTTokenizer(config)
-    colbert = ColBERT(config, tokenizer, device=DEVICE)
+    colbert = ColBERT(config, device=DEVICE)
+    colbert.register_tokenizer(tokenizer)
 
-    optimizer = torch.optim.AdamW(colbert.parameters(), lr=4e-5)
+    # colbert.save("testchen")
+    # colbert = ColBERT.from_pretrained("testchen", device=DEVICE)
+    # config = colbert.config
+    # tokenizer = ColBERTTokenizer(config)
+    # colbert.register_tokenizer(tokenizer)
+    # print(colbert.linear.weight)
+    # print(colbert_.linear.weight)
+
+    optimizer = torch.optim.AdamW(colbert.parameters(), lr=3e-5)
     criterion = nn.CrossEntropyLoss()
 
     Q = tokenizer.tensorize(queries, mode="query", return_tensors="pt")

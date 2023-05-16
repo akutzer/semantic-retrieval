@@ -1,4 +1,4 @@
-## heavy_check_mark 1. Fandom crawl
+## :heavy_check_mark: 1. Fandom crawl
 :heavy_check_mark: Download and extract fandom dumps. \
 :heavy_check_mark: Clean up these dumps, i.e. remove wiki markdown syntax, remove tables, etc., using [WikiExtractor](https://github.com/attardi/wikiextractor)
 
