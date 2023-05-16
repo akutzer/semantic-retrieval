@@ -25,7 +25,11 @@ class ColBERTRetriever:
         
 
         # for each query search for the best k PIDs using TF-IDF
-        batch_iids = tfidf.search(query, k=k) # shape: (B, k)
+        batch_pids = tfidf.search(query, k=k) # shape: (B, k)
+
+        # since self.indexer.get_pid_embedding expects a torch.Tensor, we
+        # need to convert batch_pids to a torch Tensor of shape (B, k)
+        batch_pids = torch.tensor(batch_pids, dtype=torch.int64, device=self.device)
 
         #######################################################################
         # THE REST COULD BE SIMILAR TO SOMETHING LIKE THIS:
