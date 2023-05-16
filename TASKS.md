@@ -92,8 +92,8 @@ Maybe some inspiration can be found here: https://pytorch.org/docs/stable/data.h
 
 The current [ColBERT dataloader](retrieval/data/dataloader.py) could be a good starting point, which implements an iterable-style dataset and also dataloader. One could base the dataset on this one, but maybe use better datastructures (maybe pandas.DataFrame). The tokenization step should be left out, as it should be implemented in each models dataloader. 
 
-### Benchmark datasets
-Find benchmarks/ gold standard datasets, on which we can train our models and compare with other papers. (For example to make sure our implementation is correct or if we design our own model to be able to compare it with others) \
+### Benchmark datasets (assigned: Aaron)
+:hourglass_flowing_sand:  Find benchmarks/ gold standard datasets, on which we can train our models and compare with other papers. (For example to make sure our implementation is correct or if we design our own model to be able to compare it with others) \
 Look into: SQuAD 2.0, MS MARCO, TREC CAR... \
 Choose a dataset with is similar to our task & dataset (I think MS MARCO should be similar to our QPP dataset)
 
@@ -111,12 +111,12 @@ The implementation should work with the previous described datasets class. In ca
 :heavy_check_mark: Add support for other backbones, like RoBERTa, TinyBERT, etc. \
 :heavy_check_mark: Write dataloaders base on the dataset class. \
 :hourglass_flowing_sand: Write dataloaders base on the dataset class and PyTorch dataloader class. \
+:white_check_mark: Implement Model/Tokenizer saving and loading. \
 :hourglass_flowing_sand: Formulate the loss function, so that the training loop can just call .backward() on the loss. \
 Implement efficient inference using re-ranking (requires efficient TF-IDF or BM-25 implementation)\
-:hourglass_flowing_sand: Implement efficient inference using full-retrieval.
+:white_check_mark: Implement efficient inference using full-retrieval.
 Focus on inference performance ("model performance"/FLOPs, "model performance"/inference time [µs]) \
 Try torch.compile() to improve runtime performance. \
-Implement Model/Tokenizer saving and loading. \
 Improve code quality (comments, typing, docstrings,...)
 
 ### :bangbang: Second Model: ???
@@ -146,7 +146,7 @@ Implement Checkpoiting, where after a certain number of steps the model is saved
 
 
 ## 5. Evaluation 
-### Metrics (assigned: Florian, Till)
+### Metrics (assigned: Florian)
 :white_check_mark: Implement metrics, like top-k accuracy, mean reciprocal rank, precision/recall, etc., which are suitable for our models and datasets. \
 The metrics should use a fairly universal interface, so the outputs of the models can be easily converted into fitting data formats, that can interact with the metrics. \
 Count the parameters in a model, meassure the FLOPs and ms per answer-retrieval.
