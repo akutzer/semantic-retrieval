@@ -28,10 +28,12 @@
 - [process_threaded_question_gen.py](/src/preprocessing/threaded_question_generation.py):
     - executed after threaded_question_generation has generated questions
     - direct translation of the .ipynb notebook
-    - takes as an input a processed wiki json filepath, a output-file path and a output directory
-    - adjusts the processed wiki json to include the generated questions and outputs a new file
-    - outputs triples.tsv, passages.tsv, queries.tsv, wiki.json
+    - takes as an input a processed wiki json filepath and a output directory
+    - creates a new json file called -previousName-_qa.json in the output directory
+    - afterwards run process_qa_json
 
+- [process_qa_json.py](/src/preprocessing/process_qa_json.py):
+    - specify -filename-_qa.json and output directory and outputs triples.tsv, passages.tsv, queries.tsv and wiki.json in output directory.
 
 
 
