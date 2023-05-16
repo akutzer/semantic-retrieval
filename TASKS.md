@@ -81,7 +81,7 @@ It is extremely important that there is no overlap between the three data sets.
 
 Try to find a good split ratio (80%-10%-10%, ...), search for typical ratios for similarly sized datasets.
 
-### Classes for loading the dataset (assigned: Aaron)
+### :hourglass_flowing_sand: Classes for loading the dataset (assigned: Aaron)
 :hourglass_flowing_sand: Write a Python class for efficient loading to be capable of working with both of the dataset types.
 
 The task is to create a Python class that takes the paths to the dataset files as input and can be used as either a *map-style* dataset or an *iterable-style* dataset. \
@@ -92,8 +92,8 @@ Maybe some inspiration can be found here: https://pytorch.org/docs/stable/data.h
 
 The current [ColBERT dataloader](retrieval/data/dataloader.py) could be a good starting point, which implements an iterable-style dataset and also dataloader. One could base the dataset on this one, but maybe use better datastructures (maybe pandas.DataFrame). The tokenization step should be left out, as it should be implemented in each models dataloader. 
 
-### Benchmark datasets (assigned: Aaron)
-:hourglass_flowing_sand:  Find benchmarks/ gold standard datasets, on which we can train our models and compare with other papers. (For example to make sure our implementation is correct or if we design our own model to be able to compare it with others) \
+### :hourglass_flowing_sand: Benchmark datasets (assigned: Aaron)
+Find benchmarks/ gold standard datasets, on which we can train our models and compare with other papers. (For example to make sure our implementation is correct or if we design our own model to be able to compare it with others) \
 Look into: SQuAD 2.0, MS MARCO, TREC CAR... \
 Choose a dataset with is similar to our task & dataset (I think MS MARCO should be similar to our QPP dataset)
 
@@ -137,7 +137,7 @@ It should use the dataset class for our datasets and the dataloader for the sele
 :hourglass_flowing_sand: Look into logging, either using [Tensorboard](https://pytorch.org/docs/stable/tensorboard.html) or [Weights&Biases](https://docs.wandb.ai/guides/integrations/pytorch). \
 After each epoch, validate our model on the validation set using fitting evaluation metrics. \
 The loss calculation should be part of the model, so we only need to call .backward() in the training loop. \
-Implement Checkpoiting, where after a certain number of steps the model is saved. \
+Implement Checkpoiting, where after a certain number of steps the model is saved.
 
 
 ### Train the models
