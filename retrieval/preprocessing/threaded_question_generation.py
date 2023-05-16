@@ -36,7 +36,11 @@ sys.tracebacklimit = 0
 # to get the proxy file use this command: curl https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt -o http.txt
 
 # specify timeout interval here
+THREADS_DIFFERENT_PARAGRAPHS = 2000
+THREADS_DIFFERENT_PROXIES_FOR_PARAGRAPH = 1
 TIMEOUT=10
+
+# global variables used by threads
 lock_outter = threading.Lock()
 threads_passages = []
 
@@ -283,7 +287,7 @@ def getDistributionQuestionWords(df):
 
 
 
-def mainLoop(import_path, export_file,num_threads=1):
+def mainLoop(import_path, export_file):
     f=import_path
     df = pd.read_json(f, orient ='records')
 
@@ -309,10 +313,12 @@ def mainLoop(import_path, export_file,num_threads=1):
     proxies_ind = random.randint(0,len(PROXIES))
 
     # amount of threads for different proxies
-    step = num_threads
+    global THREADS_DIFFERENT_PROXIES_FOR_PARAGRAPH, THREADS_DIFFERENT_PARAGRAPHS
+
+    step = THREADS_DIFFERENT_PROXIES_FOR_PARAGRAPH
 
     # number of threads for different passages
-    num_threads_outer=2000
+    num_threads_outer= THREADS_DIFFERENT_PARAGRAPHS
 
 
 
