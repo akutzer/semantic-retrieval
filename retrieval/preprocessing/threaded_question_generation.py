@@ -132,10 +132,6 @@ class Completion:
         content = request.content
 
         response = Completion.__response_to_json(content)
-        # lock.acquire()
-        # global thread_value
-        # thread_value=response
-        # lock.release()
         return response
 
     @classmethod
@@ -221,7 +217,6 @@ def getResponse(df,i,j,start_ind, end_ind, what_prop=0.5, what_prop_limit=0.5):
 
         # usage You
         message_id=""
-        threads = []
         global PROXIES
 
         results = []
@@ -320,7 +315,7 @@ def mainLoop(import_path, export_file,num_threads=1):
     num_threads_outer=2000
 
 
-    threads=[]
+
 
     # limit of what prob
     what_limit_prop = 0.25
@@ -328,6 +323,8 @@ def mainLoop(import_path, export_file,num_threads=1):
     b = 0
 
     while pairs_ind:
+
+        threads=[]
         b = b + 1
         if (b % 30) == 0:
             print('now sleeping for 1000s')
@@ -378,4 +375,4 @@ def mainLoop(import_path, export_file,num_threads=1):
 
 
 if __name__ == "__main__":
-    mainLoop(import_path="../../data/fandoms/harry_potter.json", export_file="harry_potter_questions_a.csv")
+    mainLoop(import_path="../../data/fandoms/harry_potter.json", export_file="harry_potter_question_para.csv")
