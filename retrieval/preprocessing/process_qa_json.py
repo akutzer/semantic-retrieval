@@ -1,5 +1,5 @@
-preprocessed_qa_json_path = '../../data/fandoms_qa/harry_potter/harry_potter_qa.json'
-output_path_dir = "../../data/fandoms_qa/harry_potter/"
+preprocessed_qa_json_path = '../../data/fandoms_qa/harry_potter_qa.json'
+output_path_dir = "../../data/"
 
 if __name__ == "__main__":
     f = preprocessed_qa_json_path

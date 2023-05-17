@@ -1,5 +1,5 @@
-preprocessed_json_path = '../../data/fandoms/harry_potter.json'
-question_generated__json_path = 'harry_potter_question_para.csv'
+preprocessed_json_path = '../../data/fandoms/elder_scrolls.json'
+question_generated__json_path = 'elder_scrolls_qa.csv'
 output_path_dir = "../../data/fandoms_qa/"
 
 if __name__ == "__main__":

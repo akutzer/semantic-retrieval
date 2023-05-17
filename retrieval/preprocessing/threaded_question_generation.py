@@ -381,4 +381,4 @@ def mainLoop(import_path, export_file):
 
 
 if __name__ == "__main__":
-    mainLoop(import_path="../../data/fandoms/harry_potter.json", export_file="harry_potter_question_para.csv")
+    mainLoop(import_path="../../data/fandoms/elder_scrolls.json", export_file="elder_scrolls_qa.csv")
