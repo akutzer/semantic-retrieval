@@ -1,3 +1,2 @@
 *.json filter=lfs diff=lfs merge=lfs -text
 *.tar.gz filter=lfs diff=lfs merge=lfs -text
-data/fandom_qa/**.json filter=lfs diff=lfs merge=lfs -text
