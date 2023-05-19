@@ -2,20 +2,20 @@
 # question_generated__json_path = 'elder_scrolls_qa.csv'
 # output_path_dir = "../../data/fandoms_qa/"
 
-preprocessed_json_paths = ['../../data/fandoms/elder_scrolls.json',
-                           '../../data/fandoms/harry_potter.json',
-                           '../../data/fandoms/dc_comics.json',
-                           '../../data/fandoms/starwars.json',
-                           '../../data/fandoms/witcher.json'
+preprocessed_json_paths = [#'../../data/fandoms/elder_scrolls.json',
+                           #'../../data/fandoms/harry_potter.json',
+                           #'../../data/fandoms/dc_comics.json',
+                           #'../../data/fandoms/starwars.json',
+                           '../../data/fandoms/witcher.json',
                            '../../data/fandoms/marvel.json'
                            ]
 
 question_generated__json_paths = [
-                           'elder_scrolls_qa.csv',
-                           'harry_potter_question_para.csv',
-                           'dc_comics_qa.csv',
-                           'starwars_qa.csv',
-                           'witcher_qa.csv'
+                           #'elder_scrolls_qa.csv',
+                           #'harry_potter_question_para.csv',
+                           #'dc_comics_qa.csv',
+                           #'starwars_qa.csv',
+                           'witcher_qa.csv',
                            'marvel_qa.csv'
                            ]
 
