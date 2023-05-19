@@ -1,7 +1,6 @@
 import re
 import json
 import requests
-import re
 import time
 import os
 import sys
@@ -47,21 +46,15 @@ threads_passages = []
 
 
 def getProxyList():
-    # opening the file in read mode
-    my_file = open("./proxies/http.txt", "r")
-    
-    # reading the file
-    data = my_file.read()
-    
-    # replacing end splitting the text 
-    # when newline ('\n') is seen.
-    data_into_list = data.split("\n")
-    
-    my_file.close()
+    proxies = []
+    regex = ">([0-9]*.[0-9]*.[0-9]*.[0-9]*.[0-9]*)</td>"
+    files = ['https://github.com/TheSpeedX/PROXY-List/blob/master/http.txt','https://github.com/TheSpeedX/PROXY-List/blob/master/socks4.txt', 'https://github.com/TheSpeedX/PROXY-List/blob/master/socks5.txt']
 
-    return data_into_list
+    for file in files:
+        res = requests.get(file)
+        proxies = proxies + re.findall(regex, res.text)
 
-PROXIES = getProxyList()
+    return proxies
 
 
 # class copied and then adjusted from https://github.com/xtekky/gpt4free
@@ -204,7 +197,7 @@ def generate_prompt(n_pos_questions, n_neg_questions, what=False):
     return PROMPT
 
 
-def getResponse(df,i,j,start_ind, end_ind, what_prop=0.5, what_prop_limit=0.5):
+def getResponse(df,i,j,start_ind, end_ind ,proxies, what_prop=0.5, what_prop_limit=0.5):
     # print("current indices: " + str(i) +" and "+ str(j))
 
     if what_prop > what_prop_limit:
@@ -222,10 +215,9 @@ def getResponse(df,i,j,start_ind, end_ind, what_prop=0.5, what_prop_limit=0.5):
 
         # usage You
         message_id=""
-        global PROXIES
 
         results = []
-        for https in PROXIES[start_ind:end_ind]:
+        for https in proxies[start_ind:end_ind]:
             pool = ThreadPool(processes=1)
             async_result = pool.apply_async(Completion.create, kwds={'prompt':passage_prompt, "parentMessageId": message_id, "proxy_https": https})
             results.append(async_result)
@@ -241,9 +233,6 @@ def getResponse(df,i,j,start_ind, end_ind, what_prop=0.5, what_prop_limit=0.5):
         if response == None:
             skip_passage = True
 
-
-    #     if "Please try again." not in response:
-    #         pass
             
     except Exception as e:
         # print(e)
@@ -308,20 +297,16 @@ def mainLoop(import_path, export_file):
     
 
     new_passages = []
-    pbar = tqdm.tqdm(total=len(pairs_ind))
-    global PROXIES
-    proxies_ind = random.randint(0,len(PROXIES))
+    pbar = tqdm.tqdm(total=len(pairs_ind), position=1)
+    proxies = getProxyList()
+    proxies_ind = random.randint(0,len(proxies))
 
     # amount of threads for different proxies
     global THREADS_DIFFERENT_PROXIES_FOR_PARAGRAPH, THREADS_DIFFERENT_PARAGRAPHS
 
     step = THREADS_DIFFERENT_PROXIES_FOR_PARAGRAPH
-
     # number of threads for different passages
     num_threads_outer= THREADS_DIFFERENT_PARAGRAPHS
-
-
-
 
     # limit of what prob
     what_limit_prop = 0.25
@@ -344,14 +329,15 @@ def mainLoop(import_path, export_file):
         else:
             what_prop = 0.0
         
-        for _ in range(num_threads_outer):
+        for _ in tqdm.tqdm(range(num_threads_outer),position=0):
+
             if len(pairs_ind) == 0:
                 break
             i,j = pairs_ind.pop(0)
-            t = threading.Thread(target=getResponse, kwargs={'i':i, "j": j, "df": df, "start_ind": proxies_ind, "end_ind": proxies_ind+step, "what_prop": what_prop, "what_prop_limit":what_limit_prop})
+            t = threading.Thread(target=getResponse, kwargs={'i':i, "j": j, "df": df, "start_ind": proxies_ind, "end_ind": proxies_ind+step, "what_prop": what_prop, "proxies": proxies, "what_prop_limit":what_limit_prop})
             threads.append(t)
             t.start()
-            proxies_ind = (proxies_ind + step) % len(PROXIES)
+            proxies_ind = (proxies_ind + step) % len(proxies)
             time.sleep(0.02)
         for t in threads:
             t.join()
@@ -381,7 +367,7 @@ def mainLoop(import_path, export_file):
 
 
 if __name__ == "__main__":
-    rn = random.randint(0,4)
+    rn = random.randint(0,3)
     if rn == 0:
         mainLoop(import_path="../../data/fandoms/elder_scrolls.json", export_file="elder_scrolls_qa.csv")
     elif rn == 1:
