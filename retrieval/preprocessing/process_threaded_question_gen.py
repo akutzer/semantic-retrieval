@@ -1,107 +1,124 @@
-preprocessed_json_path = '../../data/fandoms/elder_scrolls.json'
-question_generated__json_path = 'elder_scrolls_qa.csv'
-output_path_dir = "../../data/fandoms_qa/"
+# preprocessed_json_path = '../../data/fandoms/elder_scrolls.json'
+# question_generated__json_path = 'elder_scrolls_qa.csv'
+# output_path_dir = "../../data/fandoms_qa/"
+
+preprocessed_json_paths = ['../../data/fandoms/elder_scrolls.json',
+                           '../../data/fandoms/harry_potter.json',
+                           '../../data/fandoms/dc_comics.json',
+                           '../../data/fandoms/starwars.json',
+                           '../../data/fandoms/witcher.json'
+                           ]
+
+question_generated__json_paths = [
+                           'elder_scrolls_qa.csv',
+                           'harry_potter_question_para.csv',
+                           'dc_comics_qa.csv',
+                           'starwars_qa.csv',
+                           'witcher_qa.csv'
+                           ]
+
+output_path_dirs = ["../../data/fandoms_qa/"]*len(question_generated__json_paths)
 
 if __name__ == "__main__":
+    for preprocessed_json_path, question_generated__json_path, output_path_dir in zip(preprocessed_json_paths,question_generated__json_paths, output_path_dirs):
+        f = preprocessed_json_path
+        import pandas as pd
+        df = pd.read_json(f, orient ='records')
+        df
 
-    f = preprocessed_json_path
-    import pandas as pd
-    df = pd.read_json(f, orient ='records')
-    df
+        import json
+        import ast
+        f2 = question_generated__json_path
+        df_q = pd.read_csv(f2)
+        df_q = df_q.sort_values(by=['i', 'j'], ascending=True)
 
-    import json
-    import ast
-    f2 = question_generated__json_path
-    df_q = pd.read_csv(f2)
-    df_q = df_q.sort_values(by=['i', 'j'], ascending=True)
-
-    arr = []
-    for list in df_q['positive'].values:
-        try:
-            arr.append(json.loads(list))
-        except:
-            try:
-                arr.append(ast.literal_eval(list))
-            except:
-                print("fail")
-
-
-    arr2 = []
-    for list in df_q['negative'].values:
-        try:
-            arr2.append(json.loads(list))
-        except:
-            try:
-                arr2.append(ast.literal_eval(list))
-            except:
-                print("fail")
-
-                
-
-    i = 0
-    while i < len(arr):
-        if len(arr[i]) == 3:
-            arr2[i].append(arr[i].pop(-1))
-        i = i + 1
-
-    df_q['negative'] = arr2
-    df_q['positive'] = arr 
-
-    arr = [len(x) for x in df_q['positive'].values]
-    print(len(arr))
-    print(arr.count(2))
-    #df_q
-
-    # %%
-    pd.options.display.max_colwidth = 200
-    df_q.head()
-
-
-    # %%
-    arr_base = []
-    for i in range(len(df)):
         arr = []
-        l = len(df.iloc[i]['text'])
-        for j in range(l):
-            if df_q.loc[(df_q['i'] == i) & (df_q['j'] == j)].empty:
-                arr.append([])
-            else:
-                y = ([x for x in (df_q.loc[(df_q['i'] == i) & (df_q['j'] == j)]['positive'].values)])
-                arr.append(y[0])
-        arr_base.append(arr)
-
-    df['positive'] = arr_base 
+        for list in df_q['positive'].values:
+            try:
+                arr.append(json.loads(list))
+            except:
+                try:
+                    arr.append(ast.literal_eval(list))
+                except:
+                    print("fail")
 
 
-    arr_base = []
-    for i in range(len(df)):
-        arr = []
-        l = len(df.iloc[i]['text'])
-        for j in range(l):
-            if df_q.loc[(df_q['i'] == i) & (df_q['j'] == j)].empty:
-                arr.append([])
-            else:
-                y = ([x for x in (df_q.loc[(df_q['i'] == i) & (df_q['j'] == j)]['negative'].values)])
-                arr.append(y[0])
-        arr_base.append(arr)
+        arr2 = []
+        for list in df_q['negative'].values:
+            try:
+                arr2.append(json.loads(list))
+            except:
+                try:
+                    arr2.append(ast.literal_eval(list))
+                except:
+                    print("fail")
 
-    df['negative'] = arr_base 
+                    
+
+        i = 0
+        while i < len(arr):
+            if len(arr[i]) == 3:
+                arr2[i].append(arr[i].pop(-1))
+            i = i + 1
+
+        df_q['negative'] = arr2
+        df_q['positive'] = arr 
+
+        arr = [len(x) for x in df_q['positive'].values]
+        print(len(arr))
+        print(arr.count(2))
+        #df_q
+
+        # %%
+        pd.options.display.max_colwidth = 200
+        df_q.head()
 
 
-    # %%
-    #print(df.iloc[8]['text'])
-    #print(df.iloc[8]['positive'])
+        # %%
+        arr_base = []
+        for i in range(len(df)):
+            arr = []
+            l = len(df.iloc[i]['text'])
+            for j in range(l):
+                if df_q.loc[(df_q['i'] == i) & (df_q['j'] == j)].empty:
+                    arr.append([])
+                else:
+                    y = ([x for x in (df_q.loc[(df_q['i'] == i) & (df_q['j'] == j)]['positive'].values)])
+                    arr.append(y[0])
+            arr_base.append(arr)
 
-    # %%
-    pd.options.display.max_colwidth = 400
-    df.head(5)
+        df['positive'] = arr_base 
 
-    # %%
-    pd.options.display.max_colwidth = 50
-    df
 
-    # %%
-    df.to_json(output_path_dir + preprocessed_json_path.split('/')[-1][:-5] + "_qa"+".json", orient='records', indent=4)
+        arr_base = []
+        for i in range(len(df)):
+            arr = []
+            l = len(df.iloc[i]['text'])
+            for j in range(l):
+                if df_q.loc[(df_q['i'] == i) & (df_q['j'] == j)].empty:
+                    arr.append([])
+                else:
+                    y = ([x for x in (df_q.loc[(df_q['i'] == i) & (df_q['j'] == j)]['negative'].values)])
+                    arr.append(y[0])
+            arr_base.append(arr)
+
+        df['negative'] = arr_base 
+
+
+        # %%
+        #print(df.iloc[8]['text'])
+        #print(df.iloc[8]['positive'])
+
+        # %%
+        pd.options.display.max_colwidth = 400
+        df.head(5)
+
+        # %%
+        pd.options.display.max_colwidth = 50
+        df
+
+        # %%
+        df.to_json(output_path_dir + preprocessed_json_path.split('/')[-1][:-5] + "_qa"+".json", orient='records', indent=4)
     # df2 = df.copy()
     # df2.columns
 

@@ -280,7 +280,8 @@ def mainLoop(import_path, export_file):
     f=import_path
     df = pd.read_json(f, orient ='records')
 
-    pairs_ind = [ (i,j) for i in range(df.shape[0]) for j in range(len(df["text"].iloc[i]))]
+    # added to not process bad sentences not filtered out of preprocessing
+    pairs_ind = [ (i,j) for i in range(df.shape[0]) for j in range(len(df["text"].iloc[i])) if not df["text"].iloc[i][j].endswith(' .')]
 
     if os.path.isfile(export_file):
         df_prev = pd.read_csv(export_file)

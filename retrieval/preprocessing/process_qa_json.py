@@ -1,4 +1,4 @@
-preprocessed_qa_json_path = '../../data/fandoms_qa/harry_potter_qa.json'
+preprocessed_qa_json_path = '../../data/fandoms_qa/elder_scrolls_qa.json'
 output_path_dir = "../../data/"
 
 if __name__ == "__main__":
@@ -19,12 +19,21 @@ if __name__ == "__main__":
     triples = []
     wikis = []
     inconsistent = 0
+    exclude = 0
+    total = 0
+    import tqdm
 
-    for i in range(len(df2)):
+    for i in tqdm.tqdm(range(len(df2))):
         row = df2.iloc[i]
         wiki_pids = []
 
         for j in range(len(row['text'])):
+            total = total + 1
+            # added to exclude wrong sentences of wikiextractor that were not filtered out during preprocessing
+            if row['text'][j].endswith(' .'):
+                exclude = exclude + 1
+                continue
+
             pids.append(pid_id)
             passages.append(row['text'][j])
             pid_wid.append(row['id'])
@@ -35,7 +44,10 @@ if __name__ == "__main__":
 
             if len(row['positive'][j]) != len(row['negative'][j]):
                 inconsistent = inconsistent + 1
+
+
             for k in range(min(len(row['positive'][j]), len(row['negative'][j]))):
+                # added to not include passages where information was lost due to wikiextractor
                 queries.append(row['positive'][j][k])
                 qids.append(qid_id)
                 qid_id = qid_id + 1
@@ -47,7 +59,8 @@ if __name__ == "__main__":
                 triples.append(( qid_id - 2, qid_id - 1,pid_id - 1))
         wikis.append(wiki_pids)
 
-    print(inconsistent)
+    print('inconsistent: ' + str(inconsistent))
+    print('excluded: ' + str(1.0*exclude/total))
 
     # %%
     df2 = df2.drop(['text', 'positive', 'negative'], axis=1)
