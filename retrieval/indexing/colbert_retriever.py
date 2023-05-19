@@ -6,16 +6,18 @@ from retrieval.configs import BaseConfig
 from retrieval.data import Passages, Queries, TripleDataset, BucketIterator
 from retrieval.models import ColBERTTokenizer, ColBERTInference, get_colbert_and_tokenizer
 from retrieval.indexing.colbert_indexer import ColBERTIndexer
+from retrieval.models.basemodels.tf_idf import TfIdf
 
 
 
 class ColBERTRetriever:
-    def __init__(self, inference, device):
+    def __init__(self, inference, device, passages):
         self.device = device
 
         self.inference = inference
         self.indexer = ColBERTIndexer(inference, device=device)
-    
+        self.tfidf = TfIdf(passages)
+        print("tf idf fertig")
 
     def rerank(self, query: List[str], k: int):
         # embed the query
@@ -25,7 +27,10 @@ class ColBERTRetriever:
         
 
         # for each query search for the best k PIDs using TF-IDF
-        batch_pids = tfidf.search(query, k=k) # shape: (B, k)
+        #embeddings = self.indexer.embeddings
+
+        batch_pids = self.tfidf.batchBestKPIDs(k, query) # shape: (B, k)
+
 
         # since self.indexer.get_pid_embedding expects a torch.Tensor, we
         # need to convert batch_pids to a torch Tensor of shape (B, k)
@@ -82,6 +87,7 @@ class ColBERTRetriever:
 
         # get the pre-computed embeddings for the PIDs
         batch_embs, batch_masks = self.indexer.get_pid_embedding(batch_pids)
+
         # batch_embs: List[Tensor(N_pids, L_d, D)]
         #   contains for each query the embeddings for all passages which were in the top-k_hat
         #   for at least one query embedding
@@ -137,11 +143,6 @@ if __name__ == "__main__":
         accum_steps = 1,
     )
 
-    colbert, tokenizer = get_colbert_and_tokenizer(config)
-    inference = ColBERTInference(colbert, tokenizer)
-    retriever = ColBERTRetriever(inference, device="cuda:0")
-    retriever.indexer.load(INDEX_PATH)
-
     dataset = TripleDataset(config,
         triples_path="../../data/fandom-qa/witcher_qa/triples.train.tsv",
         queries_path="../../data/fandom-qa/witcher_qa/queries.train.tsv",
@@ -149,8 +150,18 @@ if __name__ == "__main__":
         mode="qpp")
     dataset.shuffle()
 
-    BSIZE = 16
-    K = 100
+    # get passage list
+    passage_list = [p[1] for p in dataset.passages_items()]
+
+    colbert, tokenizer = get_colbert_and_tokenizer(config)
+    inference = ColBERTInference(colbert, tokenizer)
+    retriever = ColBERTRetriever(inference, device="cuda:0", passages=passage_list)
+    retriever.indexer.load(INDEX_PATH)
+
+
+
+    BSIZE = 4
+    K = 1000
     
     top1, top3, top5, top10, top25, top100 = 0, 0, 0, 0, 0, 0
 
@@ -164,8 +175,10 @@ if __name__ == "__main__":
             target_batch.append(pid_pos)
 
             if len(query_batch) == BSIZE or i + 1 == len(dataset):
-                pids = retriever.full_retrieval(query_batch, K)
-                
+
+                #pids = retriever.full_retrieval(query_batch, K)
+                pids = retriever.rerank(query_batch, K)
+
                 for i, ((sims, pred_pids), target_pit) in enumerate(zip(pids, target_batch)):
                     if target_pit in pred_pids[:100]:
                         top100 += 1

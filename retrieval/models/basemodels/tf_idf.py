@@ -28,7 +28,7 @@ K = 5
 #     return pd.read_csv(file, sep='\t', header=None).rename(columns=dict(enumerate(column_names)))
 
 class TfIdf():
-    def __init__(self, folders, combine_paragraphs=True, mode="qpp"):
+    def __init__2(self, folders, combine_paragraphs=True, mode="qpp"):
         self.folders = folders
         self.passage_files = [x + '/' + y for x in folders for y in os.listdir(x) if 'passages' in y and '.tsv' in y]
         self.question_files = [x + '/' + y for x in folders for y in os.listdir(x) if 'queries' in y and '.tsv' in y]
@@ -44,6 +44,16 @@ class TfIdf():
 
         self.vectorizer, self.X = self.tfIDFCreatorFromArr(self.paragraphs)
         self.X = self.X.toarray()
+
+    @classmethod
+    def __init__(cls, passages):
+        #cls.vectorizer, cls.X = cls.tfIDFCreatorFromArr(passsages)
+        #cls.X = cls.X.toarray()
+        #cls.vectorizer = TfidfVectorizer(strip_accents='unicode', min_df=10)
+        print("fromPassages created")
+        cls.vectorizer, cls.X = cls.tfIDFCreatorFromArr(cls, arr=passages)
+        cls.X = cls.X.toarray()
+
 
 
     def answerQuestion(self, question, k):
@@ -69,8 +79,29 @@ class TfIdf():
         vectorizer = TfidfVectorizer(strip_accents='unicode', min_df=min_df)
         X = vectorizer.fit_transform(arr)
         return vectorizer, X
-    
-    
+
+
+    def batchBestKPIDs(self, k, Q):
+        # order is the same i googled it
+        #row_pid_mapping = dict(enumerate(passages.keys()))
+        #col_qid_mapping = dict(enumerate(queries.keys()))
+
+        # create tf-idf vectorizer and matrix
+        #vectorizer, X = self.tfIDFCreatorFromArr(passages.values())
+
+
+        '''input: embeddings of passages and batch of queries
+        returns: '''
+        Q = self.vectorizer.transform(Q).T
+        Q = Q.toarray()
+
+        M = self.X @ Q
+        max_ind = np.argsort(-M, axis=0)
+        best_k = max_ind.T[:,:k]
+
+        return best_k
+
+
     def evaluate_folders(self,k,beta):
         for i in range(len(self.folders)):
             paragraphs, queries, qpp_triples = self.folder_objects[i]
@@ -106,10 +137,21 @@ class TfIdf():
 
 
 if __name__ == "__main__":
-    tf_idf = TfIdf(FOLDERS)
-    print(tf_idf.answerQuestion("who killed severus snape", 5))
-    print(tf_idf.answerQuestion("what is god", 5))
-    print(tf_idf.answerQuestion("is aaron god", 5))
-    print(tf_idf.answerQuestion("does god love me", 5))
-    tf_idf.evaluate_folders(8, 3)
-    tf_idf.printMeanWallAndCPUTime()
+
+    tf_idf = TfIdf(["halger gr eehe heh er e", " gaeh rh4hz 4 4 sr 4wuz45z shae5z "
+                                    , " gaeh rh4hz 4 sdgsg shae5z ", " gaeh rhGEWgwegw45z shae5z "
+                                    , " gaeh rh4hz 4 sdgsg shae5z ", " gaeh rhGEWgwegw45z shae5z "
+                                    , " gaeh rh4hz 4 sdgsg shae5z ", " gaeh rhGEWgwegw45z shae5z "
+                                    , " gaeh rh4hz 4 sdgsg shae5z ", " gaeh rhGEWgwegw45z shae5z "
+                                    , "hallo", " gaeh rhGEWgwegw45z shae5z "
+                                 ])
+    queries = ["hallo ? ", "syasuu a6g f? ", "ssrjusrjusrg f? ","srtzurursg f? "]
+    best_k = tf_idf.batchBestKPIDs(3, queries)
+    print(best_k)
+    #tf_idf = TfIdf(FOLDERS)
+    #print(tf_idf.answerQuestion("who killed severus snape", 5))
+    #print(tf_idf.answerQuestion("what is god", 5))
+    #print(tf_idf.answerQuestion("is aaron god", 5))
+    #print(tf_idf.answerQuestion("does god love me", 5))
+    #tf_idf.evaluate_folders(8, 3)
+    #tf_idf.printMeanWallAndCPUTime()
