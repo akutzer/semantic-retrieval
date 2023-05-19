@@ -46,4 +46,3 @@ python3 download_wikis.py
 python3 preprocess_wikis.py
 ```
 **TODO:** We could also use [argparser](https://docs.python.org/3/library/argparse.html), so we got a user-friendly command-line interfaces for executing the scripts (e.g. global constants, like the download directory, could be given as optional arguments when executing the script)
-- could download all proxies directly from github and combine them into a list
