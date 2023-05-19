@@ -41,6 +41,8 @@ class QuerySettings:
 @dataclass
 class TrainingSettings:
     epochs: int = 10
+    lr_warmup_epochs: int = 2
+    lr_warmup_decay : int = 0.3333333333333333
     bucket_size: int = 128*10
     batch_size: int = 128
     accum_steps: int = 16
