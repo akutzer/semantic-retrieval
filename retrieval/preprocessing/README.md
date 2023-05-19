@@ -20,7 +20,7 @@
 
 - [threaded_question_generation.py](/src/preprocessing/threaded_question_generation.py):
     - takes as an input a processed wiki json filepath, and a output-file path
-    - proxies taken from `retrieval/processing/proxies/http.txt` which are from this repo: https://github.com/TheSpeedX/PROXY-List
+    - proxies taken from https://github.com/TheSpeedX/PROXY-List
     - uses threads that use different proxies to efficiently take advantage of the free ai.usesless.com gpt 3.5 server to generate positive and negative questions for a passage
     - Completion class was copied and adjusted for proxy support from https://github.com/xtekky/gpt4free. 
     - prompt generation and processing functions were copied from ./another_question_gen_script.py
