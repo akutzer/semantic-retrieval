@@ -11,6 +11,7 @@ import numpy as np
 import threading
 import ast
 import random
+from multiprocessing.pool import ThreadPool
 
 '''
 Problem: Server denies further requests if too many requests were sent. 
@@ -225,7 +226,6 @@ def getResponse(df,i,j,start_ind, end_ind, what_prop=0.5, what_prop_limit=0.5):
 
         results = []
         for https in PROXIES[start_ind:end_ind]:
-            from multiprocessing.pool import ThreadPool
             pool = ThreadPool(processes=1)
             async_result = pool.apply_async(Completion.create, kwds={'prompt':passage_prompt, "parentMessageId": message_id, "proxy_https": https})
             results.append(async_result)
@@ -248,7 +248,7 @@ def getResponse(df,i,j,start_ind, end_ind, what_prop=0.5, what_prop_limit=0.5):
     except Exception as e:
         # print(e)
         response = None
-        pass
+        skip_passage = True
 
 
     global threads_passages
@@ -381,4 +381,15 @@ def mainLoop(import_path, export_file):
 
 
 if __name__ == "__main__":
-    mainLoop(import_path="../../data/fandoms/elder_scrolls.json", export_file="elder_scrolls_qa.csv")
+    rn = random.randint(0,4)
+    if rn == 0:
+        mainLoop(import_path="../../data/fandoms/elder_scrolls.json", export_file="elder_scrolls_qa.csv")
+    elif rn == 1:
+        mainLoop(import_path="../../data/fandoms/marvel.json", export_file="marvel_qa.csv")
+    elif rn == 2:
+        mainLoop(import_path="../../data/fandoms/starwars.json", export_file="starwars_qa.csv")
+    elif rn == 3:
+        mainLoop(import_path="../../data/fandoms/witcher.json", export_file="witcher_qa.csv")
+    elif rn == 4:
+        mainLoop(import_path="../../data/fandoms/dc_comics.json", export_file="dc_comics_qa.csv")
+
