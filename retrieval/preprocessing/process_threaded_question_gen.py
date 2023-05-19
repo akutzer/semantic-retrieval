@@ -7,6 +7,7 @@ preprocessed_json_paths = ['../../data/fandoms/elder_scrolls.json',
                            '../../data/fandoms/dc_comics.json',
                            '../../data/fandoms/starwars.json',
                            '../../data/fandoms/witcher.json'
+                           '../../data/fandoms/marvel.json'
                            ]
 
 question_generated__json_paths = [
@@ -15,6 +16,7 @@ question_generated__json_paths = [
                            'dc_comics_qa.csv',
                            'starwars_qa.csv',
                            'witcher_qa.csv'
+                           'marvel_qa.csv'
                            ]
 
 output_path_dirs = ["../../data/fandoms_qa/"]*len(question_generated__json_paths)
