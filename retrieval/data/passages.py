@@ -37,18 +37,23 @@ class Passages:
         return self.data
     
     def _load_tsv(self, path, drop_nan=False):
+        print("Warning: Passages currently drops the WID column!")
         delimiter = "\t" if path.endswith(".tsv") else ","
-        passages = pd.read_csv(path, delimiter=delimiter, index_col=False, header=None)
+        passages = pd.read_csv(path, delimiter=delimiter, index_col=False)
+
         self._replace_nan(passages, drop_nan)
-        passages = passages.set_index(0, drop=False)[1]
+        pid, passage, *_ = passages.columns
+        # convert the pandas.DataFrame with the columns QID and query
+        # into a pandas.Series
+        passages = passages.set_index(pid, drop=False)[passage]
         self._rename_axis(passages)
         return passages
     
-    def _load_json(self, path, drop_nan=False):
-        passages = pd.read_json(path, typ="series")
-        self._replace_nan(passages, drop_nan)
-        self._rename_axis(passages)
-        return passages
+    # def _load_json(self, path, drop_nan=False):
+    #     passages = pd.read_json(path, typ="series")
+    #     self._replace_nan(passages, drop_nan)
+    #     self._rename_axis(passages)
+    #     return passages
     
     def _replace_nan(self, series: pd.Series, drop_nan=False):
         if drop_nan:
@@ -71,10 +76,14 @@ class Passages:
 
 
 if __name__ == "__main__":
-    path = "../../data/fandom-qa/witcher_qa/passages.train.tsv"
-
+    path = "../../data/ms_marco_v1.1/train/passages.train.tsv"
     passages = Passages(path=path)
-    print(passages.data)
+    print(passages.data, end="\n\n")
+
+    path = "../../data/fandoms_qa/harry_potter/passages.tsv"
+    passages = Passages(path=path)
+    print(passages.data, end="\n\n")
+
     print(len(passages))
     print(passages[0])
     print(passages.pid2string([0, 2*len(passages)], skip_non_existing=True))
