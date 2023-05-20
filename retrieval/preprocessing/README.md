@@ -33,7 +33,7 @@
     - afterwards run process_qa_json
 
 - [process_qa_json.py](/src/preprocessing/process_qa_json.py):
-    - specify -filename-_qa.json and output directory and outputs triples.tsv, passages.tsv, queries.tsv and wiki.json in output directory.
+    - specify folder with _qa.jsons s and output directory and outputs triples.tsv, passages.tsv, queries.tsv and wiki.json in output directories.
 
 
 
