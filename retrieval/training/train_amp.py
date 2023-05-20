@@ -12,6 +12,7 @@ from retrieval.models import ColBERT, get_colbert_and_tokenizer
 # tensorboard --logdir=runs
 # http://localhost:6006/
 from torch.utils.tensorboard import SummaryWriter
+from torch.cuda.amp import autocast as autocast
 
 
 SEED = 125
@@ -22,7 +23,7 @@ torch.cuda.manual_seed_all(SEED)
 
 
 MODEL_PATH = "bert-base-uncased" # "bert-base-uncased" or "../../data/colbertv2.0/" or "roberta-base"
-DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
+DEVICE = "cuda:1" if torch.cuda.is_available() else "cpu"
 
 config = BaseConfig(
     tok_name_or_path=MODEL_PATH,
@@ -52,6 +53,8 @@ bucket_iter = BucketIterator(config, dataset, tokenizer)
 optimizer = torch.optim.AdamW(colbert.parameters(), lr=5e-6, eps=1e-8)
 criterion = torch.nn.CrossEntropyLoss(reduction="sum")
 
+# instantiation of GradScaler
+scaler = torch.cuda.amp.GradScaler()
 
 for epoch in range(1, config.epochs+1):
     bucket_iter.shuffle()
@@ -63,19 +66,23 @@ for epoch in range(1, config.epochs+1):
             (q_tokens, q_masks), (p_tokens, p_masks) = Q, P
             sub_B = q_tokens.shape[0]
 
-            out = colbert(Q, P)
-            loss = criterion(out, torch.arange(0, sub_B, device=DEVICE, dtype=torch.long))
-            loss *= 1 / config.batch_size
+            with autocast():
+                out = colbert(Q, P)
+                loss = criterion(out, torch.arange(0, sub_B, device=DEVICE, dtype=torch.long))
+                loss *= 1 / config.batch_size
 
-            # calculate & accumulate gradients, the update step is done after the entire batch
-            # has been passed through the model
-            loss.backward()
+                # calculate & accumulate gradients, the update step is done after the entire batch
+                # has been passed through the model
+                # loss.backward()
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
 
             with torch.inference_mode():
                 losses += loss.item()
                 # calculate the accuracy within a subbatch -> extremly inflated accuracy
                 accs += torch.sum(out.detach().max(dim=-1).indices == torch.arange(0, sub_B, device=DEVICE, dtype=torch.long))
-            
+
             # after accum_steps, update the weights + log the metrics
             if (j + 1) % config.accum_steps == 0:
                     # update model parameters
