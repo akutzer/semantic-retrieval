@@ -1,6 +1,10 @@
+import glob
+import os
+
+
 preprocessed_qa_json_path_dir = '../../data/fandoms_qa/'
-output_path_dir = "../../data/processed_wikis/"
-import glob, os
+output_path_dir = "../../data/fandoms_qa/"
+
 
 if __name__ == "__main__":
     for file in os.listdir(preprocessed_qa_json_path_dir):
@@ -73,9 +77,9 @@ if __name__ == "__main__":
 
 
             # %%
-            pid_p_df = pd.DataFrame(zip(pids,passages, pid_wid),columns=['PID', 'passage', 'WID'])
-            qid_q_df = pd.DataFrame(zip(qids,queries),columns=['QID', 'query'])
-            triples_df = pd.DataFrame(triples,columns=['QID+', 'QID-', 'PID'])
+            pid_p_df = pd.DataFrame(zip(pids,passages, pid_wid), columns=['PID', 'passage', 'WID'])
+            qid_q_df = pd.DataFrame(zip(qids,queries), columns=['QID', 'query'])
+            triples_df = pd.DataFrame(triples, columns=['QID+', 'QID-', 'PID'])
             df2['PIDs'] = wikis
 
             # %%
@@ -96,9 +100,9 @@ if __name__ == "__main__":
             # %%
             import json
             output_path = out_dir
-            triples_df.to_csv(output_path+ "triples.tsv",index=False, sep="\t")
-            pid_p_df.to_csv(output_path+ "passages.tsv",index=False, sep="\t")
-            qid_q_df.to_csv(output_path+ "queries.tsv",index=False, sep="\t")
+            triples_df.to_csv(output_path + "triples.tsv", index=False, sep="\t")
+            pid_p_df.to_csv(output_path + "passages.tsv", index=False, sep="\t")
+            qid_q_df.to_csv(output_path + "queries.tsv", index=False, sep="\t")
 
             data = df2.to_dict('index')
 
@@ -119,6 +123,3 @@ if __name__ == "__main__":
 
 
             # %%
-
-
-

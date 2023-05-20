@@ -107,15 +107,18 @@ for dataset_type, dataset  in datasets.items():
     if MODE.lower() == "tsv":
         with open(triples_path, mode="w", encoding="utf-8", newline="") as trip_f:
             writer = csv.writer(trip_f, delimiter="\t", lineterminator="\n")
+            writer.writerow(["QID", "PID+"] + NUM_NEG_PIDS * ["PID-"])
             writer.writerows(triples)
         
         with open(queries_path, mode="w", encoding="utf-8", newline="") as q_f:
             writer = csv.writer(q_f, delimiter="\t", lineterminator="\n")
+            writer.writerow(["QID", "query"])
             writer.writerows(qid2query.items())
         
         with open(passages_path, mode="w", encoding="utf-8", newline="") as p_f:
             writer = csv.writer(p_f, delimiter="\t", lineterminator="\n")
-            writer.writerows(pid2passage.items())
+            writer.writerow(["QID", "passage", "WID"])
+            writer.writerows(map(lambda x: (*x, -1), pid2passage.items()))
 
     elif MODE.lower() == "json":
         with open(triples_path, mode="w", encoding="utf-8") as trip_f:

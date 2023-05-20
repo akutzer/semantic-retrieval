@@ -127,7 +127,7 @@ if __name__ == "__main__":
             Q, P = batch
             (q_tokens, q_masks), (p_tokens, p_masks) = Q, P
 
-            # print(q_tokens.shape, q_masks.shape, p_tokens.shape, p_masks.shape)            
+            # print(q_tokens.shape, q_masks.shape, p_tokens.shape, p_masks.shape)
             # print(Q[0][0], P[0][0])
             # print(data_iter.tokenizer.decode(Q[0][0]))
             # print(data_iter.tokenizer.decode(P[0][0]))
