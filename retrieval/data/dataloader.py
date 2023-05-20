@@ -116,7 +116,8 @@ if __name__ == "__main__":
     passages_path = "../../data/fandom-qa/witcher_qa/passages.train.tsv"
 
     dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QPP")
-    data_iter = BucketIterator(config, dataset)
+    tokenize = ColBERTTokenizer(config)
+    data_iter = BucketIterator(config, dataset, tokenize)
 
 
 

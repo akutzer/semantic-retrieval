@@ -27,7 +27,7 @@ for dataset_type, dataset  in datasets.items():
     if dataset_type == "test":
         continue
 
-    n_pos = 0
+    n_multiple_pos = 0
     n_total = 0
 
     SUB_DATASET_DIR = os.path.join(DATASET_DIR, dataset_type)
@@ -88,12 +88,17 @@ for dataset_type, dataset  in datasets.items():
         
         # for each PID⁺ we add a new "triple"
         for pos_pid in pos_pids:
-            triples.append([qid] + [pos_pid] + neg_pids)
+            neg_pids_ = neg_pids
+            # in some really rare case there are more than NUM_NEG_PIDS negative PIDs,
+            # so we select randomly NUM_NEG_PIDS many unique PIDs
+            if len(neg_pids) > NUM_NEG_PIDS:
+                neg_pids_ = random.sample(neg_pids, NUM_NEG_PIDS)
+            triples.append([qid] + [pos_pid] + neg_pids_)
         
         if len(pos_pids) > 1:
-            n_pos += 1
+            n_multiple_pos += 1
         n_total += 1
-    print(n_pos, n_total, round((100 * n_pos) / n_total, 3))
+    print(n_multiple_pos, n_total, round((100 * n_multiple_pos) / n_total, 3))
 
     triples_path = os.path.join(SUB_DATASET_DIR, f"triples.{dataset_type}.{MODE.lower()}")
     queries_path = os.path.join(SUB_DATASET_DIR, f"queries.{dataset_type}.{MODE.lower()}")
