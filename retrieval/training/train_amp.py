@@ -56,6 +56,9 @@ criterion = torch.nn.CrossEntropyLoss(reduction="sum")
 # instantiation of GradScaler
 scaler = torch.cuda.amp.GradScaler()
 
+def check_loss(loss):
+    return loss != loss
+
 for epoch in range(1, config.epochs+1):
     bucket_iter.shuffle()
     for i, bucket in enumerate(tqdm(bucket_iter)):
@@ -66,14 +69,20 @@ for epoch in range(1, config.epochs+1):
             (q_tokens, q_masks), (p_tokens, p_masks) = Q, P
             sub_B = q_tokens.shape[0]
 
+            # out = colbert(Q, P)
+            # loss = criterion(out, torch.arange(0, sub_B, device=DEVICE, dtype=torch.long))
+            # loss *= 1 / config.batch_size
+
+            # # calculate & accumulate gradients, the update step is done after the entire batch
+            # # has been passed through the model
+            # loss.backward()
+
             with autocast():
                 out = colbert(Q, P)
                 loss = criterion(out, torch.arange(0, sub_B, device=DEVICE, dtype=torch.long))
                 loss *= 1 / config.batch_size
-
-                # calculate & accumulate gradients, the update step is done after the entire batch
-                # has been passed through the model
-                # loss.backward()
+                
+            # Backprop weights / gradients scaling
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
@@ -85,7 +94,7 @@ for epoch in range(1, config.epochs+1):
 
             # after accum_steps, update the weights + log the metrics
             if (j + 1) % config.accum_steps == 0:
-                    # update model parameters
+                # update model parameters
                 optimizer.step()
                 optimizer.zero_grad()
 
@@ -94,4 +103,6 @@ for epoch in range(1, config.epochs+1):
                 writer.add_scalar("Accuracy/train", accs / config.batch_size, (epoch-1)*len(bucket_iter) + i*config.bucket_size/config.batch_size + j/config.accum_steps)
                 losses, accs = 0, 0
 
+    print('Epoch {} | Losses {} | Accs {}'.format(epoch, losses.item(), accs.item()))
     bucket_iter.reset()
+
