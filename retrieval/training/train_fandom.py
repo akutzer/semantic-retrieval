@@ -51,7 +51,7 @@ passages_path = "../../data/fandoms_qa/harry_potter/passages.tsv"
 dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QQP")
 bucket_iter = BucketIterator(config, dataset, tokenizer)
 
-optimizer = torch.optim.AdamW(colbert.parameters(), lr=5e-6, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False, fused=True)
+optimizer = torch.optim.AdamW(colbert.parameters(), lr=5e-6, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False, fused=False)
 criterion = torch.nn.CrossEntropyLoss(reduction="sum")
 
 import cProfile

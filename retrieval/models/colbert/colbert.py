@@ -38,45 +38,48 @@ class ColBERT(nn.Module):
         self.train()
 
     def forward(self, Q, D):
-        # Q shape: (B_q, L_q)
-        # D shape: (B_d, L_d)
+        """
+        Calculates the embedding for the query and document tensor and returns
+        their sum of maximal similarity.
 
-        B_q = Q[0].shape[0]
-        B_d = D[0].shape[0]
+        Input:
+            Q: (FloatTensor of shape (B*N_q, L_q), BoolTensor of shape (B*N_q, L_q))
+            D: (FloatTensor of shape (B*N_p, L_d), BoolTensor of shape (B*N_p, L_d))
+        The first tensor contains the token ids while the second is the mask tensor
+        needed for the transformer model.
+                
+        B   - batch_size
+        N   - number of queries or documents per batch (QQP: N_q = 2 and N_p = 1, QPP: N_q = 1 and N_p >= 2)
+        L_q - number of tokens per query
+        L_d - number of tokens per document
+        """
+
+        B_q, L_q = Q[0].shape
+        B_d, L_d = D[0].shape
         B = min(B_q, B_d)
 
-        q_vec = self.query(*Q)
-        # q_vec shape: (B_q, L_q, out_features)
+        # calculate the embeddings
+        q_vec = self.query(*Q)  # shape: (B*N_q, L_q, F); F = out_features
         d_vec, d_mask = self.doc(*D, return_mask=True)
-        # d_vec shape:  (B_d, L_d, out_features)
-        # d_mask shape: (B_d, L_d)
+        # d_vec shape:  (B*N_p, L_d, F)
+        # d_mask shape: (B*N_p, L_d)
 
-
-        # if B_q < B_d and B_q | B_d we are using a QPP dataset, so we have to repeat
-        # the query the amount of passages there are per query
-        if B_q < B_d:
-            passages_per_query = B_d // B_q
-            assert passages_per_query == self.config.passages_per_query, f"{passages_per_query}, {self.config.passages_per_query}"
-            q_vec = q_vec.repeat_interleave(passages_per_query, dim=0).contiguous()#
-        # if B_q < B_d and B_q | B_d we are using a QPP dataset, so we have to repeat
-        # the query the amount of passages there are per query
-        elif B_q > B_d:
+        # reshapes the 3d Tensors into 4d Tensors of the shape (B, N_q, L_q, F)
+        # this is done to utilize broadcasting later on in case of a QQP or QPP
+        # style dataset, if its a QP dataset (so N_q =  N_p = 1), this operation
+        # is more or less useless but does no harm
+        q_vec = q_vec.reshape(B, -1, L_q, self.out_features)
+        d_vec = d_vec.reshape(B, -1, L_d, self.out_features)
+        d_mask = d_mask.reshape(B, -1, L_d)
+        # in case of an QQP-style dataset, we need to manually expand dim=1, since
+        # broadcasting does not work for slicing with masks
+        if  B_q > B_d:
             queries_per_passage = B_q // B_d
-            assert queries_per_passage == 2, "Only QQP supported!"
-            d_vec = d_vec.repeat_interleave(queries_per_passage, dim=0).contiguous()
-            d_mask = d_mask.repeat_interleave(queries_per_passage, dim=0).contiguous()
-        
-        # else B_q == B_d, we are using a QP dataset so nothing has to be done
+            d_mask = d_mask.expand(-1, queries_per_passage, -1)        
 
-
-        # TODO: implement QQP support
-        # Repeat each query encoding for every corresponding document
-        # q_vec_duplicated = q_vec.repeat_interleave(self.config.passages_per_query, dim=0).contiguous()
         similarities = self.similarity(q_vec, d_vec, d_mask, intra_batch=self.config.intra_batch_similarity)
-        # print(similarities.shape)
 
-        return similarities.reshape(B, -1)
-        # return similarities
+        return similarities
 
     def query(self, input_ids, attention_mask):
         input_ids, attention_mask = input_ids.to(self.device), attention_mask.to(self.device)
@@ -110,20 +113,34 @@ class ColBERT(nn.Module):
 
         return D, mask if return_mask else D
    
-    def similarity(self, Q, D_padded, D_mask=None, intra_batch=False):
-        # Q shape:        (B*psgs_per_qry, L_q, out_features)
-        # D_padded shape: (B*psgs_per_qry, L_d, out_features)
-        # D_mask shape:   (B*psgs_per_qry, L_d)
+    def similarity(self, Q, D, D_mask=None, intra_batch=False):
+        """
+        Calculates the sum of max similarites between the query embeddings and document embeddings.
+        Depending on the config, either the negated squared L2 norm or the cosine similarity is used as a meassure of similarity.
+        If for each query their is only one document given, the similarity can be calculated between the batches, if intra_batch = True
+
+        Input:
+            Q      : torch.FloatTensor of shape (B, N, L_q, F)
+            D      : torch.FloatTensor of shape (B, N, L_d, F)
+            D_mask : torch.BoolTensor  of shape (B, N, L_d)
+        
+        B   - batch_size
+        N   - number of queries or documents per batch (QQP: N_q = 2 and N_p = 1, QPP: N_q = 1 and N_p >= 2)
+        L_q - number of embeddings per query
+        L_d - number of embeddings per document
+        F   - dimension of an embedding vector (number of features)
+        """
+
         if not intra_batch:
             if self.config.similarity.lower() == "l2":
-                # calculate squared l2
+                # calculate squared l2 norm
                 # we need to negate, since we later want to maximize the similarity,
                 # and the closer they are, the smaller is the distance between two vectors
-                sim = -1.0 * (Q.unsqueeze(2) - D_padded.unsqueeze(1)).pow(2).sum(dim=-1)
+                sim = -1.0 * (Q.unsqueeze(-2) - D.unsqueeze(-3)).pow(2).sum(dim=-1)
             
             elif self.config.similarity.lower() == "cosine":
-                sim = (Q @ D_padded.mT)
-                # sim shape: (B*psgs_per_qry, L_q, L_d)
+                sim = (Q @ D.mT)
+                # sim shape: (B, N, L_q, L_d)
                 
             else:
                 raise ValueError(f"Invalid similarity function {self.config.similarity} given. Must be either 'l2' or 'cosine'")
@@ -131,33 +148,37 @@ class ColBERT(nn.Module):
             # ignore the similarities for padding and punctuation tokens
             if D_mask is not None:
                 sim.mT[~D_mask] = float("-inf")
-
-            # calculate the sum of maximum similarity (sms)
-            # sms shape: (B*psgs_per_qry)
-            sms = sim.max(dim=-1).values.sum(dim=-1)
+            # calculate the sum of maximum similarity (SMS)
+            sms = sim.max(dim=-1).values.sum(dim=-1)    # shape: (B, N)
         
         else:
             assert self.config.passages_per_query == 1
+            assert Q.shape[1] == 1 and D.shape[1] == 1, f"{Q.shape}, {D.shape}"
 
-            B, L_q, out_features = Q.shape
-            L_d = D_padded.shape[1]
+            # remove dim=1, since it should be 1 in both cases
+            Q, D = Q.squeeze(1), D.squeeze(1)
+            if D_mask is not None:
+                D_mask = D_mask.squeeze(1)
+            
+            B, L_q, F = Q.shape
+            L_d = D.shape[1]
 
             if self.config.similarity.lower() == "l2":
                 # calculate squared l2-norm
                 # we need to negate, since we later want to maximize the similarity,
                 # and the closer they are, the smaller is the distance between two vectors
-                #print(Q[:, None, :, None].shape, D_padded[None, :, None].shape)
+                # Q shape: (B, 1, L_q,  1 , F)
+                # D shape: (1, B,  1 , L_d, F)
                 # TODO: try to improve this call, since it's extremly memory hungry
-                sim = -1.0 * (Q[:, None, :, None] - D_padded[None, :, None]).pow(2).sum(dim=-1)
+                sim = -1.0 * (Q[:, None, :, None] - D[None, :, None]).pow(2).sum(dim=-1)
                
             elif self.config.similarity.lower() == "cosine":                
-                Q = Q.reshape(B*L_q, out_features)
-                D_padded = D_padded.reshape(B*L_d, out_features)
+                Q = Q.reshape(B*L_q, F)
+                D = D.reshape(B*L_d, F)
 
-                sim = Q @ D_padded.T
-                sim = sim.reshape(B, L_q, B, L_d).permute(0, 2, 1, 3)
-                # sim shape: (B*psgs_per_qry, B*psgs_per_qry, L_q, L_d)
-                
+                sim = Q @ D.T
+                sim = sim.reshape(B, L_q, B, L_d).permute(0, 2, 1, 3) # shape: (B, B, L_q, L_d)
+
             else:
                 raise ValueError(f"Invalid similarity function {self.config.similarity} given. Must be either 'l2' or 'cosine'")
             
@@ -165,10 +186,8 @@ class ColBERT(nn.Module):
             if D_mask is not None:
                 D_mask = D_mask[None].repeat_interleave(B, dim=0)
                 sim.mT[~D_mask] = float("-inf")
-
             # calculate the sum of maximum similarity (sms)
-            # sms shape: (B*psgs_per_qry, B*psgs_per_qry)
-            sms = sim.max(dim=-1).values.sum(dim=-1)
+            sms = sim.max(dim=-1).values.sum(dim=-1)    # shape: (B, B)
         
         return sms
 
@@ -294,7 +313,7 @@ if __name__ == "__main__":
     config = BaseConfig(
         tok_name_or_path=MODEL_PATH,
         backbone_name_or_path=MODEL_PATH,
-        similarity="l2",
+        similarity="cosine",
         intra_batch_similarity=True,
         epochs = EPOCHS,
         dim = 24,
