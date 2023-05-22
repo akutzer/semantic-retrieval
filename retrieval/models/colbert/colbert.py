@@ -31,28 +31,52 @@ class ColBERT(nn.Module):
         if self._load_linear_weights():
             print("Successfully loaded weights for last linear layer!")
 
-        if self.config.skip_punctuation:
-            self.skiplist = {}
+        self.skiplist = {}
         self.pad_token_id = None
 
         self.to(device=device)
         self.train()
 
     def forward(self, Q, D):
-        # Q shape: (B, L_q)
-        # D shape: (B, L_d)
+        # Q shape: (B_q, L_q)
+        # D shape: (B_d, L_d)
+
+        B_q = Q[0].shape[0]
+        B_d = D[0].shape[0]
+        B = min(B_q, B_d)
 
         q_vec = self.query(*Q)
-        # q_vec shape: (B, L_q, out_features)
+        # q_vec shape: (B_q, L_q, out_features)
         d_vec, d_mask = self.doc(*D, return_mask=True)
-        # d_vec shape:  (B*psgs_per_qry, L_d, out_features)
-        # d_mask shape: (B*psgs_per_qry, L_d)
+        # d_vec shape:  (B_d, L_d, out_features)
+        # d_mask shape: (B_d, L_d)
 
+
+        # if B_q < B_d and B_q | B_d we are using a QPP dataset, so we have to repeat
+        # the query the amount of passages there are per query
+        if B_q < B_d:
+            passages_per_query = B_d // B_q
+            assert passages_per_query == self.config.passages_per_query, f"{passages_per_query}, {self.config.passages_per_query}"
+            q_vec = q_vec.repeat_interleave(passages_per_query, dim=0).contiguous()#
+        # if B_q < B_d and B_q | B_d we are using a QPP dataset, so we have to repeat
+        # the query the amount of passages there are per query
+        elif B_q > B_d:
+            queries_per_passage = B_q // B_d
+            assert queries_per_passage == 2, "Only QQP supported!"
+            d_vec = d_vec.repeat_interleave(queries_per_passage, dim=0).contiguous()
+            d_mask = d_mask.repeat_interleave(queries_per_passage, dim=0).contiguous()
+        
+        # else B_q == B_d, we are using a QP dataset so nothing has to be done
+
+
+        # TODO: implement QQP support
         # Repeat each query encoding for every corresponding document
-        q_vec_duplicated = q_vec.repeat_interleave(self.config.passages_per_query, dim=0).contiguous()
-        similarities = self.similarity(q_vec_duplicated, d_vec, d_mask, intra_batch=self.config.intra_batch_similarity)
+        # q_vec_duplicated = q_vec.repeat_interleave(self.config.passages_per_query, dim=0).contiguous()
+        similarities = self.similarity(q_vec, d_vec, d_mask, intra_batch=self.config.intra_batch_similarity)
+        # print(similarities.shape)
 
-        return similarities
+        return similarities.reshape(B, -1)
+        # return similarities
 
     def query(self, input_ids, attention_mask):
         input_ids, attention_mask = input_ids.to(self.device), attention_mask.to(self.device)
@@ -81,7 +105,7 @@ class ColBERT(nn.Module):
             D = F.normalize(D, p=2, dim=-1)
 
         # mask the vectors representing the embedding of punctuation symbols
-        mask = torch.tensor(self.mask(input_ids, skiplist=self.skiplist), device=self.device, dtype=torch.bool)
+        mask = self.mask(input_ids, skiplist=self.skiplist)
         D = D * mask.unsqueeze(-1)
 
         return D, mask if return_mask else D
@@ -99,16 +123,17 @@ class ColBERT(nn.Module):
             
             elif self.config.similarity.lower() == "cosine":
                 sim = (Q @ D_padded.mT)
+                # sim shape: (B*psgs_per_qry, L_q, L_d)
                 
             else:
                 raise ValueError(f"Invalid similarity function {self.config.similarity} given. Must be either 'l2' or 'cosine'")
             
             # ignore the similarities for padding and punctuation tokens
-            if D_mask:
+            if D_mask is not None:
                 sim.mT[~D_mask] = float("-inf")
 
             # calculate the sum of maximum similarity (sms)
-            # sim shape: (B*psgs_per_qry, L_q, L_d)
+            # sms shape: (B*psgs_per_qry)
             sms = sim.max(dim=-1).values.sum(dim=-1)
         
         else:
@@ -142,13 +167,21 @@ class ColBERT(nn.Module):
                 sim.mT[~D_mask] = float("-inf")
 
             # calculate the sum of maximum similarity (sms)
-            # sim shape: (B*psgs_per_qry, B*psgs_per_qry, L_q, L_d)
+            # sms shape: (B*psgs_per_qry, B*psgs_per_qry)
             sms = sim.max(dim=-1).values.sum(dim=-1)
         
         return sms
 
-    def mask(self, input_ids, skiplist=[]):
-        mask = [[(tok not in skiplist) and (tok != self.pad_token_id) for tok in sample] for sample in input_ids.cpu().tolist()]
+    def mask(self, input_ids, skiplist=None):
+        with torch.no_grad():
+            is_pad_token = (input_ids == self.pad_token_id)
+
+            if skiplist is not None:
+                # applies logical or along the last dimension
+                is_punctuation = torch.any((input_ids[..., None] == skiplist), dim=-1)
+                mask = ~is_pad_token & ~is_punctuation
+            else:
+                mask = ~is_pad_token
         return mask
     
     def register_tokenizer(self, tokenizer: ColBERTTokenizer):
@@ -156,9 +189,13 @@ class ColBERT(nn.Module):
         self.backbone.resize_token_embeddings(len(tokenizer))
 
         if self.config.skip_punctuation:
-            self.skiplist = {w: True
-                             for symbol in string.punctuation
-                             for w in [symbol, tokenizer.encode(symbol, mode="query", add_special_tokens=False)[0]]}
+            # self.skiplist = {w: True
+            #                  for symbol in string.punctuation
+            #                  for w in [symbol, tokenizer.encode(symbol, mode="query", add_special_tokens=False)[0]]}
+            self.skiplist = []
+            skiplist = [tokenizer.encode(symbol, mode="doc", add_special_tokens=False)[0] for symbol in string.punctuation]
+            skiplist += [tokenizer.encode("a" + symbol, mode="doc", add_special_tokens=False)[-1] for symbol in string.punctuation]
+            self.skiplist = torch.tensor(skiplist, device=self.device, dtype=torch.int32)
 
         self.pad_token_id = tokenizer.pad_token_id
 
@@ -267,6 +304,7 @@ if __name__ == "__main__":
         intermediate_size = 3072,
         hidden_act = "gelu",
         dropout = 0.1,
+        passages_per_query=1
     )
 
     tokenizer = ColBERTTokenizer(config)
@@ -286,17 +324,26 @@ if __name__ == "__main__":
 
     Q = tokenizer.tensorize(queries, mode="query", return_tensors="pt")
     P = tokenizer.tensorize(passages, mode="doc", return_tensors="pt")
-    out = colbert(Q, P)
+    # out = colbert(Q, P)
+
+    # QQP style:
+    # P = (P[0][:1], P[1][:1])
+
+    # QPP style:
+    # Q = (Q[0][:1], Q[1][:1])
 
 
     for epoch in range(1, EPOCHS+1):
         optimizer.zero_grad()
+        print(Q[0].shape, P[0].shape)
         out = colbert(Q, P)
+        print(out.shape)
         B = out.shape[0]
         loss = criterion(out, torch.arange(0, B, device=DEVICE, dtype=torch.long))
         loss.backward()
         optimizer.step()
         print(loss.item())
+        exit(0)
     
     colbert.eval()
     with torch.no_grad():
