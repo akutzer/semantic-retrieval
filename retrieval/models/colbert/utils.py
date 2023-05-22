@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import math
 from typing import Iterable, Tuple
 import torch

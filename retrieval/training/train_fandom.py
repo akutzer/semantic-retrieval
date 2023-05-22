@@ -7,7 +7,7 @@ import numpy as np
 
 from retrieval.configs import BaseConfig
 from retrieval.data import TripleDataset, BucketIterator
-from retrieval.models import ColBERT, get_colbert_and_tokenizer
+from retrieval.models import get_colbert_and_tokenizer
 
 # tensorboard --logdir=runs
 # http://localhost:6006/

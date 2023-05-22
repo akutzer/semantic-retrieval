@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 import os
 from typing import Union, List
-import json
-from dataclasses import asdict, is_dataclass
 
 import torch
 from transformers import AutoTokenizer
@@ -40,28 +38,7 @@ class ColBERTTokenizer():
     
     def __len__(self):
         return len(self.tok)
-    
-    def tokenize(self, text, mode, add_special_tokens=False, truncate=False):
-        """
-        Splits the input sequence into a list of tokens represented as substrings.
-        """
-        is_single_text = isinstance(text, str)
-
-        tokenized_texts = [self.tok.tokenize(f" {seq}", add_special_tokens=add_special_tokens) for seq in ([text] if is_single_text else text)]
-
-        if truncate:
-            maxlen = self.query_maxlen if mode == "query" else self.doc_maxlen
-            maxlen -= 3 if add_special_tokens else 0
-            tokenized_texts = [tok_seq[:maxlen] for tok_seq in tokenized_texts]
-
-        prefix, suffix = ([self.cls_token, self.Q_marker_token], [self.sep_token]) if mode == "query" else ([self.cls_token, self.D_marker_token], [self.sep_token])
-
-        if add_special_tokens:
-            padded_texts = [prefix + tok_seq + suffix + [self.mask_token] * (self.query_maxlen - (len(tok_seq) + 3)) for tok_seq in tokenized_texts] if mode == "query" else [prefix + tok_seq + suffix for tok_seq in tokenized_texts]
-            return padded_texts[0] if is_single_text else padded_texts
-        else:
-            return tokenized_texts[0] if is_single_text else tokenized_texts
-        
+            
     def tokenize(self, text: Union[str, List[str]], mode: str, add_special_tokens: bool = False,
                  truncate: bool = False) -> Union[List[str], List[List[str]]]:
         """

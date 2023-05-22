@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 import os
 import string
+import logging
+# suppresses the warnings when loading a model with unused parameters
+logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
 
 import torch
 import torch.nn as nn
@@ -9,10 +12,6 @@ from transformers import AutoConfig, AutoModel
 
 from retrieval.configs import BaseConfig, save_config, load_config
 from retrieval.models.colbert.tokenizer import ColBERTTokenizer
-
-# suppresses the warnings when loading a model with unused parameters
-import logging
-logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
 
 
 

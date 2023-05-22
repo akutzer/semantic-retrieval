@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from retrieval.configs import BaseConfig
 from retrieval.models.colbert.colbert import ColBERT
 from retrieval.models.colbert.tokenizer import ColBERTTokenizer

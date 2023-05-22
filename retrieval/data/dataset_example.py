@@ -1,6 +1,5 @@
+#!/usr/bin/env python3
 from tqdm import tqdm
-import numpy as np
-np.random.seed(125)
 
 from retrieval.configs import BaseConfig
 from retrieval.models import ColBERTTokenizer
@@ -70,8 +69,10 @@ def load_harry_potter_QQP():
 tokenizer, dataloader = load_ms_marco_v2_1_QPP()
 # tokenizer, dataloader = load_harry_potter_QQP()
 
-
+import numpy as np
+np.random.seed(125)
 dataloader.shuffle()
+
 for i, bucket in enumerate(tqdm(dataloader)):
     for batch in bucket:
         Q, P = batch

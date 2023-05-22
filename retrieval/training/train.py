@@ -27,13 +27,13 @@ DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 config = BaseConfig(
     tok_name_or_path=MODEL_PATH,
     backbone_name_or_path=MODEL_PATH,
-    passages_per_query = 1,
+    passages_per_query = 10,
     epochs = 1,
-    bucket_size = 32*10,
-    batch_size = 32,
-    accum_steps = 2,    # sub_batch_size = ceil(batch_size / accum_steps)
+    bucket_size = 2*10,
+    batch_size = 2,
+    accum_steps = 1,    # sub_batch_size = ceil(batch_size / accum_steps)
     similarity="cosine",
-    intra_batch_similarity=True,
+    intra_batch_similarity=False,
     num_hidden_layers = 12,
     num_attention_heads = 12,
     dropout = 0.1,
@@ -43,9 +43,9 @@ writer = SummaryWriter()
 
 colbert, tokenizer = get_colbert_and_tokenizer(config, device=DEVICE)
 
-triples_path = "../../data/fandom-qa/witcher_qa/triples.train.tsv"
-queries_path = "../../data/fandom-qa/witcher_qa/queries.train.tsv"
-passages_path = "../../data/fandom-qa/witcher_qa/passages.train.tsv"
+triples_path = "../../data/ms_marco_v1.1/train/triples.train.tsv"
+queries_path = "../../data/ms_marco_v1.1/train/queries.train.tsv"
+passages_path = "../../data/ms_marco_v1.1/train/passages.train.tsv"
 dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QPP")
 bucket_iter = BucketIterator(config, dataset, tokenizer)
 
@@ -66,7 +66,10 @@ with cProfile.Profile() as pr:
                 sub_B = q_tokens.shape[0]
 
                 out = colbert(Q, P)
-                loss = criterion(out, torch.arange(0, sub_B, device=DEVICE, dtype=torch.long))
+                # print(out.shape)
+                # target = torch.arange(0, sub_B, device=DEVICE, dtype=torch.long)
+                target = torch.ones(sub_B, device=DEVICE, dtype=torch.long)
+                loss = criterion(out, target)
                 loss *= 1 / config.batch_size
 
                 # calculate & accumulate gradients, the update step is done after the entire batch

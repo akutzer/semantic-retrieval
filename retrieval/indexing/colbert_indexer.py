@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import faiss
 import time
 from tqdm import tqdm

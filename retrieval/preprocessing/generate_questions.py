@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import os
 import json
-import re
 from tqdm import tqdm
 import torch
 from transformers import T5ForConditionalGeneration, T5Tokenizer, GenerationConfig
