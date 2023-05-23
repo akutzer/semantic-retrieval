@@ -1,16 +1,19 @@
+#!/usr/bin/env python3
 import re
 import json
-import requests
 import time
 import os
 import sys
-import pandas as pd
-import tqdm
-import numpy as np
 import threading
 import ast
 import random
 from multiprocessing.pool import ThreadPool
+
+import requests
+import tqdm
+import pandas as pd
+import numpy as np
+
 
 '''
 Problem: Server denies further requests if too many requests were sent. 

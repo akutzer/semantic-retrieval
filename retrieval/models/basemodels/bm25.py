@@ -1,9 +1,10 @@
+#!/usr/bin/env python3
 import math
 import numpy as np
 import pandas as pd
 import os
 from multiprocessing import Pool, cpu_count
-import swifter
+
 
 FOLDERS = ['../../../data/fandom_qa/harry_potter_qa_small',
             #'../../data/fandom-qa/harry_potter_qa'

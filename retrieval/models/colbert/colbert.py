@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 import os
 import string
+from typing import List, Union, Optional, Tuple
+import logging
+# suppresses the warnings when loading a model with unused parameters
+logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
 
 import torch
 import torch.nn as nn
@@ -10,51 +14,91 @@ from transformers import AutoConfig, AutoModel
 from retrieval.configs import BaseConfig, save_config, load_config
 from retrieval.models.colbert.tokenizer import ColBERTTokenizer
 
-# suppresses the warnings when loading a model with unused parameters
-import logging
-logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
-
 
 
 class ColBERT(nn.Module):
-    def __init__(self, config: BaseConfig, device="cpu"):
+    def __init__(self, config: BaseConfig, device: Union[str, torch.device] = "cpu"):
         super().__init__()
         self.config = config
         self.backbone_config = self._load_model_config(config)
-        self.device = device
         self.out_features = config.dim
           
         # load backbone and load/initialize output layer
-        self.backbone = AutoModel.from_pretrained(config.backbone_name_or_path, config=self.backbone_config)  
+        self.backbone = AutoModel.from_pretrained(config.backbone_name_or_path, config=self.backbone_config)
         self.hid_dim = self.backbone.config.hidden_size
         self.linear = nn.Linear(self.hid_dim, self.config.dim, bias=False)
         if self._load_linear_weights():
             print("Successfully loaded weights for last linear layer!")
 
-        if self.config.skip_punctuation:
-            self.skiplist = {}
+        self.skiplist = None
         self.pad_token_id = None
 
         self.to(device=device)
         self.train()
 
-    def forward(self, Q, D):
-        # Q shape: (B, L_q)
-        # D shape: (B, L_d)
+    def forward(self, Q: Tuple[torch.IntTensor, torch.BoolTensor], D: Tuple[torch.IntTensor, torch.BoolTensor]) -> torch.FloatTensor:
+        """
+        Calculates the embedding for the query and document tensor and returns
+        their sum of maximal similarity.
 
-        q_vec = self.query(*Q)
-        # q_vec shape: (B, L_q, out_features)
+        Input:
+            Q: (IntTensor of shape (B*N_q, L_q), BoolTensor of shape (B*N_q, L_q))
+            D: (IntTensor of shape (B*N_p, L_d), BoolTensor of shape (B*N_p, L_d))
+            The first tensor contains the token ids while the second is the mask tensor
+            needed for the transformer model.
+        Return:
+            FloatTensor of shape (B, max(N_q, N_d)) or (B, B)
+            The first one is the case for QQP and QPP-style datasets and the second
+            one for QP-style datasets with `intra_batch=True`
+                
+        B   - batch_size
+        N   - number of queries or documents per batch (QQP: N_q = 2 and N_p = 1, QPP: N_q = 1 and N_p >= 2)
+        L_q - number of tokens per query
+        L_d - number of tokens per document
+        """
+
+        B_q, L_q = Q[0].shape
+        B_d, L_d = D[0].shape
+        B = min(B_q, B_d)
+
+        # calculate the embeddings
+        q_vec = self.query(*Q)  # shape: (B*N_q, L_q, F); F = out_features
         d_vec, d_mask = self.doc(*D, return_mask=True)
-        # d_vec shape:  (B*psgs_per_qry, L_d, out_features)
-        # d_mask shape: (B*psgs_per_qry, L_d)
+        # d_vec shape:  (B*N_p, L_d, F)
+        # d_mask shape: (B*N_p, L_d)
 
-        # Repeat each query encoding for every corresponding document
-        q_vec_duplicated = q_vec.repeat_interleave(self.config.passages_per_query, dim=0).contiguous()
-        similarities = self.similarity(q_vec_duplicated, d_vec, d_mask, intra_batch=self.config.intra_batch_similarity)
+        # reshapes the 3d Tensors into 4d Tensors of the shape (B, N_q, L_q, F)
+        # this is done to utilize broadcasting later on in case of a QQP or QPP
+        # style dataset, if its a QP dataset (so N_q =  N_p = 1), this operation
+        # is more or less useless but does no harm
+        q_vec = q_vec.reshape(B, -1, L_q, self.out_features)
+        d_vec = d_vec.reshape(B, -1, L_d, self.out_features)
+        d_mask = d_mask.reshape(B, -1, L_d)
+        # in case of an QQP-style dataset, we need to manually expand dim=1, since
+        # broadcasting does not work for slicing with masks
+        if  B_q > B_d:
+            queries_per_passage = B_q // B_d
+            d_mask = d_mask.expand(-1, queries_per_passage, -1)        
+
+        similarities = self.similarity(q_vec, d_vec, d_mask, intra_batch=self.config.intra_batch_similarity)
 
         return similarities
 
-    def query(self, input_ids, attention_mask):
+    def query(self, input_ids: torch.IntTensor, attention_mask: torch.BoolTensor) -> torch.FloatTensor:
+        """
+        Calculates the embeddings for a batch of tokenized queries.
+        Note: The returned embedding vectors are normalized.
+
+        Input:
+            input_ids     : IntTensor of shape (B, L_q)
+            attention_mask: BoolTensor of shape (B, L_q)
+        Returns:
+            FloatTensor of shape: (B, L_q, F)
+                
+        B   - batch_size
+        L_q - number of tokens per query
+        F   - dimension of an embedding vector (number of features)
+        """
         input_ids, attention_mask = input_ids.to(self.device), attention_mask.to(self.device)
 
         # run query through the backbone, e.g. BERT, but drop the pooler output
@@ -62,13 +106,28 @@ class ColBERT(nn.Module):
         # reduce the query vectors dimensionality
         Q = self.linear(Q)
 
-        # normalize each vector
+        # normalize each embedding vector
         if self.config.normalize:
             Q = F.normalize(Q, p=2, dim=-1)
 
         return Q
 
-    def doc(self, input_ids, attention_mask, return_mask=True):
+    def doc(self, input_ids: torch.IntTensor, attention_mask: torch.BoolTensor, return_mask: bool = True) -> Union[torch.FloatTensor, Tuple[torch.FloatTensor, torch.BoolTensor]]:
+        """
+        Calculates the embeddings for a batch of tokenized documents.
+        Note: The returned embedding vectors are normalized.
+
+        Input:
+            input_ids     : IntTensor of shape (B, L_d)
+            attention_mask: BoolTensor of shape (B, L_d)
+        Returns:
+            FloatTensor of shape: (B, L_d, F)
+            BoolTensor of shape:  (B, L_d) if `return_mask=True`
+                
+        B   - batch_size
+        L_d - number of tokens per document
+        F   - dimension of an embedding vector (number of features)
+        """
         input_ids, attention_mask = input_ids.to(self.device), attention_mask.to(self.device)
 
         # run document through the backbone, e.g. BERT, but drop the pooler output
@@ -81,58 +140,81 @@ class ColBERT(nn.Module):
             D = F.normalize(D, p=2, dim=-1)
 
         # mask the vectors representing the embedding of punctuation symbols
-        mask = torch.tensor(self.mask(input_ids, skiplist=self.skiplist), device=self.device, dtype=torch.bool)
+        mask = self.mask(input_ids, skiplist=self.skiplist)
         D = D * mask.unsqueeze(-1)
 
         return D, mask if return_mask else D
    
-    def similarity(self, Q, D_padded, D_mask=None, intra_batch=False):
-        # Q shape:        (B*psgs_per_qry, L_q, out_features)
-        # D_padded shape: (B*psgs_per_qry, L_d, out_features)
-        # D_mask shape:   (B*psgs_per_qry, L_d)
+    def similarity(self, Q: torch.FloatTensor, D: torch.FloatTensor, D_mask: Optional[torch.BoolTensor] = None, intra_batch: bool = False) -> torch.FloatTensor:
+        """
+        Calculates the sum of max similarites between the query embeddings and document embeddings.
+        Depending on the config, either the negated squared L2 norm or the cosine similarity is used as a meassure of similarity.
+        If for each query their is only one document given, the similarity can be calculated between the batches, if `intra_batch = True`.
+
+        Input:
+            Q      : torch.FloatTensor of shape (B, N, L_q, F)
+            D      : torch.FloatTensor of shape (B, N, L_d, F)
+            D_mask : torch.BoolTensor  of shape (B, N, L_d)
+        Return:
+            FloatTensor of shape (B, max(N_q, N_d)) or (B, B)
+            The first one is the case for QQP and QPP-style datasets and the second
+            one for QP-style datasets with `intra_batch=True`
+        
+        B   - batch_size
+        N   - number of queries or documents per batch (QQP: N_q = 2 and N_p = 1, QPP: N_q = 1 and N_p >= 2)
+        L_q - number of embeddings per query
+        L_d - number of embeddings per document
+        F   - dimension of an embedding vector (number of features)
+        """
+
         if not intra_batch:
             if self.config.similarity.lower() == "l2":
-                # calculate squared l2
+                # calculate squared l2 norm
                 # we need to negate, since we later want to maximize the similarity,
                 # and the closer they are, the smaller is the distance between two vectors
-                sim = -1.0 * (Q.unsqueeze(2) - D_padded.unsqueeze(1)).pow(2).sum(dim=-1)
+                sim = -1.0 * (Q.unsqueeze(-2) - D.unsqueeze(-3)).pow(2).sum(dim=-1)
             
             elif self.config.similarity.lower() == "cosine":
-                sim = (Q @ D_padded.mT)
+                sim = (Q @ D.mT)
+                # sim shape: (B, N, L_q, L_d)
                 
             else:
                 raise ValueError(f"Invalid similarity function {self.config.similarity} given. Must be either 'l2' or 'cosine'")
             
             # ignore the similarities for padding and punctuation tokens
-            if D_mask:
+            if D_mask is not None:
                 sim.mT[~D_mask] = float("-inf")
-
-            # calculate the sum of maximum similarity (sms)
-            # sim shape: (B*psgs_per_qry, L_q, L_d)
-            sms = sim.max(dim=-1).values.sum(dim=-1)
+            # calculate the sum of maximum similarity (SMS)
+            sms = sim.max(dim=-1).values.sum(dim=-1)    # shape: (B, N)
         
         else:
             assert self.config.passages_per_query == 1
+            assert Q.shape[1] == 1 and D.shape[1] == 1, f"{Q.shape}, {D.shape}"
 
-            B, L_q, out_features = Q.shape
-            L_d = D_padded.shape[1]
+            # remove dim=1, since it should be 1 in both cases
+            Q, D = Q.squeeze(1), D.squeeze(1)
+            if D_mask is not None:
+                D_mask = D_mask.squeeze(1)
+            
+            B, L_q, F = Q.shape
+            L_d = D.shape[1]
 
             if self.config.similarity.lower() == "l2":
                 # calculate squared l2-norm
                 # we need to negate, since we later want to maximize the similarity,
                 # and the closer they are, the smaller is the distance between two vectors
-                #print(Q[:, None, :, None].shape, D_padded[None, :, None].shape)
+                # Q shape: (B, 1, L_q,  1 , F)
+                # D shape: (1, B,  1 , L_d, F)
                 # TODO: try to improve this call, since it's extremly memory hungry
-                sim = -1.0 * (Q[:, None, :, None] - D_padded[None, :, None]).pow(2).sum(dim=-1)
+                sim = -1.0 * (Q[:, None, :, None] - D[None, :, None]).pow(2).sum(dim=-1)
                
             elif self.config.similarity.lower() == "cosine":                
-                Q = Q.reshape(B*L_q, out_features)
-                D_padded = D_padded.reshape(B*L_d, out_features)
+                Q = Q.reshape(B*L_q, F)
+                D = D.reshape(B*L_d, F)
 
-                sim = Q @ D_padded.T
-                sim = sim.reshape(B, L_q, B, L_d).permute(0, 2, 1, 3)
-                # sim shape: (B*psgs_per_qry, B*psgs_per_qry, L_q, L_d)
-                
+                sim = Q @ D.T
+                sim = sim.reshape(B, L_q, B, L_d).permute(0, 2, 1, 3) # shape: (B, B, L_q, L_d)
+
             else:
                 raise ValueError(f"Invalid similarity function {self.config.similarity} given. Must be either 'l2' or 'cosine'")
             
@@ -140,29 +222,63 @@ class ColBERT(nn.Module):
             if D_mask is not None:
                 D_mask = D_mask[None].repeat_interleave(B, dim=0)
                 sim.mT[~D_mask] = float("-inf")
-
             # calculate the sum of maximum similarity (sms)
-            # sim shape: (B*psgs_per_qry, B*psgs_per_qry, L_q, L_d)
-            sms = sim.max(dim=-1).values.sum(dim=-1)
+            sms = sim.max(dim=-1).values.sum(dim=-1)    # shape: (B, B)
         
         return sms
 
-    def mask(self, input_ids, skiplist=[]):
-        mask = [[(tok not in skiplist) and (tok != self.pad_token_id) for tok in sample] for sample in input_ids.cpu().tolist()]
+    def mask(self, input_ids: torch.IntTensor, skiplist: Optional[torch.IntTensor] = None) -> torch.BoolTensor:
+        """
+        Returns a boolean mask of the same shape as the input, with
+            - True,  if the token-id is neither a padding-token nor in the skiplist
+            - False, otherwise.
+
+        Input:
+            input_ids: IntTensor of arbitrary shape
+        Return:
+            BoolTensor of the shape as the input_ids tensor
+        """
+        with torch.no_grad():
+            is_pad_token = (input_ids == self.pad_token_id)
+
+            if skiplist is not None:
+                # applies logical or along the last dimension
+                is_punctuation = torch.any((input_ids[..., None] == skiplist), dim=-1)
+                mask = ~is_pad_token & ~is_punctuation
+            else:
+                mask = ~is_pad_token
         return mask
     
-    def register_tokenizer(self, tokenizer: ColBERTTokenizer):
+    def register_tokenizer(self, tokenizer: ColBERTTokenizer) -> None:
+        """
+        Resizes the embedding matrix of the underlying backbone to fit the tokenizer.
+        Initializes the skiplist and stores the pad-token-id needed for the masking
+        of the document embeddings.
+        """
         # resize the embedding matrix if necessary
         self.backbone.resize_token_embeddings(len(tokenizer))
 
         if self.config.skip_punctuation:
-            self.skiplist = {w: True
-                             for symbol in string.punctuation
-                             for w in [symbol, tokenizer.encode(symbol, mode="query", add_special_tokens=False)[0]]}
+            self.skiplist = []
+            skiplist = [tokenizer.encode(symbol, mode="doc", add_special_tokens=False)[0] for symbol in string.punctuation]
+            skiplist += [tokenizer.encode("a" + symbol, mode="doc", add_special_tokens=False)[-1] for symbol in string.punctuation]
+            self.skiplist = torch.tensor(skiplist, device=self.device, dtype=torch.int32)
 
         self.pad_token_id = tokenizer.pad_token_id
-
-    def _load_linear_weights(self):
+    
+    def to(self, device: Union[str, torch.device]) -> None:
+        if isinstance(device, str):
+            device = torch.device(device)
+        self.device = device
+        if self.skiplist is not None:
+            self.skiplist = self.skiplist.to(device=device)
+        super().to(device=device)
+    
+    def _load_linear_weights(self) -> bool:
+        """
+        Tries loading the last linear layer of a pretrained ColBERT implementation,
+        which maps the BERT output vectors to the desired dimensionality (`self.out_features`).
+        """
         if not os.path.exists(self.config.backbone_name_or_path):
             return False
 
@@ -171,14 +287,14 @@ class ColBERT(nn.Module):
             if not os.path.isfile(path_to_weights):
                 continue
             
-            if "pytorch_model" in file:
+            if "pytorch_model" in file or ".pt" in file or ".pth" in file:
                 try:
                     with open(path_to_weights, mode="br") as f: 
                         parameters = torch.load(f)
 
                     if "linear.weight" in parameters.keys():
                         weights = parameters["linear.weight"]
-                        # replace the weights if the number of input features is the
+                        # replace the weights if the number of input features is the same
                         if weights.shape[-1] == self.linear.weight.shape[-1]:
                             self.linear.weight.data = weights[:self.config.dim]
                             return True
@@ -188,7 +304,7 @@ class ColBERT(nn.Module):
 
         return False
     
-    def _load_model_config(self, config):
+    def _load_model_config(self, config: BaseConfig) -> AutoConfig: 
         backbone_config = AutoConfig.from_pretrained(config.backbone_name_or_path)
 
         backbone_config.hidden_size = config.hidden_size
@@ -201,7 +317,11 @@ class ColBERT(nn.Module):
 
         return backbone_config
     
-    def save(self, save_directory: str):
+    def save(self, save_directory: str) -> None:
+        """
+        Saves the models parameters (model.pt) and the config (colbert_config.json)
+        in the given directory.
+        """
         # create the directory if it doesn't exist
         os.makedirs(save_directory, exist_ok=True)
 
@@ -215,7 +335,7 @@ class ColBERT(nn.Module):
 
             
     @classmethod
-    def from_pretrained(cls, directory: str, device: str = "cpu"):
+    def from_pretrained(cls, directory: str, device: Union[str, torch.device] = "cpu") -> "ColBERT":
         # load the model's config if available
         config_path = os.path.join(directory, "colbert_config.json")
         config = load_config(config_path)
@@ -257,7 +377,7 @@ if __name__ == "__main__":
     config = BaseConfig(
         tok_name_or_path=MODEL_PATH,
         backbone_name_or_path=MODEL_PATH,
-        similarity="l2",
+        similarity="cosine",
         intra_batch_similarity=True,
         epochs = EPOCHS,
         dim = 24,
@@ -267,6 +387,7 @@ if __name__ == "__main__":
         intermediate_size = 3072,
         hidden_act = "gelu",
         dropout = 0.1,
+        passages_per_query=1
     )
 
     tokenizer = ColBERTTokenizer(config)
@@ -286,17 +407,26 @@ if __name__ == "__main__":
 
     Q = tokenizer.tensorize(queries, mode="query", return_tensors="pt")
     P = tokenizer.tensorize(passages, mode="doc", return_tensors="pt")
-    out = colbert(Q, P)
+    # out = colbert(Q, P)
+
+    # QQP style:
+    # P = (P[0][:1], P[1][:1])
+
+    # QPP style:
+    # Q = (Q[0][:1], Q[1][:1])
 
 
     for epoch in range(1, EPOCHS+1):
         optimizer.zero_grad()
+        print(Q[0].shape, P[0].shape)
         out = colbert(Q, P)
+        print(out.shape)
         B = out.shape[0]
         loss = criterion(out, torch.arange(0, B, device=DEVICE, dtype=torch.long))
         loss.backward()
         optimizer.step()
         print(loss.item())
+        exit(0)
     
     colbert.eval()
     with torch.no_grad():
