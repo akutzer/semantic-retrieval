@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import math
-from typing import List, Union
+from typing import List, Union, Optional
 
 import torch
 from tqdm import tqdm
@@ -12,7 +12,7 @@ from retrieval.models.colbert.load import load_colbert_and_tokenizer, get_colber
 
 
 class ColBERTInference():
-    def __init__(self, colbert: ColBERT, tokenizer: ColBERTTokenizer, device: str = "cpu"):
+    def __init__(self, colbert: ColBERT, tokenizer: ColBERTTokenizer, device: Union[str, torch.device] = "cpu"):
         self.colbert = colbert
         self.tokenizer = tokenizer
         self.colbert.register_tokenizer(tokenizer)
@@ -49,7 +49,7 @@ class ColBERTInference():
         
         return D
     
-    def query_from_text(self, query: Union[str, List[str]], bsize: Union[None, int] = None, to_cpu: bool = False, show_progress: bool = False) -> torch.Tensor:
+    def query_from_text(self, query: Union[str, List[str]], bsize: Optional[int] = None, to_cpu: bool = False, show_progress: bool = False) -> torch.Tensor:
         """
         Calculates the ColBERT embedding for a query or list of queries represented as strings.
         """
@@ -79,7 +79,7 @@ class ColBERTInference():
 
         return Qs[0] if is_single_query else Qs
     
-    def doc_from_text(self, doc: Union[str, List[str]], bsize: Union[None, int] = None, to_cpu: bool = False, show_progress: bool = False) -> List[torch.Tensor]:
+    def doc_from_text(self, doc: Union[str, List[str]], bsize: Optional[int] = None, to_cpu: bool = False, show_progress: bool = False) -> List[torch.Tensor]:
         """
         Calculates the ColBERT embedding for a document/passages or list of document/passages represented as strings.
         """
@@ -101,17 +101,17 @@ class ColBERTInference():
         return Ds[0] if is_single_doc else Ds
     
     @classmethod
-    def from_pretrained(cls, directory: str, device: str = "cpu"):
+    def from_pretrained(cls, directory: str, device: Union[str, torch.device] = "cpu") -> "ColBERTInference":
         colbert, tokenizer = load_colbert_and_tokenizer(directory, device)
         model = cls(colbert, tokenizer)
+        model.to(device)
         return model
     
-    def to(self, device):
+    def to(self, device: Union[str, torch.device]) -> None:
+        if isinstance(device, str):
+            device = torch.device(device)
         self.device = device
-        self.colbert.device = device
-        self.colbert.to(device=device)        
-
-
+        self.colbert.to(device=device)
 
 
 if __name__ == "__main__":

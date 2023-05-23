@@ -111,7 +111,10 @@ class ColBERTTokenizer():
         """
         Tokenizes and pads the input sequence(s) and returns them as a Tensor if no bsize is given or
         as a List of Tensors if a bsize was given.
-        Note: The output will always be a 2-d Tensor of shape [bsize, seq_length]
+        Note: The output will always be a 2-d Tensor of shape [B, min(L, L_max)]
+        B     - batch size
+        L     - length of the tokenized sequence
+        L_max - maximal length of a tokenized sequence
         """
 
         assert isinstance(text, str) or (isinstance(text, list) and all(isinstance(t, str) for t in text))
@@ -174,7 +177,7 @@ class ColBERTTokenizer():
             save_config(self.config, config_path)
     
     @classmethod
-    def from_pretrained(cls, directory: str):
+    def from_pretrained(cls, directory: str) -> "ColBERTTokenizer":
         # load the model's config if available
         config_path = os.path.join(directory, "colbert_config.json")
         config = load_config(config_path)

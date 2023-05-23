@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import string
+from typing import List, Union, Optional, Tuple
 import logging
 # suppresses the warnings when loading a model with unused parameters
 logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
@@ -16,36 +17,39 @@ from retrieval.models.colbert.tokenizer import ColBERTTokenizer
 
 
 class ColBERT(nn.Module):
-    def __init__(self, config: BaseConfig, device="cpu"):
+    def __init__(self, config: BaseConfig, device: Union[str, torch.device] = "cpu"):
         super().__init__()
         self.config = config
         self.backbone_config = self._load_model_config(config)
-        self.device = device
         self.out_features = config.dim
           
         # load backbone and load/initialize output layer
-        self.backbone = AutoModel.from_pretrained(config.backbone_name_or_path, config=self.backbone_config)  
+        self.backbone = AutoModel.from_pretrained(config.backbone_name_or_path, config=self.backbone_config)
         self.hid_dim = self.backbone.config.hidden_size
         self.linear = nn.Linear(self.hid_dim, self.config.dim, bias=False)
         if self._load_linear_weights():
             print("Successfully loaded weights for last linear layer!")
 
-        self.skiplist = {}
+        self.skiplist = None
         self.pad_token_id = None
 
         self.to(device=device)
         self.train()
 
-    def forward(self, Q, D):
+    def forward(self, Q: Tuple[torch.IntTensor, torch.BoolTensor], D: Tuple[torch.IntTensor, torch.BoolTensor]) -> torch.FloatTensor:
         """
         Calculates the embedding for the query and document tensor and returns
         their sum of maximal similarity.
 
         Input:
-            Q: (FloatTensor of shape (B*N_q, L_q), BoolTensor of shape (B*N_q, L_q))
-            D: (FloatTensor of shape (B*N_p, L_d), BoolTensor of shape (B*N_p, L_d))
-        The first tensor contains the token ids while the second is the mask tensor
-        needed for the transformer model.
+            Q: (IntTensor of shape (B*N_q, L_q), BoolTensor of shape (B*N_q, L_q))
+            D: (IntTensor of shape (B*N_p, L_d), BoolTensor of shape (B*N_p, L_d))
+            The first tensor contains the token ids while the second is the mask tensor
+            needed for the transformer model.
+        Return:
+            FloatTensor of shape (B, max(N_q, N_d)) or (B, B)
+            The first one is the case for QQP and QPP-style datasets and the second
+            one for QP-style datasets with `intra_batch=True`
                 
         B   - batch_size
         N   - number of queries or documents per batch (QQP: N_q = 2 and N_p = 1, QPP: N_q = 1 and N_p >= 2)
@@ -80,7 +84,21 @@ class ColBERT(nn.Module):
 
         return similarities
 
-    def query(self, input_ids, attention_mask):
+    def query(self, input_ids: torch.IntTensor, attention_mask: torch.BoolTensor) -> torch.FloatTensor:
+        """
+        Calculates the embeddings for a batch of tokenized queries.
+        Note: The returned embedding vectors are normalized.
+
+        Input:
+            input_ids     : IntTensor of shape (B, L_q)
+            attention_mask: BoolTensor of shape (B, L_q)
+        Returns:
+            FloatTensor of shape: (B, L_q, F)
+                
+        B   - batch_size
+        L_q - number of tokens per query
+        F   - dimension of an embedding vector (number of features)
+        """
         input_ids, attention_mask = input_ids.to(self.device), attention_mask.to(self.device)
 
         # run query through the backbone, e.g. BERT, but drop the pooler output
@@ -88,13 +106,28 @@ class ColBERT(nn.Module):
         # reduce the query vectors dimensionality
         Q = self.linear(Q)
 
-        # normalize each vector
+        # normalize each embedding vector
         if self.config.normalize:
             Q = F.normalize(Q, p=2, dim=-1)
 
         return Q
 
-    def doc(self, input_ids, attention_mask, return_mask=True):
+    def doc(self, input_ids: torch.IntTensor, attention_mask: torch.BoolTensor, return_mask: bool = True) -> Union[torch.FloatTensor, Tuple[torch.FloatTensor, torch.BoolTensor]]:
+        """
+        Calculates the embeddings for a batch of tokenized documents.
+        Note: The returned embedding vectors are normalized.
+
+        Input:
+            input_ids     : IntTensor of shape (B, L_d)
+            attention_mask: BoolTensor of shape (B, L_d)
+        Returns:
+            FloatTensor of shape: (B, L_d, F)
+            BoolTensor of shape:  (B, L_d) if `return_mask=True`
+                
+        B   - batch_size
+        L_d - number of tokens per document
+        F   - dimension of an embedding vector (number of features)
+        """
         input_ids, attention_mask = input_ids.to(self.device), attention_mask.to(self.device)
 
         # run document through the backbone, e.g. BERT, but drop the pooler output
@@ -112,16 +145,20 @@ class ColBERT(nn.Module):
 
         return D, mask if return_mask else D
    
-    def similarity(self, Q, D, D_mask=None, intra_batch=False):
+    def similarity(self, Q: torch.FloatTensor, D: torch.FloatTensor, D_mask: Optional[torch.BoolTensor] = None, intra_batch: bool = False) -> torch.FloatTensor:
         """
         Calculates the sum of max similarites between the query embeddings and document embeddings.
         Depending on the config, either the negated squared L2 norm or the cosine similarity is used as a meassure of similarity.
-        If for each query their is only one document given, the similarity can be calculated between the batches, if intra_batch = True
+        If for each query their is only one document given, the similarity can be calculated between the batches, if `intra_batch = True`.
 
         Input:
             Q      : torch.FloatTensor of shape (B, N, L_q, F)
             D      : torch.FloatTensor of shape (B, N, L_d, F)
             D_mask : torch.BoolTensor  of shape (B, N, L_d)
+        Return:
+            FloatTensor of shape (B, max(N_q, N_d)) or (B, B)
+            The first one is the case for QQP and QPP-style datasets and the second
+            one for QP-style datasets with `intra_batch=True`
         
         B   - batch_size
         N   - number of queries or documents per batch (QQP: N_q = 2 and N_p = 1, QPP: N_q = 1 and N_p >= 2)
@@ -190,7 +227,17 @@ class ColBERT(nn.Module):
         
         return sms
 
-    def mask(self, input_ids, skiplist=None):
+    def mask(self, input_ids: torch.IntTensor, skiplist: Optional[torch.IntTensor] = None) -> torch.BoolTensor:
+        """
+        Returns a boolean mask of the same shape as the input, with
+            - True,  if the token-id is neither a padding-token nor in the skiplist
+            - False, otherwise.
+
+        Input:
+            input_ids: IntTensor of arbitrary shape
+        Return:
+            BoolTensor of the shape as the input_ids tensor
+        """
         with torch.no_grad():
             is_pad_token = (input_ids == self.pad_token_id)
 
@@ -202,22 +249,36 @@ class ColBERT(nn.Module):
                 mask = ~is_pad_token
         return mask
     
-    def register_tokenizer(self, tokenizer: ColBERTTokenizer):
+    def register_tokenizer(self, tokenizer: ColBERTTokenizer) -> None:
+        """
+        Resizes the embedding matrix of the underlying backbone to fit the tokenizer.
+        Initializes the skiplist and stores the pad-token-id needed for the masking
+        of the document embeddings.
+        """
         # resize the embedding matrix if necessary
         self.backbone.resize_token_embeddings(len(tokenizer))
 
         if self.config.skip_punctuation:
-            # self.skiplist = {w: True
-            #                  for symbol in string.punctuation
-            #                  for w in [symbol, tokenizer.encode(symbol, mode="query", add_special_tokens=False)[0]]}
             self.skiplist = []
             skiplist = [tokenizer.encode(symbol, mode="doc", add_special_tokens=False)[0] for symbol in string.punctuation]
             skiplist += [tokenizer.encode("a" + symbol, mode="doc", add_special_tokens=False)[-1] for symbol in string.punctuation]
             self.skiplist = torch.tensor(skiplist, device=self.device, dtype=torch.int32)
 
         self.pad_token_id = tokenizer.pad_token_id
-
-    def _load_linear_weights(self):
+    
+    def to(self, device: Union[str, torch.device]) -> None:
+        if isinstance(device, str):
+            device = torch.device(device)
+        self.device = device
+        if self.skiplist is not None:
+            self.skiplist = self.skiplist.to(device=device)
+        super().to(device=device)
+    
+    def _load_linear_weights(self) -> bool:
+        """
+        Tries loading the last linear layer of a pretrained ColBERT implementation,
+        which maps the BERT output vectors to the desired dimensionality (`self.out_features`).
+        """
         if not os.path.exists(self.config.backbone_name_or_path):
             return False
 
@@ -226,14 +287,14 @@ class ColBERT(nn.Module):
             if not os.path.isfile(path_to_weights):
                 continue
             
-            if "pytorch_model" in file:
+            if "pytorch_model" in file or ".pt" in file or ".pth" in file:
                 try:
                     with open(path_to_weights, mode="br") as f: 
                         parameters = torch.load(f)
 
                     if "linear.weight" in parameters.keys():
                         weights = parameters["linear.weight"]
-                        # replace the weights if the number of input features is the
+                        # replace the weights if the number of input features is the same
                         if weights.shape[-1] == self.linear.weight.shape[-1]:
                             self.linear.weight.data = weights[:self.config.dim]
                             return True
@@ -243,7 +304,7 @@ class ColBERT(nn.Module):
 
         return False
     
-    def _load_model_config(self, config):
+    def _load_model_config(self, config: BaseConfig) -> AutoConfig: 
         backbone_config = AutoConfig.from_pretrained(config.backbone_name_or_path)
 
         backbone_config.hidden_size = config.hidden_size
@@ -256,7 +317,11 @@ class ColBERT(nn.Module):
 
         return backbone_config
     
-    def save(self, save_directory: str):
+    def save(self, save_directory: str) -> None:
+        """
+        Saves the models parameters (model.pt) and the config (colbert_config.json)
+        in the given directory.
+        """
         # create the directory if it doesn't exist
         os.makedirs(save_directory, exist_ok=True)
 
@@ -270,7 +335,7 @@ class ColBERT(nn.Module):
 
             
     @classmethod
-    def from_pretrained(cls, directory: str, device: str = "cpu"):
+    def from_pretrained(cls, directory: str, device: Union[str, torch.device] = "cpu") -> "ColBERT":
         # load the model's config if available
         config_path = os.path.join(directory, "colbert_config.json")
         config = load_config(config_path)
