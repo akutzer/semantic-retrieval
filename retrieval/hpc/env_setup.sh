@@ -4,11 +4,11 @@
 #SBATCH --ntasks=1	# limit to one node
 #SBATCH --cpus-per-task=1  # number of processor cores (i.e. threads)
 #SBATCH --partition=haswell
-#SBATCH --mem-per-cpu=2000M   # memory per CPU core
+#SBATCH --mem-per-cpu=8000M   # memory per CPU core
 #SBATCH -A p_sp_bigdata # name of the associated project
-#SBATCH -J "first_script" # name of the job
-#SBATCH -o "first_script-%j.out" # output file name (std out)
-#SBATCH --error="first_script-%j.err" # error file name (std err)
+#SBATCH -J "env_setup_job" # name of the job
+#SBATCH -o "env_setup_job"-%j.out" # output file name (std out)
+#SBATCH --error="env_setup_job"-%j.err" # error file name (std err)
 #SBATCH --mail-user="tommy.nguyen@mailbox.tu-dresden.de" # will be used to used to update you about the state of your$
 #SBATCH --mail-type ALL
 
