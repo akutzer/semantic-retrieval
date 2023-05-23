@@ -18,13 +18,12 @@ module load Python/3.10.4
 # switch to virtualenv to setup our environment, modules we need 
 # if needed change to your own workspace
 virtualenv --system-site-packages /scratch/ws/0/tong623c-tommy-workspace/env
-source /scratch/ws/0/tong623c-tommy-workpsace/env/bin/activate
+source /scratch/ws/0/tong623c-tommy-workspace/env/bin/activate
 
 # maybe switch Python Version with pyenv
 
 # load modules, no modules and their version are in the HPC modules
 # have to install everything via pip
-pip install -r ../requirements.txt
+pip install -r ../../requirements.txt
 
 deactivate
-
