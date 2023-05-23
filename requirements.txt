@@ -3,7 +3,7 @@ wikiextractor==3.0.6
 py7zr==0.20.5 
 
 # internet requests
-Requests==2.30.0
+Requests==2.31.0
 
 # data science
 numpy==1.24.2
