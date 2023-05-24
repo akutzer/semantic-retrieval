@@ -11,7 +11,7 @@ import threading
 import ast
 import random
 from multiprocessing.pool import ThreadPool
-from gpt4free import deepai
+from gpt4free import deepai, you
 
 '''
 THIS FILE HAS TO BE PUT INTO THE CLONED GPT4FREE FOLDER TO WORK
@@ -123,7 +123,7 @@ def generate_prompt(n_pos_questions, n_neg_questions, what=False):
     return PROMPT
 
 
-def getResponse(df,i,j,start_ind, end_ind ,proxies, what_prop=0.5, what_prop_limit=0.5):
+def getResponse(df,i,j,start_ind, end_ind ,proxies, what_prop=0.5, what_prop_limit=0.5, provider = 0):
     n,m = (POS, NEG)
     # print("current indices: " + str(i) +" and "+ str(j))
 
@@ -144,9 +144,14 @@ def getResponse(df,i,j,start_ind, end_ind ,proxies, what_prop=0.5, what_prop_lim
         results = []
         for https in proxies[start_ind:end_ind]:
             pool = ThreadPool(processes=1)
-            async_result = pool.apply_async(deepai.Completion.create, kwds={'messages':passage_prompt, "proxy_https": https, 'timeout': TIMEOUT})
+
+            if provider == 0:
+                async_result = pool.apply_async(deepai.Completion.create, kwds={'messages':passage_prompt, "proxy_https": https, 'timeout': TIMEOUT})
+            elif provider == 1:
+                async_result = pool.apply_async(you.Completion.create, kwds={'prompt':passage_prompt, "proxy": https})
+
             results.append(async_result)
-            time.sleep(0.4)
+        time.sleep(0.4)
         
         response=None
         for result in results:
@@ -234,6 +239,7 @@ def mainLoop(import_path, export_file):
     what_limit_prop = 0.25
 
     b = 0
+    num_providers = 2
 
     while pairs_ind:
 
@@ -255,12 +261,17 @@ def mainLoop(import_path, export_file):
 
             if len(pairs_ind) == 0:
                 break
-            i,j = pairs_ind.pop(0)
-            t = threading.Thread(target=getResponse, kwargs={'i':i, "j": j, "df": df, "start_ind": proxies_ind, "end_ind": proxies_ind+step, "what_prop": what_prop, "proxies": proxies, "what_prop_limit":what_limit_prop})
-            threads.append(t)
-            t.start()
+
+
+            for provider_i in range(num_providers):
+                i,j = pairs_ind.pop(0)
+
+                t = threading.Thread(target=getResponse, kwargs={'i':i, "j": j, "df": df, "start_ind": proxies_ind, "end_ind": proxies_ind+step, "what_prop": what_prop, "proxies": proxies, "what_prop_limit":what_limit_prop, "provider": provider_i})
+                threads.append(t)
+                t.start()
+                time.sleep(0.02)
+
             proxies_ind = (proxies_ind + step) % len(proxies)
-            time.sleep(0.02)
         for t in threads:
             t.join()
 
@@ -294,21 +305,21 @@ if __name__ == "__main__":
     # print(deepai.Completion.create(messages='hi wie gehts', proxy_https=getProxyList()[0], timeout=TIMEOUT))
 
 
-    rn = random.randint(0,3)
+    rn = random.randint(0,2)
 
     if rn == 0:
         print('elder')
         mainLoop(import_path="../../../../data/fandoms/elder_scrolls.json", export_file="../../elder_scrolls_qa.csv")
-    elif rn == 1:
+    elif rn == 0:
         print('star wars')
         mainLoop(import_path="../../../../data/fandoms/starwars.json", export_file="../../starwars_qa.csv")
-    elif rn == 2:
+    elif rn == 1:
         print('witcher')
         mainLoop(import_path="../../../../data/fandoms/witcher.json", export_file="../../witcher_qa.csv")
-    elif rn == 3:
+    elif rn == 2:
         print('harry')
         mainLoop(import_path="../../../../data/fandoms/harry_potter.json", export_file="../../harry_potter_question_para.csv")
-    elif rn == 4:
+    elif rn == 3:
         print('marvel')
         mainLoop(import_path="../../../../data/fandoms/marvel.json", export_file="../../marvel_qa.csv")
     # elif rn == 5:
