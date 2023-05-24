@@ -271,7 +271,8 @@ def mainLoop(import_path, export_file):
             if not dict:
                 pairs_ind.append((i,j))
             else:
-                new_passages.append(dict)
+                if dict['positive']:
+                    new_passages.append(dict)
 
         threads_passages = []
         
@@ -299,16 +300,17 @@ if __name__ == "__main__":
         print('elder')
         mainLoop(import_path="../../../../data/fandoms/elder_scrolls.json", export_file="../../elder_scrolls_qa.csv")
     elif rn == 1:
-        print('marvel')
-        mainLoop(import_path="../../../../data/fandoms/marvel.json", export_file="../../marvel_qa.csv")
-    elif rn == 2:
         print('star wars')
         mainLoop(import_path="../../../../data/fandoms/starwars.json", export_file="../../starwars_qa.csv")
-    elif rn == 3:
+    elif rn == 2:
         print('witcher')
         mainLoop(import_path="../../../../data/fandoms/witcher.json", export_file="../../witcher_qa.csv")
+    elif rn == 3:
+        print('harry')
+        mainLoop(import_path="../../../../data/fandoms/harry_potter.json", export_file="../../harry_potter_question_para.csv")
     elif rn == 4:
-        mainLoop(import_path="../../../../data/fandoms/dc_comics.json", export_file="../../dc_comics_qa.csv")
+        print('marvel')
+        mainLoop(import_path="../../../../data/fandoms/marvel.json", export_file="../../marvel_qa.csv")
     # elif rn == 5:
     #     mainLoop(import_path="../../../../data/flo/harry_pqq_blueprint1_.json", export_file="../../harry_pqq_blueprint1_flo_qa.csv")
 
