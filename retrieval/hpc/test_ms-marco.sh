@@ -17,6 +17,7 @@ module purge
 
 # HPC-Cluster doesn't have newer Python Version 
 module load Python/3.10.4 
+module load datasets
 
 # switch to virtualenv with already prepared environment 
 source /scratch/ws/0/tong623c-tommy-workspace/env/bin/activate 
