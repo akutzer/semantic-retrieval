@@ -4,7 +4,8 @@
 #SBATCH --ntasks=1	            # limit to one node
 #SBATCH --cpus-per-task=1       # number of processor cores (i.e. threads)
 #SBATCH --partition=alpha
-#SBATCH --gres=gpu:1            # number
+#SBATCH --gres=gpu:1            # number of GPUs
+#SBATCH --mem-per-gpu=10000M
 #SBATCH -A p_sp_bigdata         # name of the associated project
 #SBATCH -J "test_ms_marco_job"  # name of the job
 #SBATCH --output="test_ms_marco_job-%j.out"    # output file name (std out)
