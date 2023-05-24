@@ -28,31 +28,39 @@ K = 5
 #     return pd.read_csv(file, sep='\t', header=None).rename(columns=dict(enumerate(column_names)))
 
 class TfIdf():
-    def __init__2(self, folders, combine_paragraphs=True, mode="qpp"):
-        self.folders = folders
-        self.passage_files = [x + '/' + y for x in folders for y in os.listdir(x) if 'passages' in y and '.tsv' in y]
-        self.question_files = [x + '/' + y for x in folders for y in os.listdir(x) if 'queries' in y and '.tsv' in y]
-        self.triple_files = [x + '/' + y for x in folders for y in os.listdir(x) if 'triples' in y and '.tsv' in y]
 
-        self.folder_objects = [(Passages(passage_file), Queries(question_file), Triples(triple_file, mode)) for passage_file,question_file, triple_file in zip(self.passage_files, self.question_files, self.triple_files)]
+    def __init__(self, passages=None, folders=None, combine_paragraphs=True, mode="qpp"):
+        if folders:
+            self.folders = folders
+            self.passage_files = [x + '/' + y for x in folders for y in os.listdir(x) if 'passages' in y and '.tsv' in y]
+            self.question_files = [x + '/' + y for x in folders for y in os.listdir(x) if 'queries' in y and '.tsv' in y]
+            self.triple_files = [x + '/' + y for x in folders for y in os.listdir(x) if 'triples' in y and '.tsv' in y]
+            self.folder_objects = [(Passages(passage_file), Queries(question_file), Triples(triple_file, mode)) for passage_file,question_file, triple_file in zip(self.passage_files, self.question_files, self.triple_files)]
+            self.paragraphs = []
+            passages_objs = list(zip(*self.folder_objects))[0]
+            for passage_obj in passages_objs:
+                self.paragraphs = self.paragraphs + list(passage_obj.values())
+
+            if passages:
+                print("Passages and folders are defined. passages are ignored!")
+        elif passages:
+            self.paragraphs = passages
+        else:
+            print("Either passages or folders has to be defined!")
+
+
         self.metrics = Metrics()
-
-        self.paragraphs = []
-        passages_objs = list(zip(*self.folder_objects))[0]
-        for passage_obj in passages_objs:
-            self.paragraphs = self.paragraphs + list(passage_obj.values())
-
         self.vectorizer, self.X = self.tfIDFCreatorFromArr(self.paragraphs)
         self.X = self.X.toarray()
 
-    @classmethod
-    def __init__(cls, passages):
-        #cls.vectorizer, cls.X = cls.tfIDFCreatorFromArr(passsages)
-        #cls.X = cls.X.toarray()
-        #cls.vectorizer = TfidfVectorizer(strip_accents='unicode', min_df=10)
-        print("fromPassages created")
-        cls.vectorizer, cls.X = cls.tfIDFCreatorFromArr(cls, arr=passages)
-        cls.X = cls.X.toarray()
+
+    # def __init__(cls, passages):
+    #     #cls.vectorizer, cls.X = cls.tfIDFCreatorFromArr(passsages)
+    #     #cls.X = cls.X.toarray()
+    #     #cls.vectorizer = TfidfVectorizer(strip_accents='unicode', min_df=10)
+    #     print("fromPassages created")
+    #     cls.vectorizer, cls.X = cls.tfIDFCreatorFromArr(arr=passages)
+    #     cls.X = cls.X.toarray()
 
 
 
@@ -137,21 +145,21 @@ class TfIdf():
 
 
 if __name__ == "__main__":
-
-    tf_idf = TfIdf(["halger gr eehe heh er e", " gaeh rh4hz 4 4 sr 4wuz45z shae5z "
-                                    , " gaeh rh4hz 4 sdgsg shae5z ", " gaeh rhGEWgwegw45z shae5z "
-                                    , " gaeh rh4hz 4 sdgsg shae5z ", " gaeh rhGEWgwegw45z shae5z "
-                                    , " gaeh rh4hz 4 sdgsg shae5z ", " gaeh rhGEWgwegw45z shae5z "
-                                    , " gaeh rh4hz 4 sdgsg shae5z ", " gaeh rhGEWgwegw45z shae5z "
-                                    , "hallo", " gaeh rhGEWgwegw45z shae5z "
-                                 ])
-    queries = ["hallo ? ", "syasuu a6g f? ", "ssrjusrjusrg f? ","srtzurursg f? "]
-    best_k = tf_idf.batchBestKPIDs(3, queries)
-    print(best_k)
-    #tf_idf = TfIdf(FOLDERS)
-    #print(tf_idf.answerQuestion("who killed severus snape", 5))
-    #print(tf_idf.answerQuestion("what is god", 5))
-    #print(tf_idf.answerQuestion("is aaron god", 5))
-    #print(tf_idf.answerQuestion("does god love me", 5))
-    #tf_idf.evaluate_folders(8, 3)
-    #tf_idf.printMeanWallAndCPUTime()
+    #
+    # tf_idf = TfIdf(passages=["halger gr eehe heh er e", " gaeh rh4hz 4 4 sr 4wuz45z shae5z "
+    #                                 , " gaeh rh4hz 4 sdgsg shae5z ", " gaeh rhGEWgwegw45z shae5z "
+    #                                 , " gaeh rh4hz 4 sdgsg shae5z ", " gaeh rhGEWgwegw45z shae5z "
+    #                                 , " gaeh rh4hz 4 sdgsg shae5z ", " gaeh rhGEWgwegw45z shae5z "
+    #                                 , " gaeh rh4hz 4 sdgsg shae5z ", " gaeh rhGEWgwegw45z shae5z "
+    #                                 , "hallo", " gaeh rhGEWgwegw45z shae5z "
+    #                              ])
+    # queries = ["hallo ? ", "syasuu a6g f? ", "ssrjusrjusrg f? ","srtzurursg f? "]
+    # best_k = tf_idf.batchBestKPIDs(3, queries)
+    # print(best_k)
+    tf_idf = TfIdf(folders=FOLDERS)
+    print(tf_idf.answerQuestion("who killed severus snape", 5))
+    print(tf_idf.answerQuestion("what is god", 5))
+    print(tf_idf.answerQuestion("is aaron god", 5))
+    print(tf_idf.answerQuestion("does god love me", 5))
+    tf_idf.evaluate_folders(8, 3)
+    tf_idf.printMeanWallAndCPUTime()

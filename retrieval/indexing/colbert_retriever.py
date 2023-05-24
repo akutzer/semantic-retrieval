@@ -16,7 +16,7 @@ class ColBERTRetriever:
 
         self.inference = inference
         self.indexer = ColBERTIndexer(inference, device=device)
-        self.tfidf = TfIdf(passages)
+        self.tfidf = TfIdf(passages = passages)
         print("tf idf fertig")
 
     def rerank(self, query: List[str], k: int):
