@@ -12,6 +12,9 @@
 #SBATCH --mail-user="tommy.nguyen@mailbox.tu-dresden.de" # will be used to used to update you about the state of your$
 #SBATCH --mail-type ALL
 
+# clean current modules
+module purge
+
 # HPC-Cluster doesn't have newer Python Version 
 module load Python/3.10.4
 
