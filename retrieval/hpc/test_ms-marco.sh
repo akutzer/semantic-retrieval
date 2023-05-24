@@ -5,7 +5,6 @@
 #SBATCH --cpus-per-task=1       # number of processor cores (i.e. threads)
 #SBATCH --partition=alpha
 #SBATCH --gres=gpu:1            # number
-#SBATCH --mem-per-cpu=10000M    # memory per CPU core
 #SBATCH -A p_sp_bigdata         # name of the associated project
 #SBATCH -J "test_ms_marco_job"  # name of the job
 #SBATCH --output="test_ms_marco_job-%j.out"    # output file name (std out)
