@@ -35,10 +35,12 @@ if __name__ == "__main__":
                 "revid": page["revid"],
                 "url": page["url"],
                 "title": page["title"],
-                "pIDs": []
+                "PIDs": []
             }
 
             for questions, passage in page["text"]:
+                if isinstance(questions, str):
+                    questions = [questions]
                 for question in questions:
                     # TODO: sample the negative paragraph using BM25
                     triples.append([qID, pID, -1])
@@ -46,7 +48,7 @@ if __name__ == "__main__":
                     qID += 1
 
                 pID_2_passage[pID] = passage
-                docID_2_pID[docID]["pIDs"].append(pID)
+                docID_2_pID[docID]["PIDs"].append(pID)
                 pID += 1
         
         filename = os.path.splitext(file)[0]
@@ -69,7 +71,7 @@ if __name__ == "__main__":
 
         elif MODE.lower() == "json":
             with open(os.path.join(qa_dataset_path, "triples.train.json"), mode="w", encoding="utf-8") as trip_f:
-                json.dump(triples, trip_f)
+                json.dump(triples, trip_f, indent=0)
             
             with open(os.path.join(qa_dataset_path, "queries.train.json"), mode="w", encoding="utf-8") as q_f:
                 json.dump(qID_2_query, q_f, indent=0)
