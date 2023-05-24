@@ -8,8 +8,8 @@
 #SBATCH --mem-per-cpu=10000M    # memory per CPU core
 #SBATCH -A p_sp_bigdata         # name of the associated project
 #SBATCH -J "test_ms_marco_job"  # name of the job
-#SBATCH --output="test_ms_marco_job"-%j.out"    # output file name (std out)
-#SBATCH --error="test_ms_marco_job"-%j.err"     # error file name (std err)
+#SBATCH --output="test_ms_marco_job-%j.out"    # output file name (std out)
+#SBATCH --error="test_ms_marco_job-%j.err"     # error file name (std err)
 #SBATCH --mail-user="tommy.nguyen@mailbox.tu-dresden.de" # will be used to used to update you about the state of your$
 #SBATCH --mail-type ALL
 
