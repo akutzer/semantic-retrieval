@@ -1,9 +1,11 @@
-import gpt4free
-from gpt4free import Provider, quora, forefront
-import time
+#!/usr/bin/env python3
 import json
 import re
+import time
+
 from tqdm import tqdm
+from gpt4free import Provider, quora, forefront
+
 
 
 

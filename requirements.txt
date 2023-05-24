@@ -2,6 +2,9 @@
 wikiextractor==3.0.6
 py7zr==0.20.5 
 
+# internet requests
+Requests==2.31.0
+
 # data science
 numpy==1.24.2
 pandas==1.5.3
@@ -11,7 +14,7 @@ matplotlib==3.7.1
 scikit-learn==1.2.2
 nltk==3.8.1
 torch==2.0.0
-torchprofile=0.0.4
+torchprofile==0.0.4
 transformers==4.28.1
 tensorboard==2.12.2
 

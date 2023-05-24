@@ -21,19 +21,20 @@ torch.manual_seed(SEED)
 torch.cuda.manual_seed_all(SEED)
 
 
-MODEL_PATH = "bert-base-uncased" # "bert-base-uncased" or "../../data/colbertv2.0/" or "roberta-base"
-DEVICE = "cuda:1" if torch.cuda.is_available() else "cpu"
+MODEL_PATH = "roberta-base" # "bert-base-uncased" or "../../data/colbertv2.0/" or "roberta-base"
+DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
+DEVICE = torch.device(DEVICE)
 
 config = BaseConfig(
     tok_name_or_path=MODEL_PATH,
     backbone_name_or_path=MODEL_PATH,
-    passages_per_query = 10,
+    passages_per_query = -1, # not used by QQP-style datasets
     epochs = 1,
-    bucket_size = 2*10,
-    batch_size = 2,
-    accum_steps = 1,    # sub_batch_size = ceil(batch_size / accum_steps)
+    bucket_size = 24*10,
+    batch_size = 24,
+    accum_steps = 2,    # sub_batch_size = ceil(batch_size / accum_steps)
     similarity="cosine",
-    intra_batch_similarity=False,
+    intra_batch_similarity=False, # should always be deactivated when using QQP-style datasets
     num_hidden_layers = 12,
     num_attention_heads = 12,
     dropout = 0.1,
@@ -43,13 +44,14 @@ writer = SummaryWriter()
 
 colbert, tokenizer = get_colbert_and_tokenizer(config, device=DEVICE)
 
-triples_path = "../../data/ms_marco_v1.1/train/triples.train.tsv"
-queries_path = "../../data/ms_marco_v1.1/train/queries.train.tsv"
-passages_path = "../../data/ms_marco_v1.1/train/passages.train.tsv"
-dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QPP")
+
+triples_path = "../../data/fandoms_qa/harry_potter/triples.tsv"
+queries_path = "../../data/fandoms_qa/harry_potter/queries.tsv"
+passages_path = "../../data/fandoms_qa/harry_potter/passages.tsv"
+dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QQP")
 bucket_iter = BucketIterator(config, dataset, tokenizer)
 
-optimizer = torch.optim.AdamW(colbert.parameters(), lr=5e-6, eps=1e-8)
+optimizer = torch.optim.AdamW(colbert.parameters(), lr=5e-6, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False, fused=False)
 criterion = torch.nn.CrossEntropyLoss(reduction="sum")
 
 import cProfile
@@ -63,12 +65,13 @@ with cProfile.Profile() as pr:
             for j, batch in enumerate(bucket):
                 Q, P = batch
                 (q_tokens, q_masks), (p_tokens, p_masks) = Q, P
-                sub_B = q_tokens.shape[0]
+                # print(q_tokens.shape, q_masks.shape, p_tokens.shape, p_masks.shape)
+                sub_B = p_tokens.shape[0]
 
                 out = colbert(Q, P)
                 # print(out.shape)
-                # target = torch.arange(0, sub_B, device=DEVICE, dtype=torch.long)
-                target = torch.ones(sub_B, device=DEVICE, dtype=torch.long)
+                # target is the 0-th aka first question from the list of queries given to a passage
+                target = torch.zeros(sub_B, device=out.device, dtype=torch.long)
                 loss = criterion(out, target)
                 loss *= 1 / config.batch_size
 
@@ -79,7 +82,7 @@ with cProfile.Profile() as pr:
                 with torch.inference_mode():
                     losses += loss.item()
                     # calculate the accuracy within a subbatch -> extremly inflated accuracy
-                    accs += torch.sum(out.detach().max(dim=-1).indices == torch.arange(0, sub_B, device=DEVICE, dtype=torch.long))
+                    accs += torch.sum(out.detach().max(dim=-1).indices == torch.zeros(sub_B, device=out.device, dtype=torch.long))
                 
                 # after accum_steps, update the weights + log the metrics
                 if (j + 1) % config.accum_steps == 0:

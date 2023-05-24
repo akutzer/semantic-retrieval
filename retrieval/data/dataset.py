@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import torch
 from retrieval.configs import BaseConfig
 from retrieval.data.triples import Triples

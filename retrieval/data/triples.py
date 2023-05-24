@@ -31,27 +31,28 @@ class Triples:
             self.data = self._load_tsv(path, psgs_per_qry)
         
         elif path.endswith(".json"):
-            self.data = self._load_json(path, psgs_per_qry)
+            raise DeprecationWarning()
+            # self.data = self._load_json(path, psgs_per_qry)
 
         return self.data
-    
+        
     def _load_tsv(self, path, psgs_per_qry=None):
         delimiter = "\t" if path.endswith(".tsv") else ","
+        triples = pd.read_csv(path, delimiter=delimiter)
 
-        triples = pd.read_csv(path, delimiter=delimiter, header=None)
         if psgs_per_qry is not None and self.mode == "qpp":
             triples = triples.iloc[:, :psgs_per_qry+1]
         self._rename_df(triples)
  
         return triples
     
-    def _load_json(self, path, psgs_per_qry=None):
-        triples = pd.read_json(path)
-        if psgs_per_qry is not None and self.mode == "qpp":
-            triples = triples.iloc[:, :psgs_per_qry+1]
-        self._rename_df(triples)
+    # def _load_json(self, path, psgs_per_qry=None):
+    #     triples = pd.read_json(path)
+    #     if psgs_per_qry is not None and self.mode == "qpp":
+    #         triples = triples.iloc[:, :psgs_per_qry+1]
+    #     self._rename_df(triples)
         
-        return triples
+    #     return triples
     
     def _rename_df(self, df: pd.DataFrame, psgs_per_qry=None):
         if psgs_per_qry is None:
@@ -61,10 +62,13 @@ class Triples:
             # names = ["QID⁺"] + ["QID⁻"] * psgs_per_qry + ["PID"]
             names = ["QID⁺", "QID⁻", "PID"]
         else:
-            names = ["QID", "PID⁺"] + ["PID⁻"] * psgs_per_qry
+            names = ["QID", "PID⁺"]
+            if psgs_per_qry > 0:
+                names += ["PID⁻"] + [f"PID⁻.{i}" for i in range(1, psgs_per_qry)]
 
-        names = {i: name for i, name in enumerate(names)}
-        df.rename(names, axis=1, inplace=True)
+        current_names = df.columns.tolist()
+        name_mapping = {current_names[i]: names[i] for i in range(len(names))}
+        df.rename(columns=name_mapping, inplace=True)
 
         return df
 
@@ -76,14 +80,21 @@ class Triples:
 
 
 if __name__ == "__main__":
-    path = "../../data/fandom-qa/witcher_qa/triples.train.json"
-
+    path = "../../data/ms_marco_v1.1/train/triples.train.tsv"
     triples = Triples(path=path, mode="QPP", psgs_per_qry=None)
-    print(triples[0], triples.data.loc[0].tolist())
-    triples.shuffle(reset_index=False)
-    print(triples[0], triples.data.loc[0].tolist())
-    triples.shuffle(reset_index=True)
-    print(triples[0], triples.data.loc[0].tolist())
+    print(triples.data, end="\n\n")
+
+
+    path = "../../data/fandoms_qa/harry_potter/triples.tsv"
+    triples = Triples(path=path, mode="QQP", psgs_per_qry=None)
+    print(triples.data, end="\n\n")
+
+
+    # print(triples[0], triples.data.loc[0].tolist())
+    # triples.shuffle(reset_index=False)
+    # print(triples[0], triples.data.loc[0].tolist())
+    # triples.shuffle(reset_index=True)
+    # print(triples[0], triples.data.loc[0].tolist())
 
     # print(triples.data)
     # print(len(triples))
