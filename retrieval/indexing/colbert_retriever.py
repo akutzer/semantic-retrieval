@@ -1,6 +1,7 @@
+#!/usr/bin/env python3
 import math
 import torch
-from typing import List
+from typing import List, Union
 
 from retrieval.configs import BaseConfig
 from retrieval.data import Passages, Queries, TripleDataset, BucketIterator
@@ -10,10 +11,13 @@ from retrieval.indexing.colbert_indexer import ColBERTIndexer
 
 
 class ColBERTRetriever:
-    def __init__(self, inference, device):
+    def __init__(self, inference: ColBERTInference, device: Union[str, torch.device] = "cpu"):
+        if isinstance(device, str):
+            device = torch.device(device)
         self.device = device
 
         self.inference = inference
+        self.inference.to(device)
         self.indexer = ColBERTIndexer(inference, device=device)
 
 
@@ -60,6 +64,13 @@ class ColBERTRetriever:
             reranked_pids.append([topk_sims.tolist(), topk_pids.tolist()])
         
         return reranked_pids
+    
+    def to(self, device: Union[str, torch.device]) -> None:
+        if isinstance(device, str):
+            device = torch.device(device)
+        self.device = device
+        self.inference.to(self.device)
+        self.indexer.to(self.device)
 
 
 
@@ -75,9 +86,12 @@ if __name__ == "__main__":
     torch.manual_seed(SEED)
     torch.cuda.manual_seed_all(SEED)
 
+    # enable TensorFloat32 tensor cores for float32 matrix multiplication if available
+    torch.set_float32_matmul_precision('high')
+
     
     MODEL_PATH = "../../data/colbertv2.0/" # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
-    INDEX_PATH = "../../data/fandom-qa/witcher_qa/passages.train.indices.pt"
+    INDEX_PATH = "../../data/fandoms_qa/harry_potter/passages.train.indices.pt"
 
     config = BaseConfig(
         tok_name_or_path=MODEL_PATH,
@@ -93,16 +107,14 @@ if __name__ == "__main__":
     retriever = ColBERTRetriever(inference, device="cuda:0")
     retriever.indexer.load(INDEX_PATH)
 
-    dataset = TripleDataset(config,
-        triples_path="../../data/fandom-qa/witcher_qa/triples.train.tsv",
-        queries_path="../../data/fandom-qa/witcher_qa/queries.train.tsv",
-        passages_path="../../data/fandom-qa/witcher_qa/passages.train.tsv",
-        mode="qpp")
-    dataset.shuffle()
 
-    BSIZE = 16
+    triples_path = "../../data/fandoms_qa/harry_potter/triples.tsv"
+    queries_path = "../../data/fandoms_qa/harry_potter/queries.tsv"
+    passages_path = "../../data/fandoms_qa/harry_potter/passages.tsv"
+    dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QQP")
+
+    BSIZE = 3
     K = 100
-    
     top1, top3, top5, top10, top25, top100 = 0, 0, 0, 0, 0, 0
 
     with cProfile.Profile() as pr:
@@ -115,7 +127,8 @@ if __name__ == "__main__":
             target_batch.append(pid_pos)
 
             if len(query_batch) == BSIZE or i + 1 == len(dataset):
-                pids = retriever.full_retrieval(query_batch, K)
+                with torch.autocast(retriever.device.type):
+                    pids = retriever.full_retrieval(query_batch, K)
                 
                 for i, ((sims, pred_pids), target_pit) in enumerate(zip(pids, target_batch)):
                     if target_pit in pred_pids[:100]:

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import pandas as pd
 
+
 class Queries:
     def __init__(self, path=None):
         self.path = path
@@ -30,7 +31,8 @@ class Queries:
             self.data = self._load_tsv(path)
         
         elif path.endswith(".json"):
-            self.data = self._load_json(path)
+            raise DeprecationWarning()
+            # self.data = self._load_json(path)
 
         return self.data
 

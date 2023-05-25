@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # preprocessed_json_path = '../../data/fandoms/elder_scrolls.json'
 # question_generated__json_path = 'elder_scrolls_qa.csv'
 # output_path_dir = "../../data/fandoms_qa/"

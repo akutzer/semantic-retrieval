@@ -31,7 +31,8 @@ class Triples:
             self.data = self._load_tsv(path, psgs_per_qry)
         
         elif path.endswith(".json"):
-            self.data = self._load_json(path, psgs_per_qry)
+            raise DeprecationWarning()
+            # self.data = self._load_json(path, psgs_per_qry)
 
         return self.data
         

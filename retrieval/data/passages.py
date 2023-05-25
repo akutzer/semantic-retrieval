@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import pandas as pd
 
-# TODO: merge Passages & Queries Class 
 
+# TODO: Add WID support
 class Passages:
     def __init__(self, path=None):
         self.path = path
@@ -32,7 +32,8 @@ class Passages:
             self.data = self._load_tsv(path)
         
         elif path.endswith(".json"):
-            self.data = self._load_json(path)
+            raise DeprecationWarning()
+            # self.data = self._load_json(path)
 
         return self.data
     

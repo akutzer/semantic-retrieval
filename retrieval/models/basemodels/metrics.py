@@ -1,10 +1,13 @@
-from retrieval.data.triples import Triples 
+#!/usr/bin/env python3
+import time
 import numpy as np
 import torch
 from torch.nn.modules.transformer import Transformer
 from torchprofile import profile_macs
-import time
 #from pypapi import events, papi_high as high
+
+from retrieval.data import Triples 
+
 
 class Metrics:
     def __init__(self):

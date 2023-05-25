@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import torch
 from retrieval.configs import BaseConfig
 from retrieval.data.triples import Triples
@@ -97,10 +98,10 @@ class TripleDataset(torch.utils.data.Dataset):
 if __name__ == "__main__":
     from tqdm import tqdm
 
-    config = BaseConfig(passages_per_query=1)
-    triples_path = "../../data/fandom-qa/witcher_qa/triples.train.tsv"
-    queries_path = "../../data/fandom-qa/witcher_qa/queries.train.tsv"
-    passages_path = "../../data/fandom-qa/witcher_qa/passages.train.tsv"
+    config = BaseConfig(passages_per_query=10)
+    triples_path = "../../data/ms_marco_v1.1/train/triples.train.tsv"
+    queries_path = "../../data/ms_marco_v1.1/train/queries.train.tsv"
+    passages_path = "../../data/ms_marco_v1.1/train/passages.train.tsv"
     dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QPP")
 
     #dataset.output_strings()

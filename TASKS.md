@@ -12,11 +12,11 @@ Save the final dump in a JSON with the following format:
 ```json
 [
     {
-        "id": int,
-        "revid": int,
-        "url": string,
-        "title": string,
-        "text": list(string)
+        "id": "int",
+        "revid": "int",
+        "url": "string",
+        "title": "string",
+        "text": "list(string)"
     },
     ...
 ]
@@ -25,8 +25,8 @@ Save the final dump in a JSON with the following format:
 If we have time we might also download and extract multi-linguistic wikis.
 
 
-## 2. Generate Dataset/Training Set
-### :bangbang: :hourglass_flowing_sand: Generating the question-answer pairs (assigned: Till, Tommy, Florian)
+## 2. :white_check_mark: Generate Dataset/Training Set
+### :hourglass_flowing_sand: Generating the question-answer pairs (assigned: Till)
 For each wiki, generate two datasets of the following type:
  - QQP-Dataset: `{(q⁺,q⁻,p) | for most passages p in the wiki}`
  - QPP-Dataset: `{(q,p⁺,p⁻) | for most passages p⁺ in the wiki}`
@@ -58,16 +58,16 @@ Each final datasets should then be saved in 4 files:
     {
         "WID":
         {
-            "revid": int,
-            "url"  : string,
-            "title": string,
-            "PIDs" : list(int)
+            "revid": "int",
+            "url"  : "string",
+            "title": "string",
+            "PIDs" : "list(int)"
         },
         ...
     }
     ```
 
-### Splitting into Training, Validation & Test Set
+### :white_check_mark: Splitting into Training, Validation & Test Set
 Split the datasets into a training, validation and test sets. \
 The **training set** is used for training the neural IR models. \
 The **validation set** is used to choose the best hyperparameters, such as which backbone to use, which dimensions the embedded vectors should have, what batch size to use, which similarity metric we should choose... \
@@ -81,8 +81,8 @@ It is extremely important that there is no overlap between the three data sets.
 
 Try to find a good split ratio (80%-10%-10%, ...), search for typical ratios for similarly sized datasets.
 
-### :hourglass_flowing_sand: Classes for loading the dataset (assigned: Aaron)
-:hourglass_flowing_sand: Write a Python class for efficient loading to be capable of working with both of the dataset types.
+### :heavy_check_mark: Classes for loading the dataset (assigned: Aaron)
+:heavy_check_mark: Write a Python class for efficient loading to be capable of working with both of the dataset types.
 
 The task is to create a Python class that takes the paths to the dataset files as input and can be used as either a *map-style* dataset or an *iterable-style* dataset. \
 A *map-style* dataset works like a list, so given an index i, return the i-the triple.
@@ -92,7 +92,7 @@ Maybe some inspiration can be found here: https://pytorch.org/docs/stable/data.h
 
 The current [ColBERT dataloader](retrieval/data/dataloader.py) could be a good starting point, which implements an iterable-style dataset and also dataloader. One could base the dataset on this one, but maybe use better datastructures (maybe pandas.DataFrame). The tokenization step should be left out, as it should be implemented in each models dataloader. 
 
-### :hourglass_flowing_sand: Benchmark datasets (assigned: Aaron)
+### :heavy_check_mark: Benchmark datasets (assigned: Aaron)
 Find benchmarks/ gold standard datasets, on which we can train our models and compare with other papers. (For example to make sure our implementation is correct or if we design our own model to be able to compare it with others) \
 Look into: SQuAD 2.0, MS MARCO, TREC CAR... \
 Choose a dataset with is similar to our task & dataset (I think MS MARCO should be similar to our QPP dataset)
@@ -103,31 +103,45 @@ Choose a dataset with is similar to our task & dataset (I think MS MARCO should 
 ### :white_check_mark: Baseline: BM-25 or TF-IDF (assigned: Till, Florian)
 :heavy_check_mark: Implement the BM-25 or TF-IDF model, using an external library. \
 :hourglass_flowing_sand: Use the dataset class for the BM-25 or TF-IDF model \
-:exclamation: :white_check_mark: Implement efficient inference, so given a query find the best passages as fast as possible; maybe try to precompute the wiki passages? \
+:white_check_mark: Implement efficient inference, so given a query find the best passages as fast as possible; maybe try to precompute the wiki passages? \
 The implementation should work with the previous described datasets class. In case the output of the dataset class is not directly usable, you can write a dataloader, which for example tokenizes the data from the dataset class and then combines these into a batch of data, which is then directly feed into the model. I don't know if this is necessary tho. ^^
 
-### :hourglass_flowing_sand: First Model: ColBERT (assigned: Aaron)
-:heavy_check_mark: Implement the ColBERT model from the ColBERTv1 paper. \
-:heavy_check_mark: Add support for other backbones, like RoBERTa, TinyBERT, etc. \
-:heavy_check_mark: Write dataloaders base on the dataset class. \
-:hourglass_flowing_sand: Write dataloaders base on the dataset class and PyTorch dataloader class. \
-:white_check_mark: Implement Model/Tokenizer saving and loading. \
-:hourglass_flowing_sand: Formulate the loss function, so that the training loop can just call .backward() on the loss. \
-Implement efficient inference using re-ranking (requires efficient TF-IDF or BM-25 implementation)\
-:white_check_mark: Implement efficient inference using full-retrieval.
-Focus on inference performance ("model performance"/FLOPs, "model performance"/inference time [µs]) \
-Try torch.compile() to improve runtime performance. \
-Improve code quality (comments, typing, docstrings,...)
+### :hourglass_flowing_sand: First Model: ColBERT 
 
+#### Implementation (assigned: Aaron)
+- :heavy_check_mark: Implement the ColBERT model from the ColBERTv1 paper.
+- :heavy_check_mark: Add support for other backbones, like RoBERTa, TinyBERT, etc.
+- :heavy_check_mark: Write dataloaders base on the dataset class.
+- :heavy_check_mark: Write dataloaders base on the dataset class and PyTorch dataloader class.
+- :white_check_mark: Implement Model/Tokenizer saving and loading.
+- :hourglass_flowing_sand: Formulate the loss function, so that the training loop can just call .backward() on the loss.
+- :hourglass_flowing_sand: Implement efficient inference using re-ranking (requires efficient TF-IDF or BM-25 implementation)
+- :white_check_mark: Implement efficient inference using full-retrieval.
+Focus on inference performance ("model performance"/FLOPs, "model performance"/inference time [µs])
+- Try torch.compile() to improve runtime performance.
+- :white_check_mark: Improve code quality (comments, typing, docstrings,...)
+
+
+#### Model understanding (assigned: Florian)
+- :hourglass_flowing_sand: Test if it's possible to extract roughly position of the answer.
+    - for example: query is encoded as 32 vectors. For each vector find the most similar passage vectors and visualize those 32 token in the passage string, does it correlate with the answer?
+- Analyze the embedding space.
+    - maybe some dimensionality reduction for a visualization
+    - embedding space evenly used (**anisotropy**):
+        > Recent work identifies an anisotropy problem in language representations (Ethayarajh, 2019; Li et al., 2020), i.e., the learned embeddings occupy a narrow cone in the vector space, which severely limits their expressiveness. Gao et al. (2019) demonstrate that language models trained with tied input/output embeddings lead to anisotropic word embeddings, and this is further observed by Ethayarajh (2019) in pre-trained contextual representations. Wang et al. (2020) show that singular values of the word embedding matrix in a language model decay drastically: except for a few dominating singular values, all others are close to zero.
+
+
+<!-- 
 ### :bangbang: Second Model: ???
 Search for the code to the paper (e.g. https://paperswithcode.com/) or implement the model yourself using PyTorch (finding parameters would be very helpful for quicker training)
 
 Other exotic approaches can be interesting (probably not big problem if it doesn't outperform baseline)
+-->
 
 
-## 4. Training loop
+## 4. Training
 
-### :hourglass_flowing_sand: Create a training script (assigned: Zhiwei)
+### :bangbang: :hourglass_flowing_sand: Create a training script (assigned: Zhiwei)
 Write a script for training the neural IR models. Have a look at the [ColBERT training script](https://github.com/stanford-futuredata/ColBERT/blob/main/colbert/training/training.py) as an example.
 
 It should use the dataset class for our datasets and the dataloader for the selected model. \
@@ -140,8 +154,27 @@ The loss calculation should be part of the model, so we only need to call .backw
 Implement Checkpoiting, where after a certain number of steps the model is saved.
 
 
-### Train the models
-*tba*
+### :bangbang: :hourglass_flowing_sand: Get HPC running (assigned: Zhiwei)
+Maybe we should have a hpc directory in the repository where all the scripts for the HPC will be stored.
+
+- :hourglass_flowing_sand: Move repository to the HPC 
+- :hourglass_flowing_sand: Create and move all data to a data directory on the HPC (could be in the repository or a completly different directory, first one should be better imo) 
+- :bangbang: :hourglass_flowing_sand: Getting a training script on a single GPU running (i dont care what GPU it is, K80 could be enough for testing in the beginning) 
+- Getting a training script on multiple GPUs running
+
+
+### :bangbang:  Train the models
+**Roadmap:**
+1. Validate the pretrained ColBERTv2 weights on MS MARCO v1.1 and v2.1 and compare them with the paper
+2. Train our ColBERT implementation on MS MARCO (order of priority):
+    1. ColBERT + MS MARCO v1.1
+    2. ColBERT + MS MARCO v2.1
+    3. ColRoBERTa + MS MARCO v1.1
+    4. ColRoBERTa + MS MARCO v2.1 \
+:arrow_right: decide if we should use BERT or RoBERTa as backbone
+4. Train ColBERT on one Wiki of our choice and test different hyperparameters
+5. Train ColBERT with the best set of hyperparameters (determined in step 4) on each wiki
+6. Train ColBERT with the best set of hyperparameters on all wikis combined
 
 
 
