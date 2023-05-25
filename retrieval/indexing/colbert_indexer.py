@@ -15,10 +15,13 @@ from retrieval.indexing.indexer import IndexerInterface
 
 
 class ColBERTIndexer(IndexerInterface):
-    def __init__(self, inference, device="cpu"):
+    def __init__(self, inference: ColBERTInference, device: Union[str, torch.device]="cpu"):
+        if isinstance(device, str):
+            device = torch.device(device)
+        self.device = device
+
         self.inference = inference
         self.inference.to(device)
-        self.device = device
         self.similarity = self.inference.colbert.config.similarity
 
         self.embeddings = torch.tensor([], device=self.device)
@@ -33,7 +36,8 @@ class ColBERTIndexer(IndexerInterface):
             return
 
         with torch.inference_mode():
-            psgs_embedded = self.inference.doc_from_text(batch_passages, bsize=bsize, show_progress=True)
+            with torch.autocast(self.device.type):
+                psgs_embedded = self.inference.doc_from_text(batch_passages, bsize=bsize, show_progress=True)
             assert len(psgs_embedded) == len(batch_pids)
 
             # calculate the new width of the pid2iid matrix
@@ -144,6 +148,17 @@ class ColBERTIndexer(IndexerInterface):
 
         return passages_, pids_
     
+    def to(self, device: Union[str, torch.device]) -> None:
+        if isinstance(device, str):
+            device = torch.device(device)
+        self.device = device
+
+        self.inference.to(self.device)
+        self.embeddings = self.embeddings.to(self.device)
+        self.iid2pid = self.iid2pid.to(self.device)
+        self.pid2iid = self.pid2iid.to(self.device)
+
+    
 
 
 if __name__ == "__main__":
@@ -156,9 +171,12 @@ if __name__ == "__main__":
     torch.manual_seed(SEED)
     torch.cuda.manual_seed_all(SEED)
 
+    # enable TensorFloat32 tensor cores for float32 matrix multiplication if available
+    torch.set_float32_matmul_precision('high')
+
     DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
-    PASSAGES_PATH = "../../data/fandom-qa/witcher_qa/passages.train.tsv"
-    INDEX_PATH = "../../data/fandom-qa/witcher_qa/passages.train.indices.pt"
+    PASSAGES_PATH = "../../data/fandoms_qa/harry_potter/passages.tsv"
+    INDEX_PATH = "../../data/fandoms_qa/harry_potter/passages.train.indices.pt"
     MODEL_PATH = "../../data/colbertv2.0/" # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
 
     config = BaseConfig(

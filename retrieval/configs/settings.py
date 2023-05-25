@@ -20,7 +20,7 @@ class ModelSettings:
     dropout: float = 0.1
     skip_punctuation: bool = True
     similarity: str = "cosine" # "L2" or "cosine"
-    intra_batch_similarity: bool = False
+    intra_batch_similarity: bool = False # should always be deactivated when using QQP-style datasets
     normalize: bool = True
 
 
@@ -39,15 +39,21 @@ class QuerySettings:
 
 
 @dataclass
+class DataLoaderSettings:
+    bucket_size: int = 128
+    batch_size: int = 128
+    accum_steps: int = 16
+    passages_per_query: int = 10 # only used by QPP-style datasets
+    shuffle: bool = False
+    drop_last: bool = False
+    pin_memory: bool = False
+    num_workers: int = 0
+
+@dataclass
 class TrainingSettings:
     epochs: int = 10
     lr_warmup_epochs: int = 2
-    lr_warmup_decay : int = 0.3333333333333333
-    bucket_size: int = 128*10
-    batch_size: int = 128
-    accum_steps: int = 16
-    passages_per_query: int = 1
-    drop_last: bool = False
+    lr_warmup_decay : float = 1/3
 
 
 @dataclass
