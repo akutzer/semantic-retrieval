@@ -44,8 +44,10 @@ class DataLoaderSettings:
     batch_size: int = 128
     accum_steps: int = 16
     passages_per_query: int = 1
+    shuffle: bool = False
     drop_last: bool = False
     pin_memory: bool = False
+    num_workers: int = 0
 
 @dataclass
 class TrainingSettings:

@@ -24,6 +24,7 @@ class BucketIterator():
         self.pin_memory = config.pin_memory
         self.position = 0
         self.index_order = np.arange(0, len(self.dataset))
+        self.reset()
 
     def __iter__(self):
         return self
@@ -71,8 +72,6 @@ class BucketIterator():
         return self.collate_fn(qry_batch, psg_batch)
     
     def collate_fn(self, queries, passages):
-        size = len(queries)
-
         subbatch_size = math.ceil(self.batch_size / self.config.accum_steps)
 
         if self.dataset.is_qqp():
@@ -124,7 +123,8 @@ class BucketIterator():
     
     def reset(self):
         self.position = 0
-
+        if self.config.shuffle:
+            self.shuffle()
 
 
 if __name__ == "__main__":
@@ -146,8 +146,8 @@ if __name__ == "__main__":
     passages_path = "../../data/ms_marco_v2.1/train/passages.train.tsv"
 
     dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QPP")
-    tokenize = ColBERTTokenizer(config)
-    data_iter = BucketIterator(config, dataset, tokenize)
+    tokenizer = ColBERTTokenizer(config)
+    data_iter = BucketIterator(config, dataset, tokenizer)
     data_iter.shuffle()
 
     for i, bucket in enumerate(tqdm(data_iter)):
@@ -159,7 +159,7 @@ if __name__ == "__main__":
 
             # print(q_tokens.shape, q_masks.shape, p_tokens.shape, p_masks.shape)
             # print(q_tokens.is_pinned())
-            # print(q_tokens[0], t[0])
+            # print(q_tokens[0], p_tokens[0])
             # print(data_iter.tokenizer.decode(q_tokens[0]))
-            # print(data_iter.tokenizer.decode(t[0]))
+            # print(data_iter.tokenizer.decode(p_tokens[0]))
             # exit(0)

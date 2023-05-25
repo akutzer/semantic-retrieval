@@ -44,7 +44,7 @@ class ColBERTTokenizer():
         """
         Splits the input sequence(s) into a list of tokens represented as substrings.
         """
-        assert isinstance(text, str) or (isinstance(text, list) and all(isinstance(t, str) for t in text))
+        assert isinstance(text, str) or (isinstance(text, (list, tuple)) and all(isinstance(t, str) for t in text))
         assert isinstance(mode, str) and mode in ["query", "doc"]
 
         is_single_str = isinstance(text, str)
@@ -77,7 +77,7 @@ class ColBERTTokenizer():
         """
         Splits the input sequence(s) into a list of tokens represented by their ids.
         """
-        assert isinstance(text, str) or (isinstance(text, list) and all(isinstance(t, str) for t in text))
+        assert isinstance(text, str) or (isinstance(text, (list, tuple)) and all(isinstance(t, str) for t in text))
         assert isinstance(mode, str) and mode in ["query", "doc"]
 
         is_single_str = isinstance(text, str)
@@ -117,7 +117,7 @@ class ColBERTTokenizer():
         L_max - maximal length of a tokenized sequence
         """
 
-        assert isinstance(text, str) or (isinstance(text, list) and all(isinstance(t, str) for t in text))
+        assert isinstance(text, str) or (isinstance(text, (list, tuple)) and all(isinstance(t, str) for t in text))
         assert isinstance(mode, str) and mode in ["query", "doc"]
 
         is_single_str = isinstance(text, str)
