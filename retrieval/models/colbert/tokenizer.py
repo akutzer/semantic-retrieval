@@ -107,7 +107,7 @@ class ColBERTTokenizer():
 
         return ids[0] if is_single_str else ids
 
-    def tensorize(self, text: Union[str, List[str]], mode: str, bsize: Union[None, int] = None, return_tensors: str = "pt") -> torch.IntTensor:
+    def tensorize(self, text: Union[str, List[str]], mode: str, bsize: Union[None, int] = None, return_tensors: str = "pt", pin_memory: bool = False) -> torch.IntTensor:
         """
         Tokenizes and pads the input sequence(s) and returns them as a Tensor if no bsize is given or
         as a List of Tensors if a bsize was given.
@@ -151,6 +151,9 @@ class ColBERTTokenizer():
             ids[bool_mask] = self.mask_token_id
             if not self.config.ignore_mask_tokens:
                 mask[bool_mask] = 1
+        
+        if pin_memory:
+            ids, mask = ids.pin_memory(), mask.pin_memory()
             
         if bsize:
             return _split_into_batches(ids, mask, bsize)

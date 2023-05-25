@@ -39,15 +39,19 @@ class QuerySettings:
 
 
 @dataclass
-class TrainingSettings:
-    epochs: int = 10
-    lr_warmup_epochs: int = 2
-    lr_warmup_decay : int = 0.3333333333333333
-    bucket_size: int = 128*10
+class DataLoaderSettings:
+    bucket_size: int = 128
     batch_size: int = 128
     accum_steps: int = 16
     passages_per_query: int = 1
     drop_last: bool = False
+    pin_memory: bool = False
+
+@dataclass
+class TrainingSettings:
+    epochs: int = 10
+    lr_warmup_epochs: int = 2
+    lr_warmup_decay : float = 1/3
 
 
 @dataclass

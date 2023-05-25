@@ -4,5 +4,5 @@ from retrieval.configs.settings import *
 
 
 @dataclass
-class BaseConfig(TokenizerSettings, DocSettings, QuerySettings, TrainingSettings, ModelSettings):
+class BaseConfig(TokenizerSettings, DocSettings, QuerySettings, DataLoaderSettings, TrainingSettings, ModelSettings):
     pass
