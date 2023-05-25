@@ -123,7 +123,7 @@ Focus on inference performance ("model performance"/FLOPs, "model performance"/i
 
 
 #### Model understanding (assigned: Florian)
-- Test if it's possible to extract roughly position of the answer.
+- :hourglass_flowing_sand: Test if it's possible to extract roughly position of the answer.
     - for example: query is encoded as 32 vectors. For each vector find the most similar passage vectors and visualize those 32 token in the passage string, does it correlate with the answer?
 - Analyze the embedding space.
     - maybe some dimensionality reduction for a visualization
