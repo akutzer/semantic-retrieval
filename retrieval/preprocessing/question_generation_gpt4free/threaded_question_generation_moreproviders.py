@@ -11,7 +11,7 @@ import threading
 import ast
 import random
 from multiprocessing.pool import ThreadPool
-from gpt4free import deepai, you
+from gpt4free import deepai, you, usesless
 
 '''
 THIS FILE HAS TO BE PUT INTO THE CLONED GPT4FREE FOLDER TO WORK
@@ -43,7 +43,7 @@ sys.tracebacklimit = 0
 # to get the proxy file use this command: curl https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt -o http.txt
 
 # specify timeout interval here
-THREADS_DIFFERENT_PARAGRAPHS = 300
+THREADS_DIFFERENT_PARAGRAPHS = 200
 THREADS_DIFFERENT_PROXIES_FOR_PARAGRAPH = 1
 TIMEOUT=10
 
@@ -144,11 +144,12 @@ def getResponse(df,i,j,start_ind, end_ind ,proxies, what_prop=0.5, what_prop_lim
         results = []
         for https in proxies[start_ind:end_ind]:
             pool = ThreadPool(processes=1)
-
             if provider == 0:
                 async_result = pool.apply_async(deepai.Completion.create, kwds={'messages':passage_prompt, "proxy_https": https, 'timeout': TIMEOUT})
             elif provider == 1:
                 async_result = pool.apply_async(you.Completion.create, kwds={'prompt':passage_prompt, "proxy": https})
+            elif provider == 2:
+                async_result = pool.apply_async(usesless.Completion.create, kwds={'prompt':passage_prompt, "parentMessageId": '', "proxy_https": https})
 
             results.append(async_result)
         time.sleep(0.4)
@@ -157,7 +158,11 @@ def getResponse(df,i,j,start_ind, end_ind ,proxies, what_prop=0.5, what_prop_lim
         for result in results:
             res=result.get()
             if res != None:
-                response = res
+                if provider == 2:
+                    response = res['text']
+                else:
+                    response = res
+
             
 
         if response == None:
@@ -165,6 +170,7 @@ def getResponse(df,i,j,start_ind, end_ind ,proxies, what_prop=0.5, what_prop_lim
 
             
     except Exception as e:
+        print(e)
         response = None
         skip_passage = True
 
@@ -239,7 +245,7 @@ def mainLoop(import_path, export_file):
     what_limit_prop = 0.25
 
     b = 0
-    num_providers = 2
+    num_providers = 3
 
     while pairs_ind:
 
