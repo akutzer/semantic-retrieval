@@ -99,7 +99,7 @@ class ColBERT(nn.Module):
         L_q - number of tokens per query
         F   - dimension of an embedding vector (number of features)
         """
-        input_ids, attention_mask = input_ids.to(self.device), attention_mask.to(self.device)
+        input_ids, attention_mask = input_ids.to(self.device, non_blocking=True), attention_mask.to(self.device, non_blocking=True)
 
         # run query through the backbone, e.g. BERT, but drop the pooler output
         Q = self.backbone(input_ids, attention_mask=attention_mask)[0]
@@ -128,7 +128,7 @@ class ColBERT(nn.Module):
         L_d - number of tokens per document
         F   - dimension of an embedding vector (number of features)
         """
-        input_ids, attention_mask = input_ids.to(self.device), attention_mask.to(self.device)
+        input_ids, attention_mask = input_ids.to(self.device, non_blocking=True), attention_mask.to(self.device, non_blocking=True)
 
         # run document through the backbone, e.g. BERT, but drop the pooler output
         D = self.backbone(input_ids, attention_mask=attention_mask)[0]

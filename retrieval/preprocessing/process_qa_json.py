@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import glob
 import os
-import tqdm
+from tqdm import tqdm
 import pandas as pd
 import json
 import shutil
@@ -81,10 +81,10 @@ if __name__ == "__main__":
 
             df2 = df2.sample(frac=1)
 
-            total_p = len([(i,j,k) for i in range(len(df2)) for j in range(len(df2.iloc[i]['text'])) for k in range(min(len(df2.iloc[i]['positive'][j]), len(df2.iloc[i]['negative'][j]))) if not df2.iloc[i]['text'][j].endswith(' .')])
+            total_p = len([(i,j,k) for i in tqdm(range(len(df2))) for j in range(len(df2.iloc[i]['text'])) for k in range(min(len(df2.iloc[i]['positive'][j]), len(df2.iloc[i]['negative'][j]))) if not df2.iloc[i]['text'][j].endswith(' .')])
 
             ii = 0
-            for i in tqdm.tqdm(range(len(df2))):
+            for i in tqdm(range(len(df2))):
                 row = df2.iloc[i]
                 wiki_pids = []
 

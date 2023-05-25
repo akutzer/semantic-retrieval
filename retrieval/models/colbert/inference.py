@@ -38,7 +38,7 @@ class ColBERTInference():
         Calculates the ColBERT embedding for a tokenized document/passage.
         """
         with torch.inference_mode():
-            D, mask = self.colbert.doc(input_ids.to(self.device), attention_mask.to(self.device), return_mask=True)
+            D, mask = self.colbert.doc(input_ids.to(self.device, non_blocking=True), attention_mask.to(self.device, non_blocking=True), return_mask=True)
         
         if to_cpu:
             D, mask = D.cpu(), mask.cpu()
