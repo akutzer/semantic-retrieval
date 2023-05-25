@@ -1,11 +1,13 @@
 #!/usr/bin/env python3= 
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from retrieval.configs.settings import *
 
 
 @dataclass
 class BaseConfig(TokenizerSettings, DocSettings, QuerySettings, DataLoaderSettings, TrainingSettings, ModelSettings):
-    pass
+    def asdict(self) -> dict:
+        return asdict(self)
+
 
 
 

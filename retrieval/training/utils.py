@@ -26,7 +26,7 @@ def get_tensorboard_writer(config, dataset_name: str):
     else:
         backbone_name = config.backbone_name_or_path
 
-    directory = f"{dataset_name}-{iso_date}-{backbone_name}_{config.similarity}"
-    writer = SummaryWriter(comment=directory)
+    directory = f"runs/{iso_date}-{dataset_name}-{backbone_name}_{config.similarity}"
+    writer = SummaryWriter(log_dir=directory)
 
     return writer

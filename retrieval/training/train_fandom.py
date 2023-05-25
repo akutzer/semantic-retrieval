@@ -46,9 +46,11 @@ if __name__ == "__main__":
 
     colbert, tokenizer = get_colbert_and_tokenizer(config, device=DEVICE)
     print("Loaded ColBERT!")
-    dataset = load_dataset(config, os.path.join(DATASET_PATH, "train"), mode="QQP")
+    train_dataset = load_dataset(config, os.path.join(DATASET_PATH, "train"), mode="QQP")
+    eval_dataset = load_dataset(config, os.path.join(DATASET_PATH, "val"), mode="QQP")
     print("Loaded Dataset!")
-    dataloader = get_pytorch_dataloader(config, dataset, tokenizer)
+    train_dataloader = get_pytorch_dataloader(config, train_dataset, tokenizer)
+    eval_dataloader = get_pytorch_dataloader(config, eval_dataset, tokenizer, batch_size=config.batch_size, shuffle=False, drop_last=False, num_workers=0)
     print("Initialized DataLoader!")
 
     optimizer = torch.optim.AdamW(colbert.parameters(), lr=5e-6, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False, fused=False)
@@ -59,21 +61,15 @@ if __name__ == "__main__":
         optimizer.zero_grad()
         losses, accs = 0, 0
 
-        for i, (Q, P) in enumerate(tqdm(dataloader)):
+        colbert.train()
+        for i, (Q, P) in enumerate(tqdm(train_dataloader)):
             (q_tokens, q_masks), (p_tokens, p_masks) = Q, P
             sub_B = min(q_tokens.shape[0], p_tokens.shape[0])
 
-            # calculate the forward pass through the model
-            if config.use_amp:
-                with torch.autocast(DEVICE.type):
-                    out = colbert(Q, P)
-                    # print(out.shape)
-                    # target is the 0-th aka first question from the list of queries given to a passage
-                    target = torch.zeros(sub_B, device=out.device, dtype=torch.long)
-                    loss = criterion(out, target)
-                    loss *= 1 / config.batch_size
-            else:
+            # forward pass through the model & calculate loss
+            with torch.autocast(DEVICE.type, enabled=config.use_amp):
                 out = colbert(Q, P)
+                # print(out.shape)
                 # target is the 0-th aka first question from the list of queries given to a passage
                 target = torch.zeros(sub_B, device=out.device, dtype=torch.long)
                 loss = criterion(out, target)
@@ -102,7 +98,41 @@ if __name__ == "__main__":
                 optimizer.zero_grad()
 
                 # TODO: check if calculation is correct
-                time_step = (epoch - 1) * (len(dataloader) // config.accum_steps)  + i // config.accum_steps
+                time_step = (epoch - 1) * (len(train_dataloader) // config.accum_steps)  + i // config.accum_steps
                 writer.add_scalar("Loss/train", losses, time_step)
                 writer.add_scalar("Accuracy/train", accs / config.batch_size, time_step)
                 losses, accs = 0, 0
+
+            if i > 10:
+                break
+        
+        colbert.save("uwu")
+        tokenizer.save("uwu", store_config=False)
+        
+        # evaluate the model on the entire validation set after each epoch
+        colbert.eval()
+        with torch.inference_mode():
+            loss = 0.0
+            acc = 0.0
+
+            for j, (Q, P) in enumerate(tqdm(eval_dataloader)):
+                (q_tokens, q_masks), (p_tokens, p_masks) = Q, P
+                sub_B = min(q_tokens.shape[0], p_tokens.shape[0])
+
+                # forward pass through the model & calculate loss
+                with torch.autocast(DEVICE.type, enabled=config.use_amp):
+                    out = colbert(Q, P)
+                    # print(out.shape)
+                    # target is the 0-th aka first question from the list of queries given to a passage
+                    target = torch.zeros(sub_B, device=out.device, dtype=torch.long)
+                    loss += criterion(out, target)
+                    acc += torch.sum(out.max(dim=-1).indices == torch.zeros(sub_B, device=out.device, dtype=torch.long))
+            
+            loss /= len(eval_dataset)
+            acc /= len(eval_dataset)
+
+            print(loss, acc)
+
+
+
+
