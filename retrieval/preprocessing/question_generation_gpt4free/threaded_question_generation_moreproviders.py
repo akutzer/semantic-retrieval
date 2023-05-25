@@ -43,7 +43,7 @@ sys.tracebacklimit = 0
 # to get the proxy file use this command: curl https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt -o http.txt
 
 # specify timeout interval here
-THREADS_DIFFERENT_PARAGRAPHS = 2000
+THREADS_DIFFERENT_PARAGRAPHS = 1000
 THREADS_DIFFERENT_PROXIES_FOR_PARAGRAPH = 1
 TIMEOUT=10
 
@@ -144,6 +144,9 @@ def getResponse(df,i,j,start_ind, end_ind ,proxies, what_prop=0.5, what_prop_lim
         results = []
         for https in proxies[start_ind:end_ind]:
             pool = ThreadPool(processes=1)
+            if provider == 1:
+                # you doesnt work anymore
+                continue
             if provider == 0:
                 async_result = pool.apply_async(deepai.Completion.create, kwds={'messages':passage_prompt, "proxy_https": https, 'timeout': TIMEOUT})
             elif provider == 1:
@@ -314,7 +317,7 @@ if __name__ == "__main__":
 
 
     rn = random.randint(0,2)
-
+    rn = 2
     if rn == 0:
         print('elder')
         mainLoop(import_path="../../../../data/fandoms/elder_scrolls.json", export_file="../../elder_scrolls_qa.csv")
