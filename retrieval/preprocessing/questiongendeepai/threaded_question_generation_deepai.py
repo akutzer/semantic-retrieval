@@ -43,7 +43,7 @@ sys.tracebacklimit = 0
 # to get the proxy file use this command: curl https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt -o http.txt
 
 # specify timeout interval here
-THREADS_DIFFERENT_PARAGRAPHS = 2000
+THREADS_DIFFERENT_PARAGRAPHS = 300
 THREADS_DIFFERENT_PROXIES_FOR_PARAGRAPH = 1
 TIMEOUT=10
 
@@ -57,8 +57,8 @@ POS, NEG = (2,2)
 def getProxyList():
     proxies = []
     regex = ">([0-9]*.[0-9]*.[0-9]*.[0-9]*.[0-9]*)</td>"
-    files = ['https://github.com/TheSpeedX/PROXY-List/blob/master/http.txt','https://github.com/TheSpeedX/PROXY-List/blob/master/socks4.txt', 'https://github.com/TheSpeedX/PROXY-List/blob/master/socks5.txt']
-    # files = ['https://github.com/mertguvencli/http-proxy-list/blob/main/proxy-list/data.txt']
+    # files = ['https://github.com/TheSpeedX/PROXY-List/blob/master/http.txt','https://github.com/TheSpeedX/PROXY-List/blob/master/socks4.txt', 'https://github.com/TheSpeedX/PROXY-List/blob/master/socks5.txt']
+    files = ['https://github.com/mertguvencli/http-proxy-list/blob/main/proxy-list/data.txt']
 
     for file in files:
         res = requests.get(file)
@@ -264,12 +264,15 @@ def mainLoop(import_path, export_file):
 
 
             for provider_i in range(num_providers):
+                # continue if list empty
+                if not pairs_ind:
+                    continue
                 i,j = pairs_ind.pop(0)
 
                 t = threading.Thread(target=getResponse, kwargs={'i':i, "j": j, "df": df, "start_ind": proxies_ind, "end_ind": proxies_ind+step, "what_prop": what_prop, "proxies": proxies, "what_prop_limit":what_limit_prop, "provider": provider_i})
                 threads.append(t)
                 t.start()
-                time.sleep(0.02)
+            time.sleep(0.04)
 
             proxies_ind = (proxies_ind + step) % len(proxies)
         for t in threads:
