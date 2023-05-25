@@ -107,6 +107,7 @@ if __name__ == "__main__":
                     passages = []
                     qid_id = 0
                     pid_id = 0
+                    triples = []
    
                     df2n = df2.iloc[last_ind:(i + 1)]
                     df2n = df2n.drop(['text', 'positive', 'negative'], axis=1)
