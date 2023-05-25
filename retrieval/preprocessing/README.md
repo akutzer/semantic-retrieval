@@ -11,12 +11,12 @@
     - removes to short wiki-pages or wiki-pages of a certain form (containing only a link for example)
     - the cleaned wiki is stored in the `semantic-retrieval/data/preprocessing/` directory
 
-- [generate_questions.py](/src/preprocessing/generate_questions.py):
+<!-- - [generate_questions.py](/src/preprocessing/generate_questions.py):
     - generates a question for each sub-paragraph
     - the question-answer pairs are stored in the `semantic-retrieval/data/fandom-qa/` directory
 
 - [generate_qa_dataset.py](/src/preprocessing/generate_qa_dataset.py):
-    - splits the JSON file containing the question-answer pairs into smaller JSON or TSV files (triples, queries, passages, docs), which reduces redundant information and fits the data format required for ColBERT & co.
+    - splits the JSON file containing the question-answer pairs into smaller JSON or TSV files (triples, queries, passages, docs), which reduces redundant information and fits the data format required for ColBERT & co. -->
 
 - [threaded_question_generation.py](/src/preprocessing/threaded_question_generation.py):
     - takes as an input a processed wiki json filepath, and a output-file path
