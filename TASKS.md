@@ -26,7 +26,7 @@ If we have time we might also download and extract multi-linguistic wikis.
 
 
 ## 2. :white_check_mark: Generate Dataset/Training Set
-### :bangbang: :hourglass_flowing_sand: Generating the question-answer pairs (assigned: Till)
+### :hourglass_flowing_sand: Generating the question-answer pairs (assigned: Till)
 For each wiki, generate two datasets of the following type:
  - QQP-Dataset: `{(q⁺,q⁻,p) | for most passages p in the wiki}`
  - QPP-Dataset: `{(q,p⁺,p⁻) | for most passages p⁺ in the wiki}`
@@ -67,7 +67,7 @@ Each final datasets should then be saved in 4 files:
     }
     ```
 
-### :hourglass_flowing_sand: Splitting into Training, Validation & Test Set
+### :white_check_mark: Splitting into Training, Validation & Test Set
 Split the datasets into a training, validation and test sets. \
 The **training set** is used for training the neural IR models. \
 The **validation set** is used to choose the best hyperparameters, such as which backbone to use, which dimensions the embedded vectors should have, what batch size to use, which similarity metric we should choose... \
@@ -81,7 +81,7 @@ It is extremely important that there is no overlap between the three data sets.
 
 Try to find a good split ratio (80%-10%-10%, ...), search for typical ratios for similarly sized datasets.
 
-### :white_check_mark: Classes for loading the dataset (assigned: Aaron)
+### :heavy_check_mark: Classes for loading the dataset (assigned: Aaron)
 :heavy_check_mark: Write a Python class for efficient loading to be capable of working with both of the dataset types.
 
 The task is to create a Python class that takes the paths to the dataset files as input and can be used as either a *map-style* dataset or an *iterable-style* dataset. \
@@ -103,16 +103,16 @@ Choose a dataset with is similar to our task & dataset (I think MS MARCO should 
 ### :white_check_mark: Baseline: BM-25 or TF-IDF (assigned: Till, Florian)
 :heavy_check_mark: Implement the BM-25 or TF-IDF model, using an external library. \
 :hourglass_flowing_sand: Use the dataset class for the BM-25 or TF-IDF model \
-:exclamation: :white_check_mark: Implement efficient inference, so given a query find the best passages as fast as possible; maybe try to precompute the wiki passages? \
+:white_check_mark: Implement efficient inference, so given a query find the best passages as fast as possible; maybe try to precompute the wiki passages? \
 The implementation should work with the previous described datasets class. In case the output of the dataset class is not directly usable, you can write a dataloader, which for example tokenizes the data from the dataset class and then combines these into a batch of data, which is then directly feed into the model. I don't know if this is necessary tho. ^^
 
-### :hourglass_flowing_sand: First Model: ColBERT (assigned: Aaron)
+### :hourglass_flowing_sand: First Model: ColBERT 
 
-#### Implementation
+#### Implementation (assigned: Aaron)
 - :heavy_check_mark: Implement the ColBERT model from the ColBERTv1 paper.
 - :heavy_check_mark: Add support for other backbones, like RoBERTa, TinyBERT, etc.
 - :heavy_check_mark: Write dataloaders base on the dataset class.
-- :hourglass_flowing_sand: Write dataloaders base on the dataset class and PyTorch dataloader class.
+- :heavy_check_mark: Write dataloaders base on the dataset class and PyTorch dataloader class.
 - :white_check_mark: Implement Model/Tokenizer saving and loading.
 - :hourglass_flowing_sand: Formulate the loss function, so that the training loop can just call .backward() on the loss.
 - :hourglass_flowing_sand: Implement efficient inference using re-ranking (requires efficient TF-IDF or BM-25 implementation)
@@ -122,7 +122,7 @@ Focus on inference performance ("model performance"/FLOPs, "model performance"/i
 - :white_check_mark: Improve code quality (comments, typing, docstrings,...)
 
 
-#### Model understanding
+#### Model understanding (assigned: Florian)
 - Test if it's possible to extract roughly position of the answer.
     - for example: query is encoded as 32 vectors. For each vector find the most similar passage vectors and visualize those 32 token in the passage string, does it correlate with the answer?
 - Analyze the embedding space.
@@ -139,9 +139,9 @@ Other exotic approaches can be interesting (probably not big problem if it doesn
 -->
 
 
-## 4. Training loop
+## 4. Training
 
-### :hourglass_flowing_sand: Create a training script (assigned: Zhiwei)
+### :bangbang: :hourglass_flowing_sand: Create a training script (assigned: Zhiwei)
 Write a script for training the neural IR models. Have a look at the [ColBERT training script](https://github.com/stanford-futuredata/ColBERT/blob/main/colbert/training/training.py) as an example.
 
 It should use the dataset class for our datasets and the dataloader for the selected model. \
@@ -154,8 +154,27 @@ The loss calculation should be part of the model, so we only need to call .backw
 Implement Checkpoiting, where after a certain number of steps the model is saved.
 
 
-### Train the models
-*tba*
+### :bangbang: :hourglass_flowing_sand: Get HPC running (assigned: Zhiwei)
+Maybe we should have a hpc directory in the repository where all the scripts for the HPC will be stored.
+
+- :hourglass_flowing_sand: Move repository to the HPC 
+- :hourglass_flowing_sand: Create and move all data to a data directory on the HPC (could be in the repository or a completly different directory, first one should be better imo) 
+- :bangbang: :hourglass_flowing_sand: Getting a training script on a single GPU running (i dont care what GPU it is, K80 could be enough for testing in the beginning) 
+- Getting a training script on multiple GPUs running
+
+
+### :bangbang:  Train the models
+**Roadmap:**
+1. Validate the pretrained ColBERTv2 weights on MS MARCO v1.1 and v2.1 and compare them with the paper
+2. Train our ColBERT implementation on MS MARCO (order of priority):
+    1. ColBERT + MS MARCO v1.1
+    2. ColBERT + MS MARCO v2.1
+    3. ColRoBERTa + MS MARCO v1.1
+    4. ColRoBERTa + MS MARCO v2.1 \
+:arrow_right: decide if we should use BERT or RoBERTa as backbone
+4. Train ColBERT on one Wiki of our choice and test different hyperparameters
+5. Train ColBERT with the best set of hyperparameters (determined in step 4) on each wiki
+6. Train ColBERT with the best set of hyperparameters on all wikis combined
 
 
 
