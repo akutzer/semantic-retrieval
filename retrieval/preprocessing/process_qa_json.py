@@ -31,10 +31,10 @@ FRACS = [0.8, 0.1, 0.1]
 
 if __name__ == "__main__":
     if ALL:
-        fracs = FRACS
+        fracs = [1.0]
         endings_dir = ['all']
     else:
-        fracs = [0.8, 0.1, 0.1]
+        fracs = FRACS
         endings_dir = ['train', 'test', 'val']
         # endings = [".train", ".test", ".val"]
 
