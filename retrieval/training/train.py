@@ -21,8 +21,8 @@ torch.manual_seed(SEED)
 torch.cuda.manual_seed_all(SEED)
 
 
-MODEL_PATH = "roberta-base" # "bert-base-uncased" or "../../data/colbertv2.0/" or "roberta-base"
-DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
+MODEL_PATH = "bert-base-uncased" # "bert-base-uncased" or "../../data/colbertv2.0/" or "roberta-base"
+DEVICE = "cuda:1" if torch.cuda.is_available() else "cpu"
 
 config = BaseConfig(
     tok_name_or_path=MODEL_PATH,

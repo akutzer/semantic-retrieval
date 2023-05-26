@@ -1,12 +1,6 @@
 # ignore everything in data/ directory, except the README
 !data/README.md
-
-# keep json files in fandoms_qa folder
-!data/
 data/*
-!data/fandoms_qa
-data/fandoms_qa/*
-!data/fandoms_qa/*.json
 
 !retrieval/data
 
