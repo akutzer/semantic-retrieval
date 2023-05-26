@@ -4,29 +4,64 @@ import os
 import tqdm
 import pandas as pd
 import json
+import shutil
 
 preprocessed_qa_json_path_dir = '../../data/fandoms_qa/'
 output_path_dir = "../../data/fandoms_qa/"
 
+# if true take all wikis
+COMPLETE = True
+
+# if true split into train, test, val
+ALL = False
+
 # fractions of ['train', 'test', 'val']
-fracs = [0.8, 0.1, 0.1]
+FRACS = [0.8, 0.1, 0.1]
 
-# endings of individual files
-# endings = [".train", ".test", ".val"]
+# # endings of individual files
+# # endings = [".train", ".test", ".val"]
 
-# if no file endings for individual files wanted:
-endings = ['']*3
+# # if no file endings for individual files wanted:
+# endings = ['']*len(fracs)
 
-# folder names for each project
-endings_dir = ['train', 'test', 'val']
+# # folder names for each project
+# endings_dir = ['train', 'test', 'val']
+
+
 
 if __name__ == "__main__":
+    if ALL:
+        fracs = [1.0]
+        endings_dir = ['all']
+    else:
+        fracs = FRACS
+        endings_dir = ['train', 'test', 'val']
+        # endings = [".train", ".test", ".val"]
+
+    endings = ['']*len(fracs)
+
+
+    if COMPLETE:
+        dft = pd.DataFrame()
+        for file in os.listdir(preprocessed_qa_json_path_dir):
+            if file.endswith(".json"):
+                dfnew = pd.read_json(preprocessed_qa_json_path_dir + file, orient ='records')
+                dft = pd.concat([dft, dfnew], ignore_index=True)
+        preprocessed_qa_json_path_dir = preprocessed_qa_json_path_dir+ 'temp/'
+        os.makedirs(preprocessed_qa_json_path_dir, exist_ok=True)
+        dft.to_json(preprocessed_qa_json_path_dir+ "complete_qa"+".json", orient='records', indent=4)
+        
+
     for file in os.listdir(preprocessed_qa_json_path_dir):
         if file.endswith(".json"):
             current_frac = 0
             f = file
 
             df2 = pd.read_json(preprocessed_qa_json_path_dir + f, orient ='records')
+
+            if COMPLETE:
+                shutil.rmtree(preprocessed_qa_json_path_dir)
+
             df2.columns
 
             # %%
@@ -88,7 +123,7 @@ if __name__ == "__main__":
                 wikis.append(wiki_pids)
 
                 if 1.0*ii/total_p >= sum(fracs[:current_frac + 1]):
-                    if current_frac != 3:
+                    if current_frac != len(fracs):
                         out_dir = output_path_dir + file.split('/')[-1][:-8] + '/' + endings_dir[current_frac] + '/'
 
                         os.makedirs(out_dir,exist_ok=True)
