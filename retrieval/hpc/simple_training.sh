@@ -2,6 +2,7 @@
 #SBATCH --time=04:00:00         # walltime
 #SBATCH --nodes=1               # number of nodes
 #SBATCH --ntasks=1	            # limit to one node
+#SBATCH --cpu-per-task=1
 #SBATCH --partition=gpu2
 #SBATCH --gres=gpu:1            # number of GPUs
 #SBATCH --mem=80G
