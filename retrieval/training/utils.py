@@ -15,7 +15,7 @@ def seed(seed: int = 125):
 
 def get_tensorboard_writer(config, dataset_name: str):
     # instantiation of TensorBoard logger
-    iso_date = datetime.datetime.now().isoformat()[:-6]
+    iso_date = datetime.datetime.now().isoformat()[:-7]
 
     if "bert" in config.backbone_name_or_path:
         backbone_name = "bert"
