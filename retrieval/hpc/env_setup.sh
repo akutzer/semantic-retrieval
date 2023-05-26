@@ -4,7 +4,7 @@
 #SBATCH --ntasks=1	            # limit to one node
 #SBATCH --cpus-per-task=1       # number of processor cores (i.e. threads)
 #SBATCH --partition=haswell
-#SBATCH --mem-per-cpu=8000M     # memory per CPU core
+#SBATCH --mem=8000M     
 #SBATCH -A p_sp_bigdata         # name of the associated project
 #SBATCH -J "env_setup_job"      # name of the job
 #SBATCH --output="env_setup_job-%j.out"    # output file name (std out)
@@ -27,6 +27,7 @@ source /scratch/ws/0/tong623c-tommy-workspace/env/bin/activate
 
 # load modules, no modules and their version are in the HPC modules
 # have to install everything via pip
+pip install -e ../../
 pip install -r ../../requirements.txt
 
 deactivate
