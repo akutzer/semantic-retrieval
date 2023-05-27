@@ -12,7 +12,7 @@ def load_dataset(config: BaseConfig, path: str, mode: str):
         raise ValueError(f"Path: `{path}` does not exist!")
     
 
-    triples_path, queries_path, passages_path  = "", "", ""
+    # triples_path, queries_path, passages_path  = "", "", ""
     for file in os.listdir(path):
         file_path = os.path.join(path, file)
         if not os.path.isfile(file_path):
