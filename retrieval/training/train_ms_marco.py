@@ -3,7 +3,7 @@ import os
 from tqdm import tqdm
 import torch
 
-from retrieval.configs import FANDOM_DEFAULT_CONFIG
+from retrieval.configs import MS_MARCO_DEFAULT_CONFIG
 from retrieval.data import get_pytorch_dataloader, load_dataset
 from retrieval.models import get_colbert_and_tokenizer
 from retrieval.training.utils import seed, get_tensorboard_writer, get_run_name
@@ -16,7 +16,7 @@ def validation(model, criterion, dataloader, config):
         acc = 0.0
         mrr = 0.0
 
-        for Q, P in dataloader:
+        for Q, P in tqdm(dataloader):
             # forward pass through the model & calculate loss
             with torch.autocast(DEVICE.type, enabled=config.use_amp):
                 out = model(Q, P)
@@ -47,11 +47,11 @@ if __name__ == "__main__":
         torch.set_float32_matmul_precision("high")
         print("[LOGGING] Enabled TensorFloat32 calculations!")
 
-    config = FANDOM_DEFAULT_CONFIG
-    config.batch_size = 24
-    
-    DATASET_NAME = "harry_potter"
-    DATASET_PATH = "../../data/fandoms_qa/harry_potter/"
+    config = MS_MARCO_DEFAULT_CONFIG
+    config.batch_size = 2
+
+    DATASET_NAME = "ms_marco_v1.1"
+    DATASET_PATH = "../../data/ms_marco_v1.1"
     RUN_NAME = get_run_name(config, DATASET_NAME)
 
     N_EVAL_PER_EPOCH = 6
@@ -82,8 +82,8 @@ if __name__ == "__main__":
     print("[LOGGING] Loaded ColBERT!")
     print(tokenizer)
     print(colbert)
-    train_dataset = load_dataset(config, os.path.join(DATASET_PATH, "train"), mode="QQP")
-    eval_dataset = load_dataset(config, os.path.join(DATASET_PATH, "val"), mode="QQP")
+    train_dataset = load_dataset(config, os.path.join(DATASET_PATH, "train"), mode="QPP")
+    eval_dataset = load_dataset(config, os.path.join(DATASET_PATH, "validation"), mode="QPP")
     print("[LOGGING] Loaded Dataset!")
     train_dataloader = get_pytorch_dataloader(config, train_dataset, tokenizer)
     eval_dataloader = get_pytorch_dataloader(config, eval_dataset, tokenizer, batch_size=config.batch_size, shuffle=False, drop_last=False, num_workers=0)

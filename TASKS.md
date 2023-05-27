@@ -179,14 +179,17 @@ Maybe we should have a hpc directory in the repository where all the scripts for
 
 
 ## 5. Evaluation 
-### Metrics (assigned: Florian)
+### :white_check_mark: Metrics (assigned: Florian)
 :white_check_mark: Implement metrics, like top-k accuracy, mean reciprocal rank, precision/recall, etc., which are suitable for our models and datasets. \
 The metrics should use a fairly universal interface, so the outputs of the models can be easily converted into fitting data formats, that can interact with the metrics. \
 Count the parameters in a model, meassure the FLOPs and ms per answer-retrieval.
 (Parameters & FLOPs only necessary for neural IR approaches)
 
-### Meassuring
+### :bangbang: Meassuring (assigned: ???)
 Run the baseline and neural models on the test dataset and log their performance for later use in the paper. This script will probably look fairly similar to the training scripts.
+
+- Evaluate TF-IDF on MS MARCO and our Fandom datasets
+- Evaluate pretrained ColBERTv2 on MS MARCO and our Fandom datasets
 
 
 ## 6. Mockup
