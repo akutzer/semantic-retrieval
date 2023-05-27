@@ -27,7 +27,7 @@ source /scratch/ws/0/tong623c-tommy-workspace/env/bin/activate
 
 # load modules, no modules and their version are in the HPC modules
 # have to install everything via pip
-pip install -e ../../
 pip install -r ../../requirements.txt
+pip install -e ../../.
 
 deactivate
