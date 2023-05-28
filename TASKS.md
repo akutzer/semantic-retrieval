@@ -39,7 +39,7 @@ Note that the task of generating the (q⁺, p) pair for the first dataset and (q
 
 *NOTE: Not all passages have to be part of the training set, for example, we can only choose passages from wikis with a certain number of passages, or choose passages that are at least medium sized.*
 
-### Storing the datasets
+### :heavy_check_mark: Storing the datasets
 Each final datasets should then be saved in 4 files:
 - `triples.tsv`:
     - triples are saved as followed: `QID⁺\tQID⁻\tPID\n`
@@ -67,7 +67,7 @@ Each final datasets should then be saved in 4 files:
     }
     ```
 
-### :white_check_mark: Splitting into Training, Validation & Test Set
+### :heavy_check_mark: Splitting into Training, Validation & Test Set
 Split the datasets into a training, validation and test sets. \
 The **training set** is used for training the neural IR models. \
 The **validation set** is used to choose the best hyperparameters, such as which backbone to use, which dimensions the embedded vectors should have, what batch size to use, which similarity metric we should choose... \
@@ -97,6 +97,66 @@ Find benchmarks/ gold standard datasets, on which we can train our models and co
 Look into: SQuAD 2.0, MS MARCO, TREC CAR... \
 Choose a dataset with is similar to our task & dataset (I think MS MARCO should be similar to our QPP dataset)
 
+### Structuring of the data directory
+
+To ensure that all scripts work without problems, the structure of the data directory is defined as follows:
+```
+data/
+├─ ms_marco/
+│   ├─ ms_marco_v1_1/
+│   │   ├─ train/
+│   │   │   ├─ passages.tsv
+│   │   │   ├─ queries.tsv
+│   │   │   └─ triples.tsv
+│   │   └─ val/
+│   │       └─ ...
+│   └─ ms_marco_v2_1/
+│       ├─ train/
+│       │   └─ ...
+│       └─ val/
+│           └─ ...
+└─ fandoms_qa/
+    ├─ harry_potter/
+    │   ├─ train/
+    │   │   ├─ passages.tsv
+    │   │   ├─ queries.tsv
+    │   │   ├─ triples.tsv
+    │   │   └─ wiki.json
+    │   ├─ val/
+    │   │   └─ ...
+    │   ├─ test/
+    │   │   └─ ...
+    │   ├─ human_verified/
+    │   │   └─ ...
+    │   └─ all/
+    │       └─ ...
+    ├─ *other fandom wikis*
+    ...
+    └─ fandoms_all/
+        ├─ train/
+        │   └─ ...
+        ├─ val/
+        │   └─ ...
+        ├─ test/
+        │   └─ ...
+        ├─ human_verified/
+        │   └─ ...
+        └─ all/
+            └─ ...
+```
+
+### Analyzing the datasets
+
+Write a simple script which collects some basic statistics of the datasets.
+Some examples would be:
+- number of queries, passages, triples in the dataset
+- avg./median number of words per query, passage
+- distribution of question words (for MS MARCO v2.1 this is given in their paper)
+- ...
+
+The script should be run on MS MARCO v1.1 & v2.1 as well as on all the `human_verified/` and `all/` directories. Write down the results either in this markdown file or a google spreadsheet, so we can use them later in the final paper.
+
+
 
 
 ## 3. Implement Models
@@ -106,9 +166,7 @@ Choose a dataset with is similar to our task & dataset (I think MS MARCO should 
 :white_check_mark: Implement efficient inference, so given a query find the best passages as fast as possible; maybe try to precompute the wiki passages? \
 The implementation should work with the previous described datasets class. In case the output of the dataset class is not directly usable, you can write a dataloader, which for example tokenizes the data from the dataset class and then combines these into a batch of data, which is then directly feed into the model. I don't know if this is necessary tho. ^^
 
-### :hourglass_flowing_sand: First Model: ColBERT 
-
-#### Implementation (assigned: Aaron)
+### :hourglass_flowing_sand: Neural Retrieval Model: ColBERT (assigned: Aaron)
 - :heavy_check_mark: Implement the ColBERT model from the ColBERTv1 paper.
 - :heavy_check_mark: Add support for other backbones, like RoBERTa, TinyBERT, etc.
 - :heavy_check_mark: Write dataloaders base on the dataset class.
@@ -118,25 +176,8 @@ The implementation should work with the previous described datasets class. In ca
 - :hourglass_flowing_sand: Implement efficient inference using re-ranking (requires efficient TF-IDF or BM-25 implementation)
 - :white_check_mark: Implement efficient inference using full-retrieval.
 Focus on inference performance ("model performance"/FLOPs, "model performance"/inference time [µs])
-- Try torch.compile() to improve runtime performance.
 - :white_check_mark: Improve code quality (comments, typing, docstrings,...)
 
-
-#### Model understanding (assigned: Florian)
-- :hourglass_flowing_sand: Test if it's possible to extract roughly position of the answer.
-    - for example: query is encoded as 32 vectors. For each vector find the most similar passage vectors and visualize those 32 token in the passage string, does it correlate with the answer?
-- Analyze the embedding space.
-    - maybe some dimensionality reduction for a visualization
-    - embedding space evenly used (**anisotropy**):
-        > Recent work identifies an anisotropy problem in language representations (Ethayarajh, 2019; Li et al., 2020), i.e., the learned embeddings occupy a narrow cone in the vector space, which severely limits their expressiveness. Gao et al. (2019) demonstrate that language models trained with tied input/output embeddings lead to anisotropic word embeddings, and this is further observed by Ethayarajh (2019) in pre-trained contextual representations. Wang et al. (2020) show that singular values of the word embedding matrix in a language model decay drastically: except for a few dominating singular values, all others are close to zero.
-
-
-<!-- 
-### :bangbang: Second Model: ???
-Search for the code to the paper (e.g. https://paperswithcode.com/) or implement the model yourself using PyTorch (finding parameters would be very helpful for quicker training)
-
-Other exotic approaches can be interesting (probably not big problem if it doesn't outperform baseline)
--->
 
 
 ## 4. Training
@@ -144,37 +185,40 @@ Other exotic approaches can be interesting (probably not big problem if it doesn
 ### :bangbang: :hourglass_flowing_sand: Create a training script (assigned: Zhiwei)
 Write a script for training the neural IR models. Have a look at the [ColBERT training script](https://github.com/stanford-futuredata/ColBERT/blob/main/colbert/training/training.py) as an example.
 
-It should use the dataset class for our datasets and the dataloader for the selected model. \
-:hourglass_flowing_sand: Add [Learning-Rate-Schedulers](https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate) (Warmup & LR-decay). \
-:hourglass_flowing_sand: Look into [AMP](https://pytorch.org/docs/stable/amp.html?highlight=amp#module-torch.amp) and maybe add AMP support. \
-:hourglass_flowing_sand: Look into [DistributedDataParallel](https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html#torch.nn.parallel.DistributedDataParallel) training. It is important, that we get this working on the HPC, otherwise it is useless for us, so reading into the HPC would be necessary too.\
-:hourglass_flowing_sand: Look into logging, either using [Tensorboard](https://pytorch.org/docs/stable/tensorboard.html) or [Weights&Biases](https://docs.wandb.ai/guides/integrations/pytorch). \
-After each epoch, validate our model on the validation set using fitting evaluation metrics. \
-The loss calculation should be part of the model, so we only need to call .backward() in the training loop. \
-Implement Checkpoiting, where after a certain number of steps the model is saved.
+- :heavy_check_mark: It should use the dataset class for our datasets and the dataloader for the selected model. 
+- :hourglass_flowing_sand: Add [Learning-Rate-Schedulers](https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate) (Warmup & LR-decay). 
+- :heavy_check_mark: Look into [AMP](https://pytorch.org/docs/stable/amp.html?highlight=amp#module-torch.amp) and maybe add AMP support. 
+- :hourglass_flowing_sand: Look into [DistributedDataParallel](https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html#torch.nn.parallel.DistributedDataParallel) training. It is important, that we get this working on the HPC, otherwise it is useless for us, so reading into the HPC would be necessary too.
+- :heavy_check_mark: Look into logging, either using [Tensorboard](https://pytorch.org/docs/stable/tensorboard.html) or [Weights&Biases](https://docs.wandb.ai/guides/integrations/pytorch). 
+- :heavy_check_mark: After each epoch, validate our model on the validation set using fitting evaluation metrics. 
+- :heavy_check_mark: Implement Checkpoiting, where after a certain number of steps the model is saved.
+- :hourglass_flowing_sand: Implement model loading and resuming of training
+- :hourglass_flowing_sand: Add CLI for the training script
 
 
-### :bangbang: :hourglass_flowing_sand: Get HPC running (assigned: Zhiwei)
+### :bangbang: :hourglass_flowing_sand: Get HPC running (assigned: Tommy)
 Maybe we should have a hpc directory in the repository where all the scripts for the HPC will be stored.
 
 - :hourglass_flowing_sand: Move repository to the HPC 
-- :hourglass_flowing_sand: Create and move all data to a data directory on the HPC (could be in the repository or a completly different directory, first one should be better imo) 
+- :hourglass_flowing_sand: Create and move all data to a data directory on the HPC (should be in the data/ directory and follow the above defined structure) 
 - :bangbang: :hourglass_flowing_sand: Getting a training script on a single GPU running (i dont care what GPU it is, K80 could be enough for testing in the beginning) 
-- Getting a training script on multiple GPUs running
+- (maybe: Getting a training script on multiple GPUs running)
 
 
-### :bangbang:  Train the models
+### :bangbang: Train the models
 **Roadmap:**
 1. Validate the pretrained ColBERTv2 weights on MS MARCO v1.1 and v2.1 and compare them with the paper
-2. Train our ColBERT implementation on MS MARCO (order of priority):
+2. Train our ColBERT implementation on MS MARCO (order of priority, not everything has to be done):
     1. ColBERT + MS MARCO v1.1
     2. ColBERT + MS MARCO v2.1
     3. ColRoBERTa + MS MARCO v1.1
     4. ColRoBERTa + MS MARCO v2.1 \
 :arrow_right: decide if we should use BERT or RoBERTa as backbone
-4. Train ColBERT on one Wiki of our choice and test different hyperparameters
-5. Train ColBERT with the best set of hyperparameters (determined in step 4) on each wiki
-6. Train ColBERT with the best set of hyperparameters on all wikis combined
+3. Train ColBERT on one Wiki of our choice and test different hyperparameters:
+    - compare similarities: Normalized+Dot (=Cosine-Sim), Normalized+L2 and just L2
+    - compare different embedding dims (maybe: 8, 16, 32, 64, 128)
+4. Train ColBERT with the best set of hyperparameters (determined in step 3) on each wiki
+5. Train ColBERT with the best set of hyperparameters on all wikis combined
 
 
 
@@ -189,7 +233,29 @@ Count the parameters in a model, meassure the FLOPs and ms per answer-retrieval.
 Run the baseline and neural models on the test dataset and log their performance for later use in the paper. This script will probably look fairly similar to the training scripts.
 
 - Evaluate TF-IDF on MS MARCO and our Fandom datasets
+    - for MS MARCO:
+        - iterate over the validation triples and calculate MRR + top-1 & -3 accuracy + anything else you would like to meassure wrt. the given 10 passages
+        - iterate over the validation triples and calculate MRR, accuracy, etc wrt. the entire passage.tsv file 
+    - for FANDOM:
+        - iterate over the validation triples and calculate MRR, accuracy, etc wrt. the entire passage.tsv file 
+    - those are just some thoughts, you are free to do whatever you want, as long as it makes sense
 - Evaluate pretrained ColBERTv2 on MS MARCO and our Fandom datasets
+- Evaluate our trained models on MS MARCO and our Fandom datasets
+
+
+### Model understanding (assigned: Florian)
+1. :hourglass_flowing_sand: **Test if it's possible to extract roughly position of the answer.**
+    - for example: query is encoded as 32 vectors. For each vector find the most similar passage vectors and visualize those 32 token in the passage string, does it correlate with the answer?
+    - visualize the unsmoothed and smoothed (KDE or whatever) results 
+    - can we make assumptions about how ColBERT might work?
+2. **Find out what ColBERT is capable of doing that TF-IDF can't do**. Compare queries that ColBERT answered successfully but TF-IDF failed. Maybe you can find a pattern? Synonyms, ...?
+3. **Find out what neither ColBERT nor TF-IDF can do**. Compare queries that both failed to answered. Maybe you can find a pattern?
+4. **ColBERT is just context-unaware, synonym-robust embedding?**. Compare ColBERT embedding vs just its embedding matrix embedding  
+5. Analyze the embedding space.
+    - maybe some dimensionality reduction for a visualization
+    - embedding space evenly used (**anisotropy**):
+        > Recent work identifies an anisotropy problem in language representations (Ethayarajh, 2019; Li et al., 2020), i.e., the learned embeddings occupy a narrow cone in the vector space, which severely limits their expressiveness. Gao et al. (2019) demonstrate that language models trained with tied input/output embeddings lead to anisotropic word embeddings, and this is further observed by Ethayarajh (2019) in pre-trained contextual representations. Wang et al. (2020) show that singular values of the word embedding matrix in a language model decay drastically: except for a few dominating singular values, all others are close to zero.
+
 
 
 ## 6. Mockup
@@ -197,7 +263,10 @@ Demonstration of the model (done however you like; website, colab, application, 
 Maybe some inference optimizations & pruning if the person in charge is interested in it and there is time
 
 
-## 7. Paper
+### 7. Presentation
+blablabla buzzword blablabla
+
+## 8. Paper
 Final paper blablabla
 
 
