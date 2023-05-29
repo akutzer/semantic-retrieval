@@ -5,14 +5,15 @@ import tqdm
 import pandas as pd
 import json
 import shutil
+import re
 
 preprocessed_qa_json_path_dir = '../../data/fandoms_qa/'
 output_path_dir = "../../data/fandoms_qa/"
 
 # if true take all wikis
-COMPLETE = True
+COMPLETE = False
 
-# if true split into train, test, val
+# if false split into train, test, val
 ALL = False
 
 # fractions of ['train', 'test', 'val']
@@ -27,7 +28,7 @@ FRACS = [0.8, 0.1, 0.1]
 # # folder names for each project
 # endings_dir = ['train', 'test', 'val']
 
-
+REGEX_STRING = r'(.*\?).*'
 
 if __name__ == "__main__":
     if ALL:
@@ -79,7 +80,7 @@ if __name__ == "__main__":
             total = 0
             last_ind = 0
 
-            df2 = df2.sample(frac=1)
+            df2 = df2.sample(frac=1, random_state=42)
 
             total_p = len([(i,j,k) for i in range(len(df2)) for j in range(len(df2.iloc[i]['text'])) for k in range(min(len(df2.iloc[i]['positive'][j]), len(df2.iloc[i]['negative'][j]))) if not df2.iloc[i]['text'][j].endswith(' .')])
 
@@ -95,6 +96,7 @@ if __name__ == "__main__":
                         exclude = exclude + 1
                         continue
 
+
                     pids.append(pid_id)
                     passages.append(row['text'][j])
                     pid_wid.append(row['id'])
@@ -108,17 +110,20 @@ if __name__ == "__main__":
 
 
                     for k in range(min(len(row['positive'][j]), len(row['negative'][j]))):
+                        if re.findall(REGEX_STRING,row['positive'][j][k]) and re.findall(REGEX_STRING,row['negative'][j][k]):
+                            # added to not include passages where information was lost due to wikiextractor
+                            queries.append(row['positive'][j][k])
+                            qids.append(qid_id)
+                            qid_id = qid_id + 1
+
+
+                            queries.append(row['negative'][j][k])
+                            qids.append(qid_id)
+                            qid_id = qid_id + 1
+                            triples.append(( qid_id - 2, qid_id - 1,pid_id - 1))
+                        else: 
+                            exclude = exclude + 1
                         ii = ii + 1
-                        # added to not include passages where information was lost due to wikiextractor
-                        queries.append(row['positive'][j][k])
-                        qids.append(qid_id)
-                        qid_id = qid_id + 1
-
-
-                        queries.append(row['negative'][j][k])
-                        qids.append(qid_id)
-                        qid_id = qid_id + 1
-                        triples.append(( qid_id - 2, qid_id - 1,pid_id - 1))
 
                 wikis.append(wiki_pids)
 
