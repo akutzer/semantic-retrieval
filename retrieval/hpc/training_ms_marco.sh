@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH --time=01:00:00         # walltime
+#SBATCH --time=02:00:00         # walltime
 #SBATCH --nodes=1               # number of nodes
 #SBATCH --ntasks=1	            # limit to one node
 #SBATCH --cpus-per-task=1
 #SBATCH --partition=alpha
 #SBATCH --gres=gpu:1            # number of GPUs
-#SBATCH --mem=40G
+#SBATCH --mem=60G
 #SBATCH -A p_sp_bigdata         # name of the associated project
 #SBATCH -J "training_ms_marco_job"  # name of the job
 #SBATCH --output="training_ms_marco_job-%j.out"    # output file name (std out)
