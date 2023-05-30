@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=0:10:00          # walltime
+#SBATCH --time=0:20:00          # walltime
 #SBATCH --nodes=1               # number of nodes
 #SBATCH --ntasks=1	            # limit to one node
 #SBATCH --cpus-per-task=4       # number of processor cores (i.e. threads)
