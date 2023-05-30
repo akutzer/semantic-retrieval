@@ -10,7 +10,7 @@ preprocessed_qa_json_path_dir = '../../data/fandoms_qa/'
 output_path_dir = "../../data/fandoms_qa/"
 
 # if true take all wikis
-COMPLETE = True
+COMPLETE = False
 
 # if true split into train, test, val
 ALL = False
