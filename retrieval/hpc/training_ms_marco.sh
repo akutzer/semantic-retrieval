@@ -5,11 +5,11 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --partition=gpu2
 #SBATCH --gres=gpu:1            # number of GPUs
-#SBATCH --mem=16G
+#SBATCH --mem=40G
 #SBATCH -A p_sp_bigdata         # name of the associated project
-#SBATCH -J "simple_training_job"  # name of the job
-#SBATCH --output="simple_training_job-%j.out"    # output file name (std out)
-#SBATCH --error="simple_training_job-%j.err"     # error file name (std err)
+#SBATCH -J "training_ms_marco-job"  # name of the job
+#SBATCH --output="training_ms_marco-job-%j.out"    # output file name (std out)
+#SBATCH --error="training_ms_marco-job-%j.err"     # error file name (std err)
 #SBATCH --mail-user="tommy.nguyen@mailbox.tu-dresden.de" # will be used to used to update you about the state of your$
 #SBATCH --mail-type ALL
 
@@ -22,6 +22,6 @@ module load Python/3.10.4
 # switch to virtualenv with already prepared environment 
 source /scratch/ws/0/tong623c-tommy-workspace/env/bin/activate 
 
-python ../training/train.py
+python ../training/train_ms_marco.py
 
 deactivate 
