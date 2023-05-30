@@ -48,7 +48,7 @@ if __name__ == "__main__":
         print("[LOGGING] Enabled TensorFloat32 calculations!")
 
     config = MS_MARCO_DEFAULT_CONFIG
-    config.batch_size = 2
+    config.batch_size = 32
 
     DATASET_NAME = "ms_marco_v1.1"
     DATASET_PATH = "../../data/ms_marco_v1.1"

@@ -73,7 +73,7 @@ MS_MARCO_DEFAULT_CONFIG = BaseConfig(
 
     # DataLoaderSettings:
     bucket_size = 24,
-    batch_size = 48,
+    batch_size = 24,
     accum_steps = 1,
     passages_per_query = 10, # not used by QPP-style datasets
     shuffle = True,

@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH --time=02:00:00         # walltime
+#SBATCH --time=00:10:00         # walltime
 #SBATCH --nodes=1               # number of nodes
 #SBATCH --ntasks=1	            # limit to one node
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=4
 #SBATCH --partition=alpha
 #SBATCH --gres=gpu:1            # number of GPUs
-#SBATCH --mem=60G
+#SBATCH --mem=64G
 #SBATCH -A p_sp_bigdata         # name of the associated project
 #SBATCH -J "training_ms_marco_job"  # name of the job
 #SBATCH --output="training_ms_marco_job-%j.out"    # output file name (std out)
@@ -25,3 +25,4 @@ source /scratch/ws/0/tong623c-tommy-workspace/env/bin/activate
 python ../training/train_ms_marco.py
 
 deactivate 
+
