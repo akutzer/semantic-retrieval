@@ -56,7 +56,7 @@ def html_heatmap(tokens, flat_topk_cossim_indices_list, flat_topk_cossim_values_
     # get index of best token
     #best_token_ind = most_frequent(max_cossim_indices_list)
 
-    cmap = matplotlib.colormaps.get_cmap('autumn')
+    cmap = matplotlib.colormaps.get_cmap('Blues_r')
 
     #kde heatmap
     norm_kde = matplotlib.colors.Normalize(vmin=ymin, vmax=ymax)
@@ -109,7 +109,6 @@ def get_topk_cossim_indices_and_values(k, inference, query, passage, n_largest=1
     # query_embedding shape: (B_q, L_q, L_d)
     query_embedding = inference.query_from_text(query)
     passage_embeddings = inference.doc_from_text([passage])
-    #print(passage_embeddings[0].shape())
     # (B_q, L_q, D) @ (L_d, D).T = (B_q, L_q, L_d)
     cossim_passage = query_embedding @ passage_embeddings[0].T
     # max_cossim shape: (B_q, L_q)
@@ -189,7 +188,7 @@ if __name__ == "__main__":
     config = BaseConfig(
         tok_name_or_path=MODEL_PATH,
         backbone_name_or_path=MODEL_PATH,
-        similarity="autumn",
+        similarity="cosine",
         dim=128,
     )
     colbert, tokenizer = get_colbert_and_tokenizer(config)
@@ -206,7 +205,7 @@ if __name__ == "__main__":
     flat_topk_cossim_values_list = [item for sublist in topk_cossim_values_list for item in sublist]
 
     #get tokens
-    tokens = np.array(tokenizer.tokenize(passage, "doc"))
+    tokens = np.array(tokenizer.tokenize(passage, "doc", add_special_tokens=True))
     print(tokens.shape, len(topk_cossim_indices_list))
     #print(passage_embeddings.shape)
 
