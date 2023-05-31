@@ -14,10 +14,12 @@ def seed(seed: int = 125):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
+
 def seed_worker(worker_id):
     worker_seed = torch.initial_seed() % 2**32
     np.random.seed(worker_seed)
     random.seed(worker_seed)
+
 
 def get_run_name(args):
     time = datetime.now().isoformat(timespec="seconds")
@@ -30,7 +32,7 @@ def get_run_name(args):
         backbone_name = "bert"
     else:
         backbone_name = args.backbone
-    
+
     run_name = f"{args.dataset_name}_{backbone_name}_{time}"
     return run_name
 
@@ -66,14 +68,14 @@ def get_config_from_argparser(args):
         shuffle=args.shuffle,
         drop_last=args.drop_last,
         pin_memory=True,
-
+        
         # TrainingSettings
         epochs=args.epochs,
         lr=args.learning_rate,
         warmup_epochs=args.warmup_epochs,
         warmup_start_factor=args.warmup_start_factor,
         use_amp=args.use_amp,
-        num_gpus=args.num_gpus
+        num_gpus=args.num_gpus,
     )
 
     return config
