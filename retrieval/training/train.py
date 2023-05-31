@@ -192,9 +192,13 @@ def train(args):
                 checkpoint_path = f"{args.checkpoints_path}/{run_name}/epoch{epoch}_{checkpoint_in_epoch}"
                 if run_eval and (i + 1) in eval_iterations:
                     checkpoint_path += "_loss%.4f_mrr%.4f_acc%.3f" % (eval_loss.item(), eval_mrr.item(), eval_acc.item() * 100)
+                
                 colbert.save(checkpoint_path)
                 tokenizer.save(checkpoint_path, store_config=False)
                 torch.save(optimizer.state_dict(), os.path.join(checkpoint_path, "optimizer.pt"))
+                if config.use_amp:
+                    torch.save(scaler.state_dict(), os.path.join(checkpoint_path, "gradient_scaler.pt"))
+                
                 logging.info(f"Saved checkpoint: {checkpoint_path}")
 
     writer.flush()
