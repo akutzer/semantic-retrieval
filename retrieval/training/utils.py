@@ -12,24 +12,24 @@ def seed(seed: int = 125):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
-def get_run_name(config, dataset_name):
+def get_run_name(args):
     time = datetime.now().isoformat(timespec="seconds")
 
-    if "roberta" in config.backbone_name_or_path:
+    if "roberta" in args.backbone:
         backbone_name = "roberta"
-    elif "colbertv2" in config.backbone_name_or_path:
+    elif "colbertv2" in args.backbone:
         backbone_name = "colbertv2"
-    elif "bert" in config.backbone_name_or_path:
+    elif "bert" in args.backbone:
         backbone_name = "bert"
     else:
-        backbone_name = config.backbone_name_or_path
+        backbone_name = args.backbone
     
-    run_name = f"{dataset_name}_{backbone_name}_{time}"
+    run_name = f"{args.dataset_name}_{backbone_name}_{time}"
     return run_name
 
 
-def get_tensorboard_writer(run_name: str):
-    directory = f"runs/{run_name}"
+def get_tensorboard_writer(run_name: str, path: str = "runs"):
+    directory = f"{path}/{run_name}"
     writer = SummaryWriter(log_dir=directory)
 
     return writer

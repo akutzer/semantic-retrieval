@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+import torch
 
 
 @dataclass
@@ -45,16 +46,39 @@ class DataLoaderSettings:
     shuffle: bool = False
     drop_last: bool = False
     pin_memory: bool = False
-    num_workers: int = 0
+    # num_workers: int = 0
 
 
 @dataclass
 class TrainingSettings:
     epochs: int = 10
     lr_warmup_epochs: int = 2
-    lr_warmup_decay : float = 1/3
+    lr_warmup_decay: float = 1/3
     use_amp: bool = False
+    num_gpus: int = 0
 
+    def __post_init__(self):
+        if self.num_gpus < 0:
+            raise ValueError("num_gpus cannot be negative")
+        
+        available_gpus = torch.cuda.device_count()
+        if self.num_gpus > available_gpus:
+            print(f"Lowering number of GPUs from {self.num_gpus} to the maximal amount of available GPUs {available_gpus}")
+            self.num_gpus = available_gpus
+        
+    # @property
+    # def num_gpus(self) -> int:
+    #     return self.__num_gpus
+
+    # @num_gpus.setter
+    # def num_gpus(self, num_gpus: int):
+    #     available_gpus = torch.cuda.device_count()
+    #     if num_gpus > available_gpus:
+    #         print(f"Lowering number of GPUs from {num_gpus} to the maximal amount of available GPUs {available_gpus}")
+    #         num_gpus = available_gpus
+    #     self.__num_gpus = num_gpus
+            
+                
 
 @dataclass
 class IndexerSettings:

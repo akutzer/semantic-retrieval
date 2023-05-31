@@ -40,7 +40,7 @@ FANDOM_DEFAULT_CONFIG = BaseConfig(
     shuffle = True,
     drop_last = True,
     pin_memory = True,
-    num_workers = 4,
+    # num_workers = 4,
 
     # TrainingSettings:
     epochs = 10,
@@ -79,7 +79,7 @@ MS_MARCO_DEFAULT_CONFIG = BaseConfig(
     shuffle = True,
     drop_last = True,
     pin_memory = True,
-    num_workers = 4,
+    # num_workers = 4,
 
     # TrainingSettings:
     epochs = 10,
