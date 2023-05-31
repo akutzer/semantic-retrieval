@@ -28,6 +28,8 @@ for VERSION in ["v1.1", "v2.1"]:
         # in uploading our results to the ms marco website
         if dataset_type == "test":
             continue
+        if dataset_type == "validation":
+            dataset_type = "val"
 
         n_multiple_pos = 0
         n_total = 0
