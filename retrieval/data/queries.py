@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import pandas as pd
 
+
 class Queries:
     def __init__(self, path=None):
         self.path = path
@@ -30,23 +31,28 @@ class Queries:
             self.data = self._load_tsv(path)
         
         elif path.endswith(".json"):
-            self.data = self._load_json(path)
+            raise DeprecationWarning()
+            # self.data = self._load_json(path)
 
         return self.data
 
     def _load_tsv(self, path, drop_nan=False):
         delimiter = "\t" if path.endswith(".tsv") else ","
-        queries = pd.read_csv(path, delimiter=delimiter, index_col=False, header=None)
+        queries = pd.read_csv(path, delimiter=delimiter, index_col=False)
+
         self._replace_nan(queries, drop_nan)
-        queries = queries.set_index(0, drop=False)[1]
+        qid, query, *_ = queries.columns
+        # convert the pandas.DataFrame with the columns QID and query
+        # into a pandas.Series
+        queries = queries.set_index(qid, drop=False)[query]
         self._rename_axis(queries)
         return queries
     
-    def _load_json(self, path, drop_nan=False):
-        queries = pd.read_json(path, typ="series")
-        self._replace_nan(queries, drop_nan)
-        self._rename_axis(queries)
-        return queries
+    # def _load_json(self, path, drop_nan=False):
+    #     queries = pd.read_json(path, typ="series")
+    #     self._replace_nan(queries, drop_nan)
+    #     self._rename_axis(queries)
+    #     return queries
     
     def _replace_nan(self, series: pd.Series, drop_nan=False):
         if drop_nan:
@@ -70,10 +76,14 @@ class Queries:
 
 
 if __name__ == "__main__":
-    path = "../../data/fandom-qa/witcher_qa/queries.train.tsv"
-
+    path = "../../data/ms_marco_v1.1/train/queries.train.tsv"
     queries = Queries(path=path)
-    print(queries.data)
+    print(queries.data, end="\n\n")
+
+    # path = "../../data/fandoms_qa/harry_potter/queries.tsv"
+    # queries = Queries(path=path)
+    # print(queries.data, end="\n\n")
+
     print(len(queries))
     print(queries[0])
     print(queries.qid2string([0, 2*len(queries)], skip_non_existing=True))

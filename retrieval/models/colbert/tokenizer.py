@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 import os
 from typing import Union, List
-import json
-from dataclasses import asdict, is_dataclass
 
 import torch
 from transformers import AutoTokenizer
@@ -19,19 +17,22 @@ class ColBERTTokenizer():
         self.query_maxlen = self.config.query_maxlen
         self.doc_maxlen = self.config.doc_maxlen
 
-        # instead of using already existing tokens for the [Q]/[D] token,
-        # we add those as new tokens; however it is important to expand the
-        # embedding matrix of the model using this tokenizer by calling:
-        # `model.resize_token_embeddings(len(tokenizer))`
-        self.tok.add_tokens([self.config.query_token, self.config.doc_token], special_tokens=True)
+        if "colbertv2" in config.tok_name_or_path.lower():
+            # if loading the colbertv2 weights, the unused tokens 0 and 1
+            # are used for the [Q]/[D] token
+            self.Q_marker_token, self.Q_marker_token_id = self.config.query_token, self.tok.convert_tokens_to_ids("[unused0]")
+            self.D_marker_token, self.D_marker_token_id = self.config.doc_token, self.tok.convert_tokens_to_ids("[unused1]")
+        else:
+            # instead of using already existing tokens for the [Q]/[D] token,
+            # we add those as new tokens; however it is important to expand the
+            # embedding matrix of the model using this tokenizer by calling:
+            # `model.resize_token_embeddings(len(tokenizer))`
+            self.tok.add_tokens([self.config.query_token, self.config.doc_token], special_tokens=True)
 
-        self.Q_marker_token = self.config.query_token
-        self.Q_marker_token_id = self.tok.convert_tokens_to_ids(self.config.query_token)
-        self.D_marker_token = self.config.doc_token
-        self.D_marker_token_id = self.tok.convert_tokens_to_ids(self.config.doc_token)
-
-        # self.Q_marker_token, self.Q_marker_token_id = self.config.query_token, self.tok.convert_tokens_to_ids("[unused0]")
-        # self.D_marker_token, self.D_marker_token_id = self.config.doc_token, self.tok.convert_tokens_to_ids("[unused1]")
+            self.Q_marker_token = self.config.query_token
+            self.Q_marker_token_id = self.tok.convert_tokens_to_ids(self.config.query_token)
+            self.D_marker_token = self.config.doc_token
+            self.D_marker_token_id = self.tok.convert_tokens_to_ids(self.config.doc_token)
 
         self.cls_token, self.cls_token_id = self.tok.cls_token, self.tok.cls_token_id
         self.sep_token, self.sep_token_id = self.tok.sep_token, self.tok.sep_token_id
@@ -40,34 +41,13 @@ class ColBERTTokenizer():
     
     def __len__(self):
         return len(self.tok)
-    
-    def tokenize(self, text, mode, add_special_tokens=False, truncate=False):
-        """
-        Splits the input sequence into a list of tokens represented as substrings.
-        """
-        is_single_text = isinstance(text, str)
-
-        tokenized_texts = [self.tok.tokenize(f" {seq}", add_special_tokens=add_special_tokens) for seq in ([text] if is_single_text else text)]
-
-        if truncate:
-            maxlen = self.query_maxlen if mode == "query" else self.doc_maxlen
-            maxlen -= 3 if add_special_tokens else 0
-            tokenized_texts = [tok_seq[:maxlen] for tok_seq in tokenized_texts]
-
-        prefix, suffix = ([self.cls_token, self.Q_marker_token], [self.sep_token]) if mode == "query" else ([self.cls_token, self.D_marker_token], [self.sep_token])
-
-        if add_special_tokens:
-            padded_texts = [prefix + tok_seq + suffix + [self.mask_token] * (self.query_maxlen - (len(tok_seq) + 3)) for tok_seq in tokenized_texts] if mode == "query" else [prefix + tok_seq + suffix for tok_seq in tokenized_texts]
-            return padded_texts[0] if is_single_text else padded_texts
-        else:
-            return tokenized_texts[0] if is_single_text else tokenized_texts
-        
+            
     def tokenize(self, text: Union[str, List[str]], mode: str, add_special_tokens: bool = False,
                  truncate: bool = False) -> Union[List[str], List[List[str]]]:
         """
         Splits the input sequence(s) into a list of tokens represented as substrings.
         """
-        assert isinstance(text, str) or (isinstance(text, list) and all(isinstance(t, str) for t in text))
+        assert isinstance(text, str) or (isinstance(text, (list, tuple)) and all(isinstance(t, str) for t in text))
         assert isinstance(mode, str) and mode in ["query", "doc"]
 
         is_single_str = isinstance(text, str)
@@ -100,7 +80,7 @@ class ColBERTTokenizer():
         """
         Splits the input sequence(s) into a list of tokens represented by their ids.
         """
-        assert isinstance(text, str) or (isinstance(text, list) and all(isinstance(t, str) for t in text))
+        assert isinstance(text, str) or (isinstance(text, (list, tuple)) and all(isinstance(t, str) for t in text))
         assert isinstance(mode, str) and mode in ["query", "doc"]
 
         is_single_str = isinstance(text, str)
@@ -130,14 +110,17 @@ class ColBERTTokenizer():
 
         return ids[0] if is_single_str else ids
 
-    def tensorize(self, text: Union[str, List[str]], mode: str, bsize: Union[None, int] = None, return_tensors: str = "pt") -> torch.IntTensor:
+    def tensorize(self, text: Union[str, List[str]], mode: str, bsize: Union[None, int] = None, return_tensors: str = "pt", pin_memory: bool = False) -> torch.IntTensor:
         """
         Tokenizes and pads the input sequence(s) and returns them as a Tensor if no bsize is given or
         as a List of Tensors if a bsize was given.
-        Note: The output will always be a 2-d Tensor of shape [bsize, seq_length]
+        Note: The output will always be a 2-d Tensor of shape [B, min(L, L_max)]
+        B     - batch size
+        L     - length of the tokenized sequence
+        L_max - maximal length of a tokenized sequence
         """
 
-        assert isinstance(text, str) or (isinstance(text, list) and all(isinstance(t, str) for t in text))
+        assert isinstance(text, str) or (isinstance(text, (list, tuple)) and all(isinstance(t, str) for t in text))
         assert isinstance(mode, str) and mode in ["query", "doc"]
 
         is_single_str = isinstance(text, str)
@@ -171,6 +154,9 @@ class ColBERTTokenizer():
             ids[bool_mask] = self.mask_token_id
             if not self.config.ignore_mask_tokens:
                 mask[bool_mask] = 1
+        
+        if pin_memory:
+            ids, mask = ids.pin_memory(), mask.pin_memory()
             
         if bsize:
             return _split_into_batches(ids, mask, bsize)
@@ -197,7 +183,7 @@ class ColBERTTokenizer():
             save_config(self.config, config_path)
     
     @classmethod
-    def from_pretrained(cls, directory: str):
+    def from_pretrained(cls, directory: str) -> "ColBERTTokenizer":
         # load the model's config if available
         config_path = os.path.join(directory, "colbert_config.json")
         config = load_config(config_path)
@@ -210,6 +196,12 @@ class ColBERTTokenizer():
         tokenizer.tok = AutoTokenizer.from_pretrained(directory, use_auth_token=False)
 
         return tokenizer
+    
+    def __str__(self):
+        return str(self.tok)
+    
+    def __repr__(self):
+        return repr(self.tok)
 
 if __name__ == "__main__":
 
@@ -223,7 +215,7 @@ if __name__ == "__main__":
 
     base_tokenizers = ["bert-base-uncased", "roberta-base", "../../../data/colbertv2.0/"]
     config = BaseConfig(
-        tok_name_or_path=base_tokenizers[1]
+        tok_name_or_path=base_tokenizers[0]
     )
 
     tokenizer = ColBERTTokenizer(config)

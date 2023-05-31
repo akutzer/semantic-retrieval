@@ -1,5 +1,6 @@
+#!/usr/bin/env python3
 from abc import ABC, abstractmethod
-from typing import Union, List
+from typing import Union
 
 
 class IndexerInterface(ABC):

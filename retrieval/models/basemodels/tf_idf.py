@@ -1,14 +1,10 @@
-import numpy as np
+#!/usr/bin/env python3
 import os
-from sklearn.feature_extraction.text import TfidfVectorizer
-from retrieval.data.queries import Queries
-from retrieval.data.passages import Passages
-from retrieval.data.triples import Triples
-from retrieval.data.dataset import TripleDataset
-from retrieval.models.basemodels.metrics import Metrics 
-from retrieval.configs import BaseConfig
-import time
 
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from retrieval.data import Queries, Passages, Triples
+from retrieval.models.basemodels.metrics import Metrics
 
 
 
