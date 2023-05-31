@@ -40,12 +40,12 @@ FANDOM_DEFAULT_CONFIG = BaseConfig(
     shuffle = True,
     drop_last = True,
     pin_memory = True,
-    num_workers = 4,
+    # num_workers = 4,
 
     # TrainingSettings:
     epochs = 10,
-    lr_warmup_epochs = 2,
-    lr_warmup_decay = 1/3,
+    warmup_epochs = 1,
+    warmup_start_factor = 1/10,
     use_amp = True,
 )
 
@@ -79,11 +79,11 @@ MS_MARCO_DEFAULT_CONFIG = BaseConfig(
     shuffle = True,
     drop_last = True,
     pin_memory = True,
-    num_workers = 4,
+    # num_workers = 4,
 
     # TrainingSettings:
     epochs = 10,
-    lr_warmup_epochs = 2,
-    lr_warmup_decay = 1/3,
+    warmup_epochs = 2,
+    warmup_start_factor = 1/10,
     use_amp = True,
 )
