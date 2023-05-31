@@ -10,10 +10,10 @@ preprocessed_qa_json_path_dir = '../../data/fandoms_qa/'
 output_path_dir = "../../data/fandoms_qa/"
 
 # if true take all wikis
-COMPLETE = False
+COMPLETE = True
 
 # if true split into train, test, val
-ALL = False
+ALL = True
 
 # fractions of ['train', 'test', 'val']
 FRACS = [0.8, 0.1, 0.1]

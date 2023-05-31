@@ -50,8 +50,8 @@ if __name__ == "__main__":
     config = MS_MARCO_DEFAULT_CONFIG
     config.batch_size = 32
 
-    DATASET_NAME = "ms_marco_v1.1"
-    DATASET_PATH = "../../data/ms_marco_v1.1"
+    DATASET_NAME = "ms_marco_v2.1"
+    DATASET_PATH = "../../data/ms_marco_v2.1"
     RUN_NAME = get_run_name(config, DATASET_NAME)
 
     N_EVAL_PER_EPOCH = 6
