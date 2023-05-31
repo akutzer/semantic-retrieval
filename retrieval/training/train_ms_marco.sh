@@ -29,6 +29,9 @@ SIMILARITY="cosine" # "cosine" or "L2"
 EPOCHS="10"
 BATCH_SIZE="2"
 ACCUM_STEPS="1"
+LEARNING_RATE="5e-6"
+WARMUP_EPOCHS="1"
+WARMUP_START_FACTOR="0.1"
 SEED="125"
 NUM_EVAL_PER_EPOCH="6"
 CHECKPOINTS_PER_EPOCH="2"
@@ -62,11 +65,14 @@ python3 train.py \
   --epochs "$EPOCHS" \
   --batch-size "$BATCH_SIZE" \
   --accum-steps "$ACCUM_STEPS" \
+  --learning-rate "$LEARNING_RATE"\
   --seed "$SEED" \
   --num-eval-per-epoch "$NUM_EVAL_PER_EPOCH" \
   --checkpoints-per-epoch "$CHECKPOINTS_PER_EPOCH" \
   --use-amp \
   --num-gpus "$NUM_GPUS" \
   --checkpoints-path "$CHECKPOINTS_PATH" \
-  --tensorboard-path "$TENSORBOARD_PATH"
+  --tensorboard-path "$TENSORBOARD_PATH" \
+  --warmup-epochs "$WARMUP_EPOCHS"\
+  --warmup-start-factor "$WARMUP_START_FACTOR"\
 

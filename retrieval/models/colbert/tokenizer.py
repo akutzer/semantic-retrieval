@@ -196,6 +196,12 @@ class ColBERTTokenizer():
         tokenizer.tok = AutoTokenizer.from_pretrained(directory, use_auth_token=False)
 
         return tokenizer
+    
+    def __str__(self):
+        return str(self.tok)
+    
+    def __repr__(self):
+        return repr(self.tok)
 
 if __name__ == "__main__":
 
@@ -209,7 +215,7 @@ if __name__ == "__main__":
 
     base_tokenizers = ["bert-base-uncased", "roberta-base", "../../../data/colbertv2.0/"]
     config = BaseConfig(
-        tok_name_or_path=base_tokenizers[1]
+        tok_name_or_path=base_tokenizers[0]
     )
 
     tokenizer = ColBERTTokenizer(config)

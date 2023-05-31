@@ -111,8 +111,15 @@ def train(args):
 
 
     optimizer = torch.optim.AdamW(colbert.parameters(), lr=5e-6, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
+    use_scheduler = bool(config.warmup_epochs)
+    if use_scheduler:
+        total_iters = config.epochs * (len(train_dataloader) // config.accum_steps)
+        warmup_iters = config.warmup_epochs * (len(train_dataloader) // config.accum_steps)
+        warmup_scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=config.warmup_start_factor, total_iters=warmup_iters, verbose=False)
+        # main_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=total_iters - warmup_iters, verbose=False)
+        # scheduler = torch.optim.lr_scheduler.SequentialLR(optimizer, schedulers=[warmup_scheduler, main_scheduler], milestones=[warmup_iters])
+        scheduler = warmup_scheduler
     criterion = torch.nn.CrossEntropyLoss(reduction="sum")
-
 
 
     ###########################################################################
@@ -160,6 +167,9 @@ def train(args):
                 else:
                     optimizer.step()
                 optimizer.zero_grad()
+
+                if use_scheduler:
+                    scheduler.step()
 
                 time_step = (epoch - 1) * (len(train_dataloader) // config.accum_steps)  + i // config.accum_steps
                 writer.add_scalar("Loss/train", losses, time_step)
@@ -231,6 +241,9 @@ if __name__ == "__main__":
     training_args.add_argument("--epochs", type=int, required=True, help="Number of training epochs")
     training_args.add_argument("--batch-size", type=int, required=True, help="Training batch size")
     training_args.add_argument("--accum-steps", type=int, default=1, help="Number of gradient accumulation steps")
+    training_args.add_argument("--learning-rate", type=float, default=5e-6, help="")
+    training_args.add_argument("--warmup-epochs", type=int, help="")
+    training_args.add_argument("--warmup-start-factor", type=float, help="")
     training_args.add_argument("--seed", type=int, default=125, help="Random seed")
     training_args.add_argument("--num-eval-per-epoch", type=int, default=1, help="Number of evaluation runs per epoch")
     training_args.add_argument("--checkpoints-per-epoch", type=int, default=1, help="Number of checkpoints to save per epoch")

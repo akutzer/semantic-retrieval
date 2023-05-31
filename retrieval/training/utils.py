@@ -69,6 +69,9 @@ def get_config_from_argparser(args):
 
         # TrainingSettings
         epochs=args.epochs,
+        lr=args.learning_rate,
+        warmup_epochs=args.warmup_epochs,
+        warmup_start_factor=args.warmup_start_factor,
         use_amp=args.use_amp,
         num_gpus=args.num_gpus
     )

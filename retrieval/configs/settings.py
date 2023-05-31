@@ -52,8 +52,9 @@ class DataLoaderSettings:
 @dataclass
 class TrainingSettings:
     epochs: int = 10
-    lr_warmup_epochs: int = 2
-    lr_warmup_decay: float = 1/3
+    lr: float = 5e-6
+    warmup_epochs: int = 2
+    warmup_start_factor: float = 1/10
     use_amp: bool = False
     num_gpus: int = 0
 
@@ -77,8 +78,7 @@ class TrainingSettings:
     #         print(f"Lowering number of GPUs from {num_gpus} to the maximal amount of available GPUs {available_gpus}")
     #         num_gpus = available_gpus
     #     self.__num_gpus = num_gpus
-            
-                
+          
 
 @dataclass
 class IndexerSettings:
