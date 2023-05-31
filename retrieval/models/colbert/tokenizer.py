@@ -17,19 +17,22 @@ class ColBERTTokenizer():
         self.query_maxlen = self.config.query_maxlen
         self.doc_maxlen = self.config.doc_maxlen
 
-        # instead of using already existing tokens for the [Q]/[D] token,
-        # we add those as new tokens; however it is important to expand the
-        # embedding matrix of the model using this tokenizer by calling:
-        # `model.resize_token_embeddings(len(tokenizer))`
-        self.tok.add_tokens([self.config.query_token, self.config.doc_token], special_tokens=True)
+        if "colbertv2" in config.tok_name_or_path.lower():
+            # if loading the colbertv2 weights, the unused tokens 0 and 1
+            # are used for the [Q]/[D] token
+            self.Q_marker_token, self.Q_marker_token_id = self.config.query_token, self.tok.convert_tokens_to_ids("[unused0]")
+            self.D_marker_token, self.D_marker_token_id = self.config.doc_token, self.tok.convert_tokens_to_ids("[unused1]")
+        else:
+            # instead of using already existing tokens for the [Q]/[D] token,
+            # we add those as new tokens; however it is important to expand the
+            # embedding matrix of the model using this tokenizer by calling:
+            # `model.resize_token_embeddings(len(tokenizer))`
+            self.tok.add_tokens([self.config.query_token, self.config.doc_token], special_tokens=True)
 
-        self.Q_marker_token = self.config.query_token
-        self.Q_marker_token_id = self.tok.convert_tokens_to_ids(self.config.query_token)
-        self.D_marker_token = self.config.doc_token
-        self.D_marker_token_id = self.tok.convert_tokens_to_ids(self.config.doc_token)
-
-        # self.Q_marker_token, self.Q_marker_token_id = self.config.query_token, self.tok.convert_tokens_to_ids("[unused0]")
-        # self.D_marker_token, self.D_marker_token_id = self.config.doc_token, self.tok.convert_tokens_to_ids("[unused1]")
+            self.Q_marker_token = self.config.query_token
+            self.Q_marker_token_id = self.tok.convert_tokens_to_ids(self.config.query_token)
+            self.D_marker_token = self.config.doc_token
+            self.D_marker_token_id = self.tok.convert_tokens_to_ids(self.config.doc_token)
 
         self.cls_token, self.cls_token_id = self.tok.cls_token, self.tok.cls_token_id
         self.sep_token, self.sep_token_id = self.tok.sep_token, self.tok.sep_token_id
@@ -193,6 +196,12 @@ class ColBERTTokenizer():
         tokenizer.tok = AutoTokenizer.from_pretrained(directory, use_auth_token=False)
 
         return tokenizer
+    
+    def __str__(self):
+        return str(self.tok)
+    
+    def __repr__(self):
+        return repr(self.tok)
 
 if __name__ == "__main__":
 
@@ -206,7 +215,7 @@ if __name__ == "__main__":
 
     base_tokenizers = ["bert-base-uncased", "roberta-base", "../../../data/colbertv2.0/"]
     config = BaseConfig(
-        tok_name_or_path=base_tokenizers[1]
+        tok_name_or_path=base_tokenizers[0]
     )
 
     tokenizer = ColBERTTokenizer(config)
