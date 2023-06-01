@@ -29,9 +29,9 @@ DATASET_MODE="QQP"
 PASSAGES_PATH_TRAIN="../data/fandoms_qa/harry_potter/train/passages.tsv"
 QUERIES_PATH_TRAIN="../data/fandoms_qa/harry_potter/train/queries.tsv"
 TRIPLES_PATH_TRAIN="../data/fandoms_qa/harry_potter/train/triples.tsv"
-PASSAGES_PATH_VAL="../data/fandoms_qa/harry_potter/val/passages.tsv"
-QUERIES_PATH_VAL="../data/fandoms_qa/harry_potter/val/queries.tsv"
-TRIPLES_PATH_VAL="../data/fandoms_qa/harry_potter/val/triples.tsv"
+#PASSAGES_PATH_VAL="../data/fandoms_qa/harry_potter/val/passages.tsv"
+#QUERIES_PATH_VAL="../data/fandoms_qa/harry_potter/val/queries.tsv"
+#TRIPLES_PATH_VAL="../data/fandoms_qa/harry_potter/val/triples.tsv"
 
 
 # dataloader arguments
