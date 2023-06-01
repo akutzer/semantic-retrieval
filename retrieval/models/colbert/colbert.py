@@ -382,9 +382,8 @@ class ColBERT(nn.Module):
         config_path = os.path.join(directory, "colbert_config.json")
         config = load_config(config_path)
         if not config:
-            print(
-                "Warning: colbert_config.json does not exist, loading default config."
-            )
+            logging.basicConfig(level=logging.WARNING, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%y-%m-%d %H:%M:%S")
+            logging.warning("colbert_config.json does not exist, loading default config.")
             config = BaseConfig()
 
         model = cls(config, device)
@@ -402,9 +401,8 @@ class ColBERT(nn.Module):
                 model.backbone.resize_token_embeddings(n_embs)
             model.load_state_dict(state_dict, strict=True)
         else:
-            print(
-                "[Warning] model.pt does not exist, returning randomly initialized model."
-            )
+            logging.basicConfig(level=logging.WARNING, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%y-%m-%d %H:%M:%S")
+            logging.warning("model.pt does not exist, returning randomly initialized model.")
 
         return model
 

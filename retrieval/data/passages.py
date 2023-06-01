@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import logging
 import pandas as pd
 
 
@@ -38,7 +39,8 @@ class Passages:
         return self.data
 
     def _load_tsv(self, path, drop_nan=False):
-        print("Warning: Passages currently drops the WID column!")
+        logging.basicConfig(level=logging.WARNING, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%y-%m-%d %H:%M:%S")
+        logging.warning("Passages currently drops the WID column!")
         delimiter = "\t" if path.endswith(".tsv") else ","
         passages = pd.read_csv(path, delimiter=delimiter, index_col=False)
 

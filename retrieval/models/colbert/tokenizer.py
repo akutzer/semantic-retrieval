@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 from typing import Union, List
+import logging
 
 import torch
 from transformers import AutoTokenizer
@@ -251,9 +252,8 @@ class ColBERTTokenizer:
         config_path = os.path.join(directory, "colbert_config.json")
         config = load_config(config_path)
         if not config:
-            print(
-                "[Warning] colbert_config.json does not exist, loading default config."
-            )
+            logging.basicConfig(level=logging.WARNING, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%y-%m-%d %H:%M:%S")
+            logging.warning("colbert_config.json does not exist, loading default config.")
             config = BaseConfig()
 
         tokenizer = cls(config)

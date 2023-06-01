@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import sys
 import logging
 import argparse
 import torch
@@ -43,8 +44,10 @@ def train(args):
     ###########################################################################
     run_name = get_run_name(args)
 
-    logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
+    logging.basicConfig(level=logging.INFO, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%y-%m-%d %H:%M:%S")
     logging.info(f"Starting run: {run_name}")
+    logging.info(f"Python Version: {sys.version}")
+    logging.info(f"PyTorch Version: {torch.__version__}")
 
     # disable parallelism for huggingface's fast-tokenizers in case we use multiple
     # subprocesses for the dataloading, otherwise we can encounter deadlocks
@@ -256,5 +259,5 @@ if __name__ == "__main__":
     training_args.add_argument("--checkpoints-path", type=str, default="/checkpoints", help="")
     training_args.add_argument("--tensorboard-path", type=str, default="/runs", help="")
 
-    args = parser.parse_args()    
+    args = parser.parse_args()
     train(args)
