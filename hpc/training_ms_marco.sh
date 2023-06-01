@@ -39,7 +39,7 @@ DOC_MAXLEN="220"
 QUERY_MAXLEN="32"
 PASSAGES_PER_QUERY="10"
 TRAIN_WORKERS="4"
-VAL_WORKERS="1"
+VAL_WORKERS="2"
 
 # model arguments
 BACKBONE="bert-base-uncased" # "bert-base-uncased" or "retrieval/data/colbertv2.0/" or "roberta-base"
