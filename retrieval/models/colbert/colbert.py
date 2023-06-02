@@ -37,7 +37,15 @@ class ColBERT(nn.Module):
         )
         self.hid_dim = self.backbone.config.hidden_size
         self.out_features = config.dim
-        self.linear = nn.Linear(self.hid_dim, self.config.dim, bias=False)        
+        self.linear = nn.Linear(self.hid_dim, self.config.dim, bias=False)
+
+
+        # old way of loading colbertv2
+        if "colbertv2.0/" in config.backbone_name_or_path:
+            logging.info("Detected usage of ColBERTv2 as backbone name! This is deprecated, but will continue to work!")
+            config.checkpoint = config.backbone_name_or_path
+            if self._load_linear_weights():
+                logging.info("Successfully loaded weights for last ColBERTv2 layer!")        
 
         self.to(device=device)
         self.train()
@@ -360,13 +368,16 @@ class ColBERT(nn.Module):
             
             # load the backbone using HuggingFace
             model.backbone = AutoModel.from_pretrained(
-                config.checkpoint, config=model.backbone_config
+                directory, config=model.backbone_config
             )
 
             # try to load the output layer
             if model._load_linear_weights():
-                logging.basicConfig(level=logging.INFO, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%y-%m-%d %H:%M:%S")
                 logging.info("Successfully loaded weights for last ColBERTv2 layer!")
+
+            # override old checkpoint in the config
+            config.checkpoint = directory
+            
         elif normal_checkpoint:
             logging.info("Detected regular ColBERT checkpoint. Loading the model!")
             model_path = os.path.join(directory, "model.pt")
@@ -380,6 +391,10 @@ class ColBERT(nn.Module):
                 n_embs = state_dict["backbone.embeddings.word_embeddings.weight"].shape[0]
                 model.backbone.resize_token_embeddings(n_embs)
             model.load_state_dict(state_dict, strict=True)
+
+            # override old checkpoint in the config
+            config.checkpoint = directory
+
         else:
             logging.warning(
                 f"Could not load the model checkpoint `{model_path}`. Returning randomly initialized model."
@@ -440,7 +455,7 @@ if __name__ == "__main__":
     queries = ["How are you today?", "Where do you live?"]
     passages = ["I'm great!", "Nowhere brudi."]
 
-    MODEL_PATH = "roberta-base"  # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
+    MODEL_PATH = "roberta-base"  # "bert-base-uncased" or "roberta-base"
     DEVICE = "cuda:0"
     EPOCHS = 25
 
@@ -448,7 +463,7 @@ if __name__ == "__main__":
         tok_name_or_path=MODEL_PATH,
         backbone_name_or_path=MODEL_PATH,
         similarity="cosine",
-        intra_batch_similarity=True,
+        intra_batch_similarity=False,
         epochs=EPOCHS,
         dim=24,
         hidden_size=768,
@@ -457,11 +472,13 @@ if __name__ == "__main__":
         intermediate_size=3072,
         hidden_act="gelu",
         dropout=0.1,
-        passages_per_query=1,
+        passages_per_query=10,
     )
 
+    
     tokenizer = ColBERTTokenizer(config)
     colbert = ColBERT(config, device=DEVICE)
+    # colbert = ColBERT.from_pretrained("../../../data/colbertv2.0/", device=DEVICE, config=config)
     colbert.register_tokenizer(tokenizer)
 
     # colbert.save("testchen")
@@ -480,7 +497,7 @@ if __name__ == "__main__":
     # out = colbert(Q, P)
 
     # QQP style:
-    # P = (P[0][:1], P[1][:1])
+    P = (P[0][:1], P[1][:1])
 
     # QPP style:
     # Q = (Q[0][:1], Q[1][:1])

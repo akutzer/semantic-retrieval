@@ -24,8 +24,8 @@ class ColBERTIndexer(IndexerInterface):
         self.similarity = self.inference.colbert.config.similarity
 
         self.embeddings = torch.tensor([], device=self.device)
-        self.iid2pid = torch.empty(0, device=self.device, dtype=torch.int64)
-        self.pid2iid = torch.empty((0, 0), device=self.device, dtype=torch.int64)
+        self.iid2pid = torch.empty(0, device=self.device, dtype=torch.int32)
+        self.pid2iid = torch.empty((0, 0), device=self.device, dtype=torch.int32)
         self.next_iid = 0
             
     def index(self, passages: List[str], pids: List[str], bsize: int = 16, dtype: torch.dtype = torch.float32) -> None:
@@ -174,8 +174,10 @@ if __name__ == "__main__":
     torch.set_float32_matmul_precision('high')
 
     DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
-    PASSAGES_PATH = "../../data/fandoms_qa/harry_potter/passages.tsv"
-    INDEX_PATH = "../../data/fandoms_qa/harry_potter/passages.train.indices.pt"
+    PASSAGES_PATH = "../../data/fandoms_qa/witcher/all/passages.tsv"
+    INDEX_PATH = "../../data/fandoms_qa/witcher/all/passages.indices.pt"
+    # PASSAGES_PATH = "../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
+    # INDEX_PATH = "../../data/ms_marco/ms_marco_v1_1/val/passages.indices.pt"
     MODEL_PATH = "../../data/colbertv2.0/" # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
 
     config = BaseConfig(
@@ -185,8 +187,10 @@ if __name__ == "__main__":
         dim = 128,
         batch_size = 16,
         accum_steps = 1,
+        doc_maxlen=512
     )
     colbert, tokenizer = get_colbert_and_tokenizer(config)
+    print(config)
     inference = ColBERTInference(colbert, tokenizer, device=DEVICE)
     indexer = ColBERTIndexer(inference, device=DEVICE)
 
@@ -208,21 +212,21 @@ if __name__ == "__main__":
     test_embs = indexer.get_pid_embedding(test_pids)
 
     # index the entire data
-    indexer.index(data, pids, bsize=8)
+    indexer.index(data, pids, bsize=8, dtype=torch.float32)
     indexer.save(INDEX_PATH)
     indexer.load(INDEX_PATH)
     print(indexer.embeddings.shape)
 
 
     # test retrieval
-    queries = ["Who is the author of 'The Witcher'?", "How does an NPC react if it starts raining?", "Who the hell is Cynthia?"]
+    queries = ["Who is the author of 'The Witcher'?", "How does an NPC behave when it starts raining?", "Who the hell is Cynthia?"]
 
     Qs = indexer.inference.query_from_text(queries)
     if Qs.dim() == 2:
         Qs = Qs[None]
     # print(Qs.shape)
     
-    batch_sim, batch_iids = indexer.search(Qs, k=10)
+    batch_sim, batch_iids = indexer.search(Qs, k=25)
     # print(batch_sim.shape, batch_iids.shape)
     batch_pids = indexer.iids_to_pids(batch_iids)
     # print(batch_pids)

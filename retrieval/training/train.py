@@ -182,10 +182,11 @@ def train(args):
                     scaler.update()
                 else:
                     optimizer.step()
-                optimizer.zero_grad()
-
+                    
                 if use_scheduler:
                     scheduler.step()
+                
+                optimizer.zero_grad()
 
                 time_step = (epoch - 1) * (len(train_dataloader) // config.accum_steps)  + i // config.accum_steps
                 writer.add_scalar("Loss/train", losses, time_step)

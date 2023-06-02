@@ -20,7 +20,7 @@ class ColBERTRetriever:
         self.inference = inference
         self.inference.to(device)
         self.indexer = ColBERTIndexer(inference, device=device)
-        self.tfidf = TfIdf(passages = passages)
+        # self.tfidf = TfIdf(passages = passages)
         print("tf idf fertig")
 
     def rerank(self, query: List[str], k: int):
@@ -135,26 +135,24 @@ if __name__ == "__main__":
     from tqdm import tqdm
     import cProfile
 
-    SEED = 125
-    random.seed(SEED)
-    np.random.seed(SEED)
-    torch.manual_seed(SEED)
-    torch.cuda.manual_seed_all(SEED)
+    # SEED = 125
+    # random.seed(SEED)
+    # np.random.seed(SEED)
+    # torch.manual_seed(SEED)
+    # torch.cuda.manual_seed_all(SEED)
 
     # enable TensorFloat32 tensor cores for float32 matrix multiplication if available
-    torch.set_float32_matmul_precision('high')
+    torch.set_float32_matmul_precision("high")
 
     
     MODEL_PATH = "../../data/colbertv2.0/" # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
-    INDEX_PATH = "../../data/fandoms_qa/harry_potter/passages.train.indices.pt"
+    INDEX_PATH = "../../data/fandoms_qa/harry_potter/all/passages.indices.pt"
 
     config = BaseConfig(
         tok_name_or_path=MODEL_PATH,
         backbone_name_or_path=MODEL_PATH,
         similarity="cosine",
-        dim = 128,
-        batch_size = 32,
-        accum_steps = 1,
+        doc_maxlen=512
     )
 
     # dataset = TripleDataset(config,
@@ -176,6 +174,11 @@ if __name__ == "__main__":
 
     # BSIZE = 4
     # K = 1000
+
+    triples_path = "../../data/fandoms_qa/harry_potter/all/triples.tsv"
+    queries_path = "../../data/fandoms_qa/harry_potter/all/queries.tsv"
+    passages_path = "../../data/fandoms_qa/harry_potter/all/passages.tsv"
+    dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QQP")
     
     colbert, tokenizer = get_colbert_and_tokenizer(config)
     inference = ColBERTInference(colbert, tokenizer)
@@ -183,12 +186,9 @@ if __name__ == "__main__":
     retriever.indexer.load(INDEX_PATH)
 
 
-    triples_path = "../../data/fandoms_qa/harry_potter/triples.tsv"
-    queries_path = "../../data/fandoms_qa/harry_potter/queries.tsv"
-    passages_path = "../../data/fandoms_qa/harry_potter/passages.tsv"
-    dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QQP")
+    
 
-    BSIZE = 3
+    BSIZE = 8 #16
     K = 100
     top1, top3, top5, top10, top25, top100 = 0, 0, 0, 0, 0, 0
 
@@ -196,31 +196,40 @@ if __name__ == "__main__":
         query_batch = []
         target_batch = []
         for i, triple in enumerate(tqdm(dataset)):
-            qid, pid_pos, *pid_neg = triple
-            query, psg_pos, *psg_neg = dataset.id2string(triple)
-            query_batch.append(query)
+
+            # for QPP datasets:
+            # qid, pid_pos, *pid_neg = triple
+            # query, psg_pos, *psg_neg = dataset.id2string(triple)
+            # query_batch.append(query)
+            # target_batch.append(pid_pos)
+
+            # for QQP datasets:
+            qid_pos, qid_neg, pid_pos = triple
+            query_pos, query_neg, passage = dataset.id2string(triple)
+            query_batch.append(query_pos)
             target_batch.append(pid_pos)
 
             if len(query_batch) == BSIZE or i + 1 == len(dataset):
 
                 #pids = retriever.full_retrieval(query_batch, K)
-                pids = retriever.rerank(query_batch, K)
+                # pids = retriever.rerank(query_batch, K)
 
-                # with torch.autocast(retriever.device.type):
-                #     pids = retriever.full_retrieval(query_batch, K)
+                with torch.autocast(retriever.device.type):
+                    pids = retriever.full_retrieval(query_batch, K)
                 
-                for i, ((sims, pred_pids), target_pit) in enumerate(zip(pids, target_batch)):
-                    if target_pit in pred_pids[:100]:
+                for i, ((sims, pred_pids), target_pid) in enumerate(zip(pids, target_batch)):
+                    # print(target_pid, pred_pids[:10])
+                    if target_pid in pred_pids[:100]:
                         top100 += 1
-                        if target_pit in pred_pids[:25]:
+                        if target_pid in pred_pids[:25]:
                             top25 += 1
-                            if target_pit in pred_pids[:10]:
+                            if target_pid in pred_pids[:10]:
                                 top10 += 1
-                                if target_pit in pred_pids[:5]:
+                                if target_pid in pred_pids[:5]:
                                     top5 += 1
-                                    if target_pit in pred_pids[:3]:
+                                    if target_pid in pred_pids[:3]:
                                         top3 += 1
-                                        if target_pit == pred_pids[0]:
+                                        if target_pid == pred_pids[0]:
                                             top1 += 1
 
                     

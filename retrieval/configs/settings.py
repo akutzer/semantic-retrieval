@@ -27,13 +27,13 @@ class ModelSettings:
         False  # should always be deactivated when using QQP-style datasets
     )
     normalize: bool = True
-    checkpoint: Optional[str] = None 
+    checkpoint: Optional[str] = None
 
 
 @dataclass
 class DocSettings:
     doc_maxlen: int = 220
-    ignore_mask_tokens: bool = True
+    ignore_mask_tokens: bool = False
 
 
 @dataclass

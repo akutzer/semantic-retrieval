@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 from dataclasses import dataclass, asdict
-from retrieval.configs.settings import *
+from retrieval.configs.settings import (TokenizerSettings,
+    DocSettings,
+    QuerySettings,
+    DataLoaderSettings,
+    TrainingSettings,
+    ModelSettings)
 
 
 @dataclass
@@ -30,7 +35,7 @@ FANDOM_DEFAULT_CONFIG = BaseConfig(
     normalize=True,
     # DocSettings
     doc_maxlen=220,
-    ignore_mask_tokens=True,
+    ignore_mask_tokens=False,
     # QuerySettings:
     query_maxlen=32,
     # DataLoaderSettings:
@@ -64,7 +69,7 @@ MS_MARCO_DEFAULT_CONFIG = BaseConfig(
     normalize=True,
     # DocSettings
     doc_maxlen=220,
-    ignore_mask_tokens=True,
+    ignore_mask_tokens=False,
     # QuerySettings:
     query_maxlen=32,
     # DataLoaderSettings:

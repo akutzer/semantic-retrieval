@@ -161,7 +161,7 @@ if __name__ == "__main__":
     queries = ["Hi, how are you today?", "Wow, Where do you live?"]
     passages = ["I'm ... let me think ... great!", "Nowhere, brudi.", "ooohhh noooo..."]
 
-    MODEL_PATH = "bert-base-uncased"  # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
+    MODEL_PATH = "bert-base-uncased"  # "bert-base-uncased" or "roberta-base"
     DEVICE = "cuda:0"  # "cpu" or "cuda:0"
     BSIZE = 3
 
@@ -173,7 +173,7 @@ if __name__ == "__main__":
     model, tokenizer = get_colbert_and_tokenizer(config)
     colbert = ColBERTInference(model, tokenizer, device=DEVICE)
 
-    # colbert = ColBERTInference.from_pretrained("testchen", device=DEVICE)
+    # colbert = ColBERTInference.from_pretrained("../../../data/colbertv2.0/", device=DEVICE)
     # tokenizer = colbert.tokenizer
     # print(colbert)
 

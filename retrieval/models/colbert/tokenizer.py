@@ -241,8 +241,9 @@ class ColBERTTokenizer:
         return repr(self.tok)
     
     def _init_special_tokens(self):
-        is_bert = "bert-base" in self.config.backbone_name_or_path.lower()
+        is_bert = "bert-base" in self.config.tok_name_or_path.lower()
         if is_bert:
+            logging.info("Detected BERT Tokenizer. Using unused tokens for [Q]/[D] tokens")
             # if loading the BERT or ColBERTv2 weights, the unused tokens 0 and 1
             # are used for the [Q]/[D] token
             self.Q_marker_token = self.config.query_token
@@ -287,14 +288,14 @@ if __name__ == "__main__":
     base_tokenizers = [
         "bert-base-uncased",
         "roberta-base",
-        "../../../data/colbertv2.0/",
+        # "../../../data/colbertv2.0/",
     ]
     config = BaseConfig(tok_name_or_path=base_tokenizers[0])
 
     tokenizer = ColBERTTokenizer(config)
 
     # tokenizer.save("testchen")
-    # tokenizer_ = ColBERTTokenizer.from_pretrained("testchen")
+    # tokenizer = ColBERTTokenizer.from_pretrained("../../../checkpoints/harry_potter_bert_2023-05-31T15:10:52/epoch1_2_loss0.1793_mrr0.9658_acc93.171/")
 
     # testing the bsize attribute in the tensorize methode
     batches = tokenizer.tensorize(sentences, mode="query", bsize=1)
