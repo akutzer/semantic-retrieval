@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import os
-from typing import Union, List
+from typing import Union, List, Optional
 import logging
 
 import torch
@@ -18,37 +18,7 @@ class ColBERTTokenizer:
         self.query_maxlen = self.config.query_maxlen
         self.doc_maxlen = self.config.doc_maxlen
 
-        if "colbertv2" in config.tok_name_or_path.lower():
-            # if loading the colbertv2 weights, the unused tokens 0 and 1
-            # are used for the [Q]/[D] token
-            self.Q_marker_token = self.config.query_token
-            self.Q_marker_token_id = self.tok.convert_tokens_to_ids("[unused0]")
-
-            self.D_marker_token = self.config.doc_token
-            self.D_marker_token_id = self.tok.convert_tokens_to_ids("[unused1]")
-        else:
-            # instead of using already existing tokens for the [Q]/[D] token,
-            # we add those as new tokens; however it is important to expand the
-            # embedding matrix of the model using this tokenizer by calling:
-            # `model.resize_token_embeddings(len(tokenizer))`
-            self.tok.add_tokens(
-                [self.config.query_token, self.config.doc_token],
-                special_tokens=True
-            )
-
-            self.Q_marker_token = self.config.query_token
-            self.Q_marker_token_id = self.tok.convert_tokens_to_ids(
-                self.config.query_token
-            )
-            self.D_marker_token = self.config.doc_token
-            self.D_marker_token_id = self.tok.convert_tokens_to_ids(
-                self.config.doc_token
-            )
-
-        self.cls_token, self.cls_token_id = self.tok.cls_token, self.tok.cls_token_id
-        self.sep_token, self.sep_token_id = self.tok.sep_token, self.tok.sep_token_id
-        self.mask_token, self.mask_token_id = self.tok.mask_token, self.tok.mask_token_id
-        self.pad_token, self.pad_token_id = self.tok.pad_token, self.tok.pad_token_id
+        self._init_special_tokens()
 
     def __len__(self):
         return len(self.tok)
@@ -247,10 +217,11 @@ class ColBERTTokenizer:
             save_config(self.config, config_path)
 
     @classmethod
-    def from_pretrained(cls, directory: str) -> "ColBERTTokenizer":
-        # load the model's config if available
-        config_path = os.path.join(directory, "colbert_config.json")
-        config = load_config(config_path)
+    def from_pretrained(cls, directory: str, config: Optional[BaseConfig] = None) -> "ColBERTTokenizer":
+        # load the model's config if necessary
+        if not isinstance(config, BaseConfig):
+            config_path = os.path.join(directory, "colbert_config.json")
+            config = load_config(config_path)
         if not config:
             logging.basicConfig(level=logging.WARNING, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%y-%m-%d %H:%M:%S")
             logging.warning("colbert_config.json does not exist, loading default config.")
@@ -259,6 +230,7 @@ class ColBERTTokenizer:
         tokenizer = cls(config)
         # load the tokenizers's parameters if available
         tokenizer.tok = AutoTokenizer.from_pretrained(directory, use_auth_token=False)
+        tokenizer._init_special_tokens()
 
         return tokenizer
 
@@ -267,6 +239,40 @@ class ColBERTTokenizer:
 
     def __repr__(self):
         return repr(self.tok)
+    
+    def _init_special_tokens(self):
+        is_bert = "bert-base" in self.config.backbone_name_or_path.lower()
+        if is_bert:
+            # if loading the BERT or ColBERTv2 weights, the unused tokens 0 and 1
+            # are used for the [Q]/[D] token
+            self.Q_marker_token = self.config.query_token
+            self.Q_marker_token_id = self.tok.convert_tokens_to_ids("[unused0]")
+
+            self.D_marker_token = self.config.doc_token
+            self.D_marker_token_id = self.tok.convert_tokens_to_ids("[unused1]")
+        else:
+            # instead of using already existing tokens for the [Q]/[D] token,
+            # we add those as new tokens; however it is important to expand the
+            # embedding matrix of the model using this tokenizer by calling:
+            # `model.resize_token_embeddings(len(tokenizer))`
+            self.tok.add_tokens(
+                [self.config.query_token, self.config.doc_token],
+                special_tokens=True
+            )
+
+            self.Q_marker_token = self.config.query_token
+            self.Q_marker_token_id = self.tok.convert_tokens_to_ids(
+                self.config.query_token
+            )
+            self.D_marker_token = self.config.doc_token
+            self.D_marker_token_id = self.tok.convert_tokens_to_ids(
+                self.config.doc_token
+            )
+
+        self.cls_token, self.cls_token_id = self.tok.cls_token, self.tok.cls_token_id
+        self.sep_token, self.sep_token_id = self.tok.sep_token, self.tok.sep_token_id
+        self.mask_token, self.mask_token_id = self.tok.mask_token, self.tok.mask_token_id
+        self.pad_token, self.pad_token_id = self.tok.pad_token, self.tok.pad_token_id
 
 
 if __name__ == "__main__":

@@ -1,5 +1,7 @@
+import os
 import random
 from datetime import datetime
+import logging
 
 import numpy as np
 import torch
@@ -56,6 +58,7 @@ def get_config_from_argparser(args):
         skip_punctuation=True,
         similarity=args.similarity,
         normalize=args.normalize,
+        checkpoint=args.checkpoint,
 
         # DocSettings/QuerySettings
         doc_maxlen=args.doc_maxlen,
@@ -79,3 +82,54 @@ def get_config_from_argparser(args):
     )
 
     return config
+
+
+def load_optimizer_checkpoint(directory: str, optimizer: torch.optim.Optimizer):
+    logging.basicConfig(level=logging.WARNING, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%y-%m-%d %H:%M:%S")
+    optim_path = os.path.join(directory, "optimizer.pt")
+
+    if os.path.exists(optim_path):
+        state_dict = torch.load(optim_path)
+        optimizer.load_state_dict(state_dict)
+        logging.info("Loaded optimizer checkpoint!")
+    else:
+        logging.warning(
+            f"Could not load optimizer checkpoint, because the path `{optim_path}` does not exist."
+            " Returning the given optimizer."
+        )
+    
+    return optimizer
+
+
+def load_scheduler_checkpoint(directory: str, scheduler: torch.optim.lr_scheduler.LRScheduler):
+    logging.basicConfig(level=logging.WARNING, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%y-%m-%d %H:%M:%S")
+    scheduler_path = os.path.join(directory, "scheduler.pt")
+    
+
+    if os.path.exists(scheduler_path):
+        state_dict = torch.load(scheduler_path)
+        scheduler.load_state_dict(state_dict)
+        logging.info("Loaded scheduler checkpoint!")
+    else:
+        logging.warning(
+            f"Could not load scheduler, because the path `{scheduler_path}` does not exist."
+            " Returning the given scheduler."
+        )
+    
+    return scheduler
+
+def load_grad_scaler_checkpoint(directory: str, scaler: torch.cuda.amp.GradScaler):
+    logging.basicConfig(level=logging.WARNING, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%y-%m-%d %H:%M:%S")
+    scaler_path = os.path.join(directory, "gradient_scaler.pt")
+
+    if os.path.exists(scaler_path):
+        state_dict = torch.load(scaler_path)
+        scaler.load_state_dict(state_dict)
+        logging.info("Loaded gradient scaler checkpoint!")
+    else:
+        logging.warning(
+            f"Could not load gradient scaler checkpoint, because the path `{scaler_path}` does not exist."
+            " Returning the given gradient scaler."
+        )
+    
+    return scaler

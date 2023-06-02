@@ -4,9 +4,6 @@ import string
 from typing import Union, Optional, Tuple
 import logging
 
-# suppresses the warnings when loading a model with unused parameters
-logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -16,24 +13,31 @@ from retrieval.configs import BaseConfig, save_config, load_config
 from retrieval.models.colbert.tokenizer import ColBERTTokenizer
 
 
+
+# suppresses the warnings when loading a model with unused parameters
+logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
+
+# intialize logging messages
+logging.basicConfig(level=logging.INFO, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+logging.basicConfig(level=logging.WARNING, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+
+
+
 class ColBERT(nn.Module):
     def __init__(self, config: BaseConfig, device: Union[str, torch.device] = "cpu"):
         super().__init__()
         self.config = config
-        self.backbone_config = self._load_model_config(config)
-        self.out_features = config.dim
-
+        self.skiplist = None
+        self.pad_token_id = None
+        
         # load backbone and load/initialize output layer
+        self.backbone_config = ColBERT._load_model_config(config)
         self.backbone = AutoModel.from_pretrained(
             config.backbone_name_or_path, config=self.backbone_config
         )
         self.hid_dim = self.backbone.config.hidden_size
-        self.linear = nn.Linear(self.hid_dim, self.config.dim, bias=False)
-        if self._load_linear_weights():
-            print("Successfully loaded weights for last linear layer!")
-
-        self.skiplist = None
-        self.pad_token_id = None
+        self.out_features = config.dim
+        self.linear = nn.Linear(self.hid_dim, self.config.dim, bias=False)        
 
         self.to(device=device)
         self.train()
@@ -62,7 +66,6 @@ class ColBERT(nn.Module):
         L_q - number of tokens per query
         L_d - number of tokens per document
         """
-
         B_q, L_q = Q[0].shape
         B_d, L_d = D[0].shape
         B = min(B_q, B_d)
@@ -189,22 +192,20 @@ class ColBERT(nn.Module):
         L_d - number of embeddings per document
         F   - dimension of an embedding vector (number of features)
         """
-
         if not intra_batch:
             if self.config.similarity.lower() == "l2":
                 # calculate squared l2 norm
                 # we need to negate, since we later want to maximize the similarity,
                 # and the closer they are, the smaller is the distance between two vectors
                 sim = -1.0 * (Q.unsqueeze(-2) - D.unsqueeze(-3)).pow(2).sum(dim=-1)
-
             elif self.config.similarity.lower() == "cosine":
-                sim = Q @ D.mT
-                # sim shape: (B, N, L_q, L_d)
-
+                # since the vectors are already normed, calculating the dot product
+                # gives the cosine similarity
+                sim = Q @ D.mT  # shape: (B, N, L_q, L_d)
             else:
                 raise ValueError(
-                    f"Invalid similarity function {self.config.similarity} given. "
-                    "Must be either 'l2' or 'cosine'"
+                    f"Invalid similarity function `{self.config.similarity}` given. "
+                    "Must be either `L2` or `cosine`"
                 )
 
             # ignore the similarities for padding and punctuation tokens
@@ -239,9 +240,7 @@ class ColBERT(nn.Module):
                 D = D.reshape(B * L_d, F)
 
                 sim = Q @ D.T
-                sim = sim.reshape(B, L_q, B, L_d).permute(
-                    0, 2, 1, 3
-                )  # shape: (B, B, L_q, L_d)
+                sim = sim.reshape(B, L_q, B, L_d).permute(0, 2, 1, 3)  # shape: (B, B, L_q, L_d)
 
             else:
                 raise ValueError(
@@ -281,6 +280,14 @@ class ColBERT(nn.Module):
             else:
                 mask = ~is_pad_token
         return mask
+    
+    def to(self, device: Union[str, torch.device]) -> None:
+        if isinstance(device, str):
+            device = torch.device(device)
+        self.device = device
+        if self.skiplist is not None:
+            self.skiplist = self.skiplist.to(device=device)
+        super().to(device=device)
 
     def register_tokenizer(self, tokenizer: ColBERTTokenizer) -> None:
         """
@@ -293,10 +300,13 @@ class ColBERT(nn.Module):
 
         if self.config.skip_punctuation:
             self.skiplist = []
+            # add ids of standalone punctuation symbols
             skiplist = [
                 tokenizer.encode(symbol, mode="doc", add_special_tokens=False)[0]
                 for symbol in string.punctuation
             ]
+            # add ids of punctuation symbols trailing a word
+            # in most cases these are the actual tokens that occur in a tokenized sentence
             skiplist += [
                 tokenizer.encode("a" + symbol, mode="doc", add_special_tokens=False)[-1]
                 for symbol in string.punctuation
@@ -306,58 +316,7 @@ class ColBERT(nn.Module):
             )
 
         self.pad_token_id = tokenizer.pad_token_id
-
-    def to(self, device: Union[str, torch.device]) -> None:
-        if isinstance(device, str):
-            device = torch.device(device)
-        self.device = device
-        if self.skiplist is not None:
-            self.skiplist = self.skiplist.to(device=device)
-        super().to(device=device)
-
-    def _load_linear_weights(self) -> bool:
-        """
-        Tries loading the last linear layer of a pretrained ColBERT implementation,
-        which maps the BERT output vectors to the desired dimensionality (`self.out_features`).
-        """
-        if not os.path.exists(self.config.backbone_name_or_path):
-            return False
-
-        for file in os.listdir(self.config.backbone_name_or_path):
-            path_to_weights = os.path.join(self.config.backbone_name_or_path, file)
-            if not os.path.isfile(path_to_weights):
-                continue
-
-            if "pytorch_model" in file or ".pt" in file or ".pth" in file:
-                try:
-                    with open(path_to_weights, mode="br") as f:
-                        parameters = torch.load(f)
-
-                    if "linear.weight" in parameters.keys():
-                        weights = parameters["linear.weight"]
-                        # replace the weights if the number of input features is the same
-                        if weights.shape[-1] == self.linear.weight.shape[-1]:
-                            self.linear.weight.data = weights[: self.config.dim]
-                            return True
-
-                except Exception as e:
-                    print(f"Couldn't load linear weights: {e}")
-
-        return False
-
-    def _load_model_config(self, config: BaseConfig) -> AutoConfig:
-        backbone_config = AutoConfig.from_pretrained(config.backbone_name_or_path)
-
-        backbone_config.hidden_size = config.hidden_size
-        backbone_config.num_hidden_layers = config.num_hidden_layers
-        backbone_config.num_attention_heads = config.num_attention_heads
-        backbone_config.intermediate_size = config.intermediate_size
-        backbone_config.hidden_act = config.hidden_act
-        backbone_config.hidden_dropout_prob = config.dropout
-        backbone_config.attention_probs_dropout_prob = config.dropout
-
-        return backbone_config
-
+    
     def save(self, save_directory: str) -> None:
         """
         Saves the models parameters (model.pt) and the config (colbert_config.json)
@@ -376,35 +335,105 @@ class ColBERT(nn.Module):
 
     @classmethod
     def from_pretrained(
-        cls, directory: str, device: Union[str, torch.device] = "cpu"
+        cls, directory: str, device: Union[str, torch.device] = "cpu", config: Optional[BaseConfig] = None
     ) -> "ColBERT":
-        # load the model's config if available
-        config_path = os.path.join(directory, "colbert_config.json")
-        config = load_config(config_path)
+        # load the model's config if necessary
+        if not isinstance(config, BaseConfig):
+            config_path = os.path.join(directory, "colbert_config.json")
+            config = load_config(config_path)
+        # use the default config, if loading the model's config was unsuccessful
+        # and the given config was None
         if not config:
-            logging.basicConfig(level=logging.WARNING, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%y-%m-%d %H:%M:%S")
             logging.warning("colbert_config.json does not exist, loading default config.")
             config = BaseConfig()
 
-        model = cls(config, device)
+        # get randomly initialized model, it's parameters will be overridden later
+        model = cls(config)
 
-        # load the model's parameters if available
-        model_path = os.path.join(directory, "model.pt")
-        if os.path.exists(model_path):
+        # detects if the checkpoint is the official pretrained ColBERTv2 model
+        colbertv2_checkpoint = "pytorch_model.bin" in os.listdir(directory)
+        normal_checkpoint = "model.pt" in os.listdir(directory)
+
+        if colbertv2_checkpoint:
+            logging.info("Detected ColBERTv2 checkpoint. Loading the model!")
+            model_path = os.path.join(directory, "pytorch_model.bin")
+            
+            # load the backbone using HuggingFace
+            model.backbone = AutoModel.from_pretrained(
+                config.checkpoint, config=model.backbone_config
+            )
+
+            # try to load the output layer
+            if model._load_linear_weights():
+                logging.basicConfig(level=logging.INFO, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%y-%m-%d %H:%M:%S")
+                logging.info("Successfully loaded weights for last ColBERTv2 layer!")
+        elif normal_checkpoint:
+            logging.info("Detected regular ColBERT checkpoint. Loading the model!")
+            model_path = os.path.join(directory, "model.pt")
             # Load the state dict, ignoring size mismatch errors
-            state_dict = torch.load(model_path)
+            state_dict = torch.load(model_path, map_location=model.device)
 
-            # extend the embedding matrix in case the checkpoint had a larger
-            # embedding matrix
+            # extend the embedding matrix in case the checkpoint had a larger embedding matrix
+            # this is the case if we load a RoBERTa checkpoint, since we
+            # added 2 new tokens ([Q]/[D]-Token)
             if "backbone.embeddings.word_embeddings.weight" in state_dict:
                 n_embs = state_dict["backbone.embeddings.word_embeddings.weight"].shape[0]
                 model.backbone.resize_token_embeddings(n_embs)
             model.load_state_dict(state_dict, strict=True)
         else:
-            logging.basicConfig(level=logging.WARNING, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%y-%m-%d %H:%M:%S")
-            logging.warning("model.pt does not exist, returning randomly initialized model.")
-
+            logging.warning(
+                f"Could not load the model checkpoint `{model_path}`. Returning randomly initialized model."
+            )
+        
+        model.to(device)
         return model
+
+
+    def _load_linear_weights(self) -> bool:
+        """
+        Tries loading the last linear layer of a pretrained ColBERT implementation,
+        which maps the BERT output vectors to the desired dimensionality (`self.out_features`).
+        """
+        if self.config.checkpoint is None or not os.path.exists(self.config.checkpoint):
+            return False
+
+        for file in os.listdir(self.config.checkpoint):
+            path_to_weights = os.path.join(self.config.checkpoint, file)
+            if not os.path.isfile(path_to_weights):
+                continue
+
+            if "pytorch_model" in file or ".pt" in file or ".pth" in file:
+                try:
+                    with open(path_to_weights, mode="br") as f:
+                        parameters = torch.load(f)
+
+                    if "linear.weight" in parameters.keys():
+                        weights = parameters["linear.weight"]
+                        # replace the weights if the number of input features is the same
+                        if weights.shape[-1] == self.linear.weight.shape[-1]:
+                            self.linear.weight.data = weights[: self.config.dim]
+                            return True
+
+                except Exception as e:
+                    print(f"Couldn't load linear weights: {e}")
+        
+        return False
+
+    @staticmethod
+    def _load_model_config(config: BaseConfig) -> AutoConfig:
+        backbone_config = AutoConfig.from_pretrained(config.backbone_name_or_path)
+
+        backbone_config.hidden_size = config.hidden_size
+        backbone_config.num_hidden_layers = config.num_hidden_layers
+        backbone_config.num_attention_heads = config.num_attention_heads
+        backbone_config.intermediate_size = config.intermediate_size
+        backbone_config.hidden_act = config.hidden_act
+        backbone_config.hidden_dropout_prob = config.dropout
+        backbone_config.attention_probs_dropout_prob = config.dropout
+
+        return backbone_config
+
+    
 
 
 if __name__ == "__main__":

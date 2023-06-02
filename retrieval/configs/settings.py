@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from dataclasses import dataclass
+from typing import Optional
 import torch
 
 
@@ -26,6 +27,7 @@ class ModelSettings:
         False  # should always be deactivated when using QQP-style datasets
     )
     normalize: bool = True
+    checkpoint: Optional[str] = None 
 
 
 @dataclass
