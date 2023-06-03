@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 import os
+import sys
 import logging
 import argparse
 import torch
 from tqdm import tqdm
 
 from retrieval.data import get_pytorch_dataloader, TripleDataset
-from retrieval.models import get_colbert_and_tokenizer
-from retrieval.training.utils import seed, seed_worker, get_run_name, get_tensorboard_writer, get_config_from_argparser
+from retrieval.models import get_colbert_and_tokenizer, load_colbert_and_tokenizer
+from retrieval.training.utils import seed, seed_worker, get_run_name, get_tensorboard_writer, get_config_from_argparser, load_optimizer_checkpoint, load_scheduler_checkpoint, load_grad_scaler_checkpoint
 
 
 
@@ -20,7 +21,7 @@ def validation(model, criterion, dataloader):
 
         for Q, P in tqdm(dataloader):
             with torch.autocast(model.device.type, enabled=model.config.use_amp):
-                out = model(Q, P)
+                out = model(Q, P) * 32
                 target = torch.zeros(out.shape[0], device=out.device, dtype=torch.long)
                 loss += criterion(out, target)
                 acc += torch.sum(out.max(dim=-1).indices == target)
@@ -43,8 +44,10 @@ def train(args):
     ###########################################################################
     run_name = get_run_name(args)
 
-    logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
+    logging.basicConfig(level=logging.INFO, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%y-%m-%d %H:%M:%S")
     logging.info(f"Starting run: {run_name}")
+    logging.info(f"Python Version: {sys.version}")
+    logging.info(f"PyTorch Version: {torch.__version__}")
 
     # disable parallelism for huggingface's fast-tokenizers in case we use multiple
     # subprocesses for the dataloading, otherwise we can encounter deadlocks
@@ -70,12 +73,6 @@ def train(args):
         torch.set_float32_matmul_precision("high")
         logging.info("Enabled TensorFloat32 calculations!")
 
-    # enable automatic mixed precission
-    if config.use_amp:
-        scaler = torch.cuda.amp.GradScaler()
-        logging.info("Enabled AMP!")
-
-
     writer = get_tensorboard_writer(run_name, path=args.tensorboard_path)
     logging.info("Initialized TensorBoard @ `http://localhost:6006/`!")
  
@@ -84,7 +81,12 @@ def train(args):
     ###########################################################################
     ########   INITIALIZATION OF MODEL, DATALOADERS, OPTIMIZER, etc.   ########
     ###########################################################################
-    colbert, tokenizer = get_colbert_and_tokenizer(config, device)
+    load_checkpoint = config.checkpoint is not None and os.path.exists(config.checkpoint)
+    if load_checkpoint:
+        logging.info(f"Loading from checkpoint `{config.checkpoint}`")
+        colbert, tokenizer = load_colbert_and_tokenizer(config.checkpoint, device, config)
+    else:
+        colbert, tokenizer = get_colbert_and_tokenizer(config, device)
     logging.info("Loaded ColBERT!")
     logging.info(tokenizer)
     logging.info(colbert)
@@ -110,7 +112,9 @@ def train(args):
         checkpoint_iterations = [len(train_dataloader)]
 
 
-    optimizer = torch.optim.AdamW(colbert.parameters(), lr=5e-6, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
+    optimizer = torch.optim.AdamW(colbert.parameters(), lr=config.lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
+    if load_checkpoint:
+        optimizer = load_optimizer_checkpoint(config.checkpoint, optimizer)
     use_scheduler = bool(config.warmup_epochs)
     if use_scheduler:
         total_iters = config.epochs * (len(train_dataloader) // config.accum_steps)
@@ -119,6 +123,18 @@ def train(args):
         # main_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=total_iters - warmup_iters, verbose=False)
         # scheduler = torch.optim.lr_scheduler.SequentialLR(optimizer, schedulers=[warmup_scheduler, main_scheduler], milestones=[warmup_iters])
         scheduler = warmup_scheduler
+        if load_checkpoint:
+            scheduler = load_scheduler_checkpoint(config.checkpoint, scheduler)
+
+        # enable automatic mixed precission
+    if config.use_amp:
+        scaler = torch.cuda.amp.GradScaler()
+        logging.info("Enabled AMP!")
+
+        if load_checkpoint:
+            scaler = load_grad_scaler_checkpoint(config.checkpoint, scaler)
+
+
     criterion = torch.nn.CrossEntropyLoss(reduction="sum")
 
 
@@ -143,9 +159,12 @@ def train(args):
         colbert.train()
         for i, (Q, P) in enumerate(tqdm(train_dataloader)):
             with torch.autocast(device.type, enabled=config.use_amp):
-                out = colbert(Q, P)
+                out = colbert(Q, P) * 32
                 target = torch.zeros(out.shape[0], device=out.device, dtype=torch.long)
                 loss = criterion(out, target)
+                # target = -torch.zeros(out.shape, device=out.device, dtype=torch.float32)
+                # target[:, 0] = 1
+                # loss = torch.nn.MSELoss(reduction="sum")(out, target)
                 loss *= 1 / config.batch_size
 
             if config.use_amp:
@@ -166,10 +185,11 @@ def train(args):
                     scaler.update()
                 else:
                     optimizer.step()
-                optimizer.zero_grad()
-
+                    
                 if use_scheduler:
                     scheduler.step()
+                
+                optimizer.zero_grad()
 
                 time_step = (epoch - 1) * (len(train_dataloader) // config.accum_steps)  + i // config.accum_steps
                 writer.add_scalar("Loss/train", losses, time_step)
@@ -198,6 +218,8 @@ def train(args):
                 torch.save(optimizer.state_dict(), os.path.join(checkpoint_path, "optimizer.pt"))
                 if config.use_amp:
                     torch.save(scaler.state_dict(), os.path.join(checkpoint_path, "gradient_scaler.pt"))
+                if use_scheduler:
+                    torch.save(scheduler.state_dict(), os.path.join(checkpoint_path, "scheduler.pt"))
                 
                 logging.info(f"Saved checkpoint: {checkpoint_path}")
 
@@ -234,11 +256,12 @@ if __name__ == "__main__":
 
     # Model arguments
     model_args = parser.add_argument_group("Model Arguments")
-    model_args.add_argument("--backbone", type=str, help="Name of the backbone model or path to its checkpoint")
+    model_args.add_argument("--backbone", type=str, help="Name of the backbone model")
     model_args.add_argument("--dim", type=int, help="Size of the embedding vectors")
     model_args.add_argument("--dropout", type=float, help="Dropout rate")
     model_args.add_argument("--similarity", type=str, choices=["cosine", "L2"], default="cosine", help="Similarity function")
     model_args.add_argument("--normalize", action="store_true", help="Normalize the embeddings")
+    model_args.add_argument("--checkpoint", type=str, help="Path of the checkpoint which should be loaded")
 
     # Training arguments
     training_args = parser.add_argument_group("Training Arguments")
@@ -253,8 +276,8 @@ if __name__ == "__main__":
     training_args.add_argument("--checkpoints-per-epoch", type=int, default=1, help="Number of checkpoints to save per epoch")
     training_args.add_argument("--use-amp", action="store_true", help="Use automatic mixed precision training")
     training_args.add_argument("--num-gpus", type=int, default=0, help="Number of GPUs to use for training")
-    training_args.add_argument("--checkpoints-path", type=str, default="/checkpoints", help="")
-    training_args.add_argument("--tensorboard-path", type=str, default="/runs", help="")
+    training_args.add_argument("--checkpoints-path", type=str, default="/checkpoints", help="Directory where the checkpoints should be saved to")
+    training_args.add_argument("--tensorboard-path", type=str, default="/runs", help="Directory where the tensorboard logs should be written to")
 
-    args = parser.parse_args()    
+    args = parser.parse_args()
     train(args)
