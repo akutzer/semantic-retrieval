@@ -31,21 +31,21 @@ class ColBERT(nn.Module):
         self.pad_token_id = None
         
         # load backbone and load/initialize output layer
-        self.backbone_config = ColBERT._load_model_config(config)
+        self.backbone_config = ColBERT._load_model_config(self.config)
         self.backbone = AutoModel.from_pretrained(
-            config.backbone_name_or_path, config=self.backbone_config
+            self.config.backbone_name_or_path, config=self.backbone_config
         )
         self.hid_dim = self.backbone.config.hidden_size
-        self.out_features = config.dim
-        self.linear = nn.Linear(self.hid_dim, self.config.dim, bias=False)
+        self.out_features = self.config.dim
+        self.linear = nn.Linear(self.hid_dim, self.out_features, bias=False)
 
 
         # old way of loading colbertv2
-        if "colbertv2.0/" in config.backbone_name_or_path:
+        if "colbertv2.0/" in self.config.backbone_name_or_path:
             logging.info("Detected usage of ColBERTv2 as backbone name! This is deprecated, but will continue to work!")
-            config.checkpoint = config.backbone_name_or_path
+            self.config.checkpoint = self.config.backbone_name_or_path
             if self._load_linear_weights():
-                logging.info("Successfully loaded weights for last ColBERTv2 layer!")        
+                logging.info("Successfully loaded weights for last ColBERTv2 layer!")     
 
         self.to(device=device)
         self.train()
@@ -220,7 +220,7 @@ class ColBERT(nn.Module):
             if D_mask is not None:
                 sim.mT[~D_mask] = float("-inf")
             # calculate the sum of maximum similarity (SMS)
-            sms = sim.max(dim=-1).values.sum(dim=-1)  # shape: (B, N)
+            sms = sim.max(dim=-1).values.mean(dim=-1)  # shape: (B, N)
 
         else:
             assert self.config.passages_per_query == 1
@@ -261,7 +261,7 @@ class ColBERT(nn.Module):
                 D_mask = D_mask[None].repeat_interleave(B, dim=0)
                 sim.mT[~D_mask] = float("-inf")
             # calculate the sum of maximum similarity (sms)
-            sms = sim.max(dim=-1).values.sum(dim=-1)  # shape: (B, B)
+            sms = sim.max(dim=-1).values.mean(dim=-1)  # shape: (B, B)
 
         return sms
 
