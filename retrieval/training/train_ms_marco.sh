@@ -11,7 +11,6 @@ PASSAGES_PATH_VAL="../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
 QUERIES_PATH_VAL="../../data/ms_marco/ms_marco_v1_1/val/queries.tsv"
 TRIPLES_PATH_VAL="../../data/ms_marco/ms_marco_v1_1/val/triples.tsv"
 
-
 # dataloader arguments
 DOC_MAXLEN="220"
 QUERY_MAXLEN="32"
@@ -38,6 +37,14 @@ CHECKPOINTS_PER_EPOCH="2"
 NUM_GPUS="1"
 CHECKPOINTS_PATH="../../checkpoints"
 TENSORBOARD_PATH="../../runs"
+
+# if you want to resuming training from a checkpoint comment out the CHECKPOINT variable 
+# and add the path to the checkpoint
+# this is also the recommended way of loading the colbertv2 weights
+# CHECKPOINT="../../checkpoints/harry_potter_bert_2023-05-31T15:10:52/epoch1_2_loss0.1793_mrr0.9658_acc93.171/"
+# CHECKPOINT="../../data/colbertv2.0/"
+
+
 
 # Execute the Python script with the provided arguments
 python3 train.py \
@@ -75,4 +82,4 @@ python3 train.py \
   --tensorboard-path "$TENSORBOARD_PATH" \
   --warmup-epochs "$WARMUP_EPOCHS"\
   --warmup-start-factor "$WARMUP_START_FACTOR"\
-
+  --checkpoint "$CHECKPOINT"\

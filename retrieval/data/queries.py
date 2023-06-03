@@ -7,7 +7,7 @@ class Queries:
         self.path = path
         self.data = pd.Series(dtype="object")
         self._load_file(path)
-    
+
     def __len__(self):
         return len(self.data)
 
@@ -29,7 +29,7 @@ class Queries:
     def _load_file(self, path):
         if path.endswith((".csv", ".tsv")):
             self.data = self._load_tsv(path)
-        
+
         elif path.endswith(".json"):
             raise DeprecationWarning()
             # self.data = self._load_json(path)
@@ -47,13 +47,13 @@ class Queries:
         queries = queries.set_index(qid, drop=False)[query]
         self._rename_axis(queries)
         return queries
-    
+
     # def _load_json(self, path, drop_nan=False):
     #     queries = pd.read_json(path, typ="series")
     #     self._replace_nan(queries, drop_nan)
     #     self._rename_axis(queries)
     #     return queries
-    
+
     def _replace_nan(self, series: pd.Series, drop_nan=False):
         if drop_nan:
             series.replace("", pd.NaT, inplace=True)
@@ -61,29 +61,34 @@ class Queries:
         else:
             series.fillna("", inplace=True)
 
-        return series  
-    
+        return series
+
     def _rename_axis(self, series: pd.Series):
         series.rename_axis("QID", inplace=True)
         return series
-    
+
     def qid2string(self, qid, skip_non_existing=False):
         if isinstance(qid, list):
-            return [self.data[q] for q in qid if (not skip_non_existing) or q in self.keys()]
+            return [
+                self.data[q] for q in qid if (not skip_non_existing) or q in self.keys()
+            ]
         else:
-            return self.data[qid] if (not skip_non_existing) or qid in self.keys() else None
-
+            return (
+                self.data[qid]
+                if (not skip_non_existing) or qid in self.keys()
+                else None
+            )
 
 
 if __name__ == "__main__":
-    path = "../../data/ms_marco_v1.1/train/queries.train.tsv"
+    path = "../../data/ms_marco/ms_marco_v1_1/train/queries.tsv"
     queries = Queries(path=path)
     print(queries.data, end="\n\n")
 
-    # path = "../../data/fandoms_qa/harry_potter/queries.tsv"
+    # path = "../../data/fandoms_qa/harry_potter/train/queries.tsv"
     # queries = Queries(path=path)
     # print(queries.data, end="\n\n")
 
     print(len(queries))
     print(queries[0])
-    print(queries.qid2string([0, 2*len(queries)], skip_non_existing=True))
+    print(queries.qid2string([0, 2 * len(queries)], skip_non_existing=True))
