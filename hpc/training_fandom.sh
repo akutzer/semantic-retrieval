@@ -1,13 +1,13 @@
 #!/bin/bash
-#SBATCH --time=00:10:00         # walltime
+#SBATCH --time=00:15:00         # walltime
 #SBATCH --nodes=1               # number of nodes
 #SBATCH --ntasks=1	            # limit to one node
-#SBATCH --cpus-per-task=1
-#SBATCH --partition=gpu2
+#SBATCH --cpus-per-task=4
+#SBATCH --partition=alpha
 #SBATCH --gres=gpu:1            # number of GPUs
-#SBATCH --mem=40G
+#SBATCH --mem=32G
 #SBATCH -A p_sp_bigdata         # name of the associated project
-#SBATCH -J "training_fandom_job"  # name of the job
+#SBATCH -J "fandom_harry_potter"  # name of the job
 #SBATCH --output="training_fandom_job-%j.out"    # output file name (std out)
 #SBATCH --error="training_fandom_job-%j.err"     # error file name (std err)
 #SBATCH --mail-user="tommy.nguyen@mailbox.tu-dresden.de" # will be used to used to update you about the state of your$
@@ -29,13 +29,13 @@ DATASET_MODE="QQP"
 PASSAGES_PATH_TRAIN="../data/fandoms_qa/harry_potter/train/passages.tsv"
 QUERIES_PATH_TRAIN="../data/fandoms_qa/harry_potter/train/queries.tsv"
 TRIPLES_PATH_TRAIN="../data/fandoms_qa/harry_potter/train/triples.tsv"
-#PASSAGES_PATH_VAL="../data/fandoms_qa/harry_potter/val/passages.tsv"
-#QUERIES_PATH_VAL="../data/fandoms_qa/harry_potter/val/queries.tsv"
-#TRIPLES_PATH_VAL="../data/fandoms_qa/harry_potter/val/triples.tsv"
+PASSAGES_PATH_VAL="../data/fandoms_qa/harry_potter/val/passages.tsv"
+QUERIES_PATH_VAL="../data/fandoms_qa/harry_potter/val/queries.tsv"
+TRIPLES_PATH_VAL="../data/fandoms_qa/harry_potter/val/triples.tsv"
 
 
 # dataloader arguments
-DOC_MAXLEN="220"
+DOC_MAXLEN="320"
 QUERY_MAXLEN="32"
 TRAIN_WORKERS="4"
 VAL_WORKERS="2"
@@ -48,7 +48,7 @@ SIMILARITY="cosine" # "cosine" or "L2"
 
 # training arguments
 EPOCHS="10"
-BATCH_SIZE="22"
+BATCH_SIZE="64"
 ACCUM_STEPS="1"
 LEARNING_RATE="5e-6"
 WARMUP_EPOCHS="1"
@@ -63,7 +63,7 @@ TENSORBOARD_PATH="../runs"
 
 
 # Execute the Python script with the provided arguments
-python3 train.py \
+python3 ../retrieval/training/train.py \
   --dataset-name "$DATASET_NAME" \
   --dataset-mode "$DATASET_MODE" \
   --passages-path-train "$PASSAGES_PATH_TRAIN" \

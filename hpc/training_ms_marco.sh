@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --partition=alpha
 #SBATCH --gres=gpu:1            # number of GPUs
-#SBATCH --mem=64G
+#SBATCH --mem=48G
 #SBATCH -A p_sp_bigdata         # name of the associated project
 #SBATCH -J "training_ms_marco_job"  # name of the job
 #SBATCH --output="training_ms_marco_job-%j.out"    # output file name (std out)
@@ -35,7 +35,7 @@ TRIPLES_PATH_TRAIN="../data/ms_marco/ms_marco_v1_1/train/triples.tsv"
 
 
 # dataloader arguments
-DOC_MAXLEN="220"
+DOC_MAXLEN="512"
 QUERY_MAXLEN="32"
 PASSAGES_PER_QUERY="10"
 TRAIN_WORKERS="4"
@@ -49,7 +49,7 @@ SIMILARITY="cosine" # "cosine" or "L2"
 
 # training arguments
 EPOCHS="10"
-BATCH_SIZE="2"
+BATCH_SIZE="14"
 ACCUM_STEPS="1"
 LEARNING_RATE="5e-6"
 WARMUP_EPOCHS="1"
@@ -62,7 +62,7 @@ CHECKPOINTS_PATH="../checkpoints"
 TENSORBOARD_PATH="../runs"
 
 # Execute the Python script with the provided arguments
-python3 ../training/train.py \
+python3 ../retrieval/training/train.py \
   --dataset-name "$DATASET_NAME" \
   --dataset-mode "$DATASET_MODE" \
   --passages-path-train "$PASSAGES_PATH_TRAIN" \
