@@ -41,7 +41,7 @@ TRAIN_WORKERS="4"
 VAL_WORKERS="2"
 
 # model arguments
-BACKBONE="bert-base-uncased" # "bert-base-uncased" or "retrieval/data/colbertv2.0/" or "roberta-base"
+BACKBONE="bert-base-uncased" # "bert-base-uncased" or "../data/colbertv2.0/" or "roberta-base"
 DIM="128"
 DROPOUT="0.1"
 SIMILARITY="cosine" # "cosine" or "L2"
@@ -59,6 +59,13 @@ CHECKPOINTS_PER_EPOCH="2"
 NUM_GPUS="1"
 CHECKPOINTS_PATH="../checkpoints"
 TENSORBOARD_PATH="../runs"
+
+# if you want to resuming training from a checkpoint comment out the CHECKPOINT variable 
+# and add the path to the checkpoint
+# this is also the recommended way of loading the colbertv2 weights
+# CHECKPOINT="../../checkpoints/harry_potter_bert_2023-05-31T15:10:52/epoch1_2_loss0.1793_mrr0.9658_acc93.171/"
+# CHECKPOINT="../../data/colbertv2.0/"
+# CHECKPOINT="../../checkpoints/harry_potter_bert_2023-06-03T08:13:49/epoch3_1_loss0.1103_mrr0.9803_acc96.061"
 
 
 
@@ -97,5 +104,7 @@ python3 ../retrieval/training/train.py \
   --tensorboard-path "$TENSORBOARD_PATH" \
   --warmup-epochs "$WARMUP_EPOCHS"\
   --warmup-start-factor "$WARMUP_START_FACTOR"\
+  --checkpoint "$CHECKPOINT"\
+
 
 deactivate 
