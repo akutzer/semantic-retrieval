@@ -86,7 +86,7 @@ def html_heatmap(tokens, flat_topk_cossim_indices_list, flat_topk_cossim_values_
     f = open('heatmap_added_values.html', 'w')
     f.write(html_added_values)
     f.close()
-
+    return html_heatmap_kde, html_heatmap_absolute, html_added_values
 def tokens_to_indices(tokens, string, symbol = '#'):
     '''maps tokens to their begin and end idex in the string
     currently not used'''
@@ -190,32 +190,68 @@ if __name__ == "__main__":
         backbone_name_or_path=MODEL_PATH,
         similarity="cosine",
         dim=128,
+        doc_maxlen=512
     )
     colbert, tokenizer = get_colbert_and_tokenizer(config)
     inference = ColBERTInference(colbert, tokenizer)
-    query = "How did Moody feel about the insanity of Alice and Frank Longbottom?"
-    passage = "[Personality and traits] At the same time, he was far from being devoid of attachment towards his allies and comrades: He was visibly saddened by the insanity of Alice and Frank Longbottom, noting how being dead would have be better than having to live the rest of their lives insane, and openly acknowledged he was never able to find it easy to get over the loss of a comrade and only by turning the sadness he felt into motivation to get justice was he able to move on, as seen by his expressing sympathy towards Jacob's sibling after they lost Rowan Khanna and even acknowledging he should have trained them well enough."
+    queries = ["How did Moody feel about the insanity of Alice and Frank Longbottom?",
+              'Who is the author of ''The Witcher''?',
+              'How does an NPC react if it starts raining?',
+              'How does an NPC behave if it starts raining?',
+              'What is the name of the red car?'
+              ]
+    passages = ["[Personality and traits] At the same time, he was far from being devoid of attachment towards his allies and comrades: He was visibly saddened by the insanity of Alice and Frank Longbottom, noting how being dead would have be better than having to live the rest of their lives insane, and openly acknowledged he was never able to find it easy to get over the loss of a comrade and only by turning the sadness he felt into motivation to get justice was he able to move on, as seen by his expressing sympathy towards Jacob's sibling after they lost Rowan Khanna and even acknowledging he should have trained them well enough.",
+                """"The Witcher" (Polish: "Wiedźmin") is a short story written by Andrzej Sapkowski, having first been published in the "Fantastyka" magazine and later in the now obsolete book, "Wiedźmin" before being re-published in . It introduces the witcher Geralt and his famous fight with a striga. 21.335 2492 The Witcher (Polish: "Cykl wiedźmiński") by Andrzej Sapkowski is a series of fantasy short stories (collected in two books, except for two stories) and five novels about the witcher Geralt of Rivia. The books have been adapted into a movie and two television series ("The Hexer" and ), a video game series (), a comic book and others. The novel series (excluding the short stories) is also called the Witcher Saga (Polish: "saga o wiedźminie") or the Blood of the Elves saga.""",
+                 """The Witcher" follows the story of Geralt of Rivia, a witcher: a traveling monster hunter for hire, gifted with unnatural powers. Taking place in a fictional medieval world, the game implements detailed visuals. The natural light during various phases of the day is realistically altered, and the day and night transitions serve to enrich the game's ambiance. The weather can dynamically change from a light drizzle to a dark, stormy downpour accompanied by thunder and lightning, and the NPCs react to the rain by hiding under roofs trying to get out of the rain.""",
+                 """The Witcher" follows the story of Geralt of Rivia, a witcher: a traveling monster hunter for hire, gifted with unnatural powers. Taking place in a fictional medieval world, the game implements detailed visuals. The natural light during various phases of the day is realistically altered, and the day and night transitions serve to enrich the game's ambiance. The weather can dynamically change from a light drizzle to a dark, stormy downpour accompanied by thunder and lightning, and the NPCs react to the rain by hiding under roofs trying to get out of the rain.""",
+                "The name of the red car is Gerald and it is very fast."
+                ]
 
     #get best k tokens per query vectory (32)
+
     k = 10
-    topk_cossim_indices_list, topk_cossim_values_list = get_topk_cossim_indices_and_values(k, inference, query, passage)
+    html_heatmap_kde_list, html_heatmap_absolute_list, html_added_values_list = [], [], []
+    for query_index in range(0, len(queries)):
+        print(query_index)
+        topk_cossim_indices_list, topk_cossim_values_list = get_topk_cossim_indices_and_values(k, inference,
+                                                                            queries[query_index], passages[query_index])
 
-    #flatten lists:
-    flat_topk_cossim_indices_list = [item for sublist in topk_cossim_indices_list for item in sublist]
-    flat_topk_cossim_values_list = [item for sublist in topk_cossim_values_list for item in sublist]
+        #flatten lists:
+        flat_topk_cossim_indices_list = [item for sublist in topk_cossim_indices_list for item in sublist]
+        flat_topk_cossim_values_list = [item for sublist in topk_cossim_values_list for item in sublist]
 
-    #get tokens
-    tokens = np.array(tokenizer.tokenize(passage, "doc", add_special_tokens=True))
-    print(tokens.shape, len(topk_cossim_indices_list))
-    #print(passage_embeddings.shape)
+        #get tokens
+        tokens = np.array(tokenizer.tokenize(passages[query_index], "doc", add_special_tokens=True))
+        print(tokens.shape, len(topk_cossim_indices_list))
+        #print(passage_embeddings.shape)
 
-    #check whether there are atleast two different tokens in the topk_indices
-    if all(x == flat_topk_cossim_indices_list[0] for x in flat_topk_cossim_indices_list):
-        print("All elements in list are equal.")
-        print("The only relevant Token is:", tokens[flat_topk_cossim_indices_list[0]])
-    else:
-        print(k,"* 32 = ", len(flat_topk_cossim_indices_list), "datapoints used")
-        #create heatmaps
-        html_heatmap(tokens, flat_topk_cossim_indices_list, flat_topk_cossim_values_list, True, '#')
+        #check whether there are atleast two different tokens in the topk_indices
+        if all(x == flat_topk_cossim_indices_list[0] for x in flat_topk_cossim_indices_list):
+            print("All elements in list are equal.")
+            print("The only relevant Token is:", tokens[flat_topk_cossim_indices_list[0]])
+        else:
+            print(k,"* 32 = ", len(flat_topk_cossim_indices_list), "datapoints used")
+            #create heatmaps
+            html_heatmap_kde, html_heatmap_absolute, html_added_values = html_heatmap(tokens, flat_topk_cossim_indices_list
+                                                                                      , flat_topk_cossim_values_list, True, '#')
+            html_heatmap_kde_list.append(html_heatmap_kde)
+            html_heatmap_absolute_list.append(html_heatmap_absolute)
+            html_added_values_list.append(html_added_values)
 
 
+    # combined
+    # clear
+    f = open('combined_heatmaps.html', 'w')
+    f.close()
+    # write
+    f = open('combined_heatmaps.html', 'a')
+    for query_index in range(0, len(queries)):
+        f.write('<h2>'+ queries[query_index] +'</h2>')
+        f.write('<h3> kde </h3>')
+        f.write(html_heatmap_kde_list[query_index])
+        f.write('<h3> absolute count </h3>')
+        f.write(html_heatmap_absolute_list[query_index])
+        f.write('<h3> added values </h3>')
+        f.write(html_added_values_list[query_index])
+    f.close()
+            
