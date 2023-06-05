@@ -26,7 +26,7 @@ If we have time we might also download and extract multi-linguistic wikis.
 
 
 ## 2. :white_check_mark: Generate Dataset/Training Set
-### :heavy_check_mark: Generating the question-answer pairs (assigned: Till)
+### :heavy_check_mark: Generating the question-answer pairs
 For each wiki, generate two datasets of the following type:
  - QQP-Dataset: `{(q⁺,q⁻,p) | for most passages p in the wiki}`
  - QPP-Dataset: `{(q,p⁺,p⁻) | for most passages p⁺ in the wiki}`
@@ -161,10 +161,11 @@ The script should be run on MS MARCO v1.1 & v2.1 as well as on all the `human_ve
 
 ## 3. Implement Models
 ### :white_check_mark: Baseline: BM-25 or TF-IDF (assigned: Till, Florian)
-:heavy_check_mark: Implement the BM-25 or TF-IDF model, using an external library. \
-:hourglass_flowing_sand: Use the dataset class for the BM-25 or TF-IDF model \
-:white_check_mark: Implement efficient inference, so given a query find the best passages as fast as possible; maybe try to precompute the wiki passages? \
-:hourglass_flowing_sand: Finish everything, polish the code, add a methode for saving precomputed embeddings as well as loading them
+- :heavy_check_mark: Implement the BM-25 or TF-IDF model, using an external library.
+- :hourglass_flowing_sand: Use the dataset class for the BM-25 or TF-IDF model
+- :white_check_mark: Implement efficient inference, so given a query find the best passages as fast as possible; maybe try to precompute the wiki passages?
+- :hourglass_flowing_sand: Finish everything, polish the code, add a methode for saving precomputed embeddings as well as loading them
+
 The implementation should work with the previous described datasets class. In case the output of the dataset class is not directly usable, you can write a dataloader, which for example tokenizes the data from the dataset class and then combines these into a batch of data, which is then directly feed into the model. I don't know if this is necessary tho. ^^
 
 ### :white_check_mark: Neural Retrieval Model: ColBERT (assigned: Aaron)
@@ -183,7 +184,7 @@ Focus on inference performance ("model performance"/FLOPs, "model performance"/i
 
 ## 4. Training
 
-### :bangbang: :white_check_mark: Create a training script (assigned: Zhiwei)
+### :white_check_mark: Create a training script
 Write a script for training the neural IR models. Have a look at the [ColBERT training script](https://github.com/stanford-futuredata/ColBERT/blob/main/colbert/training/training.py) as an example.
 
 - :heavy_check_mark: It should use the dataset class for our datasets and the dataloader for the selected model. 
@@ -197,16 +198,16 @@ Write a script for training the neural IR models. Have a look at the [ColBERT tr
 - :heavy_check_mark: Add CLI for the training script
 
 
-### :heavy_check_mark: Get HPC running (assigned: Tommy)
+### :heavy_check_mark: Get HPC running 
 Maybe we should have a hpc directory in the repository where all the scripts for the HPC will be stored.
 
 - :heavy_check_mark: Move repository to the HPC 
 - :heavy_check_mark: Create and move all data to a data directory on the HPC (should be in the data/ directory and follow the above defined structure) 
-- :bangbang: :heavy_check_mark: Getting a training script on a single GPU running (i dont care what GPU it is, K80 could be enough for testing in the beginning) 
+- :heavy_check_mark: Getting a training script on a single GPU running (i dont care what GPU it is, K80 could be enough for testing in the beginning) 
 - (maybe: Getting a training script on multiple GPUs running)
 
 
-### :bangbang: Train the models
+### :bangbang: Train the models (assigned: Tommy)
 **Roadmap:**
 1. :hourglass_flowing_sand: Validate the pretrained ColBERTv2 weights on MS MARCO v1.1 and v2.1 and compare them with the paper
 2. :hourglass_flowing_sand: Train our ColBERT implementation on MS MARCO (order of priority, not everything has to be done):
@@ -230,7 +231,7 @@ The metrics should use a fairly universal interface, so the outputs of the model
 Count the parameters in a model, meassure the FLOPs and ms per answer-retrieval.
 (Parameters & FLOPs only necessary for neural IR approaches)
 
-### :bangbang: :hourglass_flowing_sand: Meassuring (assigned: ???)
+### :bangbang: :hourglass_flowing_sand: Meassuring (assigned: Zhiwei, ??)
 Run the baseline and neural models on the test dataset and log their performance for later use in the paper. This script will probably look fairly similar to the training scripts.
 
 - Evaluate TF-IDF on MS MARCO and our Fandom datasets
@@ -264,11 +265,11 @@ Demonstration of the model (done however you like; website, colab, application, 
 Maybe some inference optimizations & pruning if the person in charge is interested in it and there is time
 
 
-### 7. :bangbang: Presentation (13.07.2023)
+## 7. :bangbang: Presentation (13.07.2023)
 blablabla buzzword blablabla
 
 ## 8. :bangbang: Paper (14.07.2023)
 Final paper blablabla
 
 
-## :checkered_flag:
+# :checkered_flag:
