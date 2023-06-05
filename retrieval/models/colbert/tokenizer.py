@@ -241,7 +241,7 @@ class ColBERTTokenizer:
         return repr(self.tok)
     
     def _init_special_tokens(self):
-        is_bert = "bert-base" in self.config.tok_name_or_path.lower()
+        is_bert = "bert-base" in self.config.tok_name_or_path.lower() or "colbertv2" in self.config.tok_name_or_path.lower()
         if is_bert:
             logging.info("Detected BERT Tokenizer. Using unused tokens for [Q]/[D] tokens")
             # if loading the BERT or ColBERTv2 weights, the unused tokens 0 and 1

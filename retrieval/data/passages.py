@@ -26,7 +26,7 @@ class Passages:
         return self.data.values
 
     def items(self):
-        return self.data.iteritems()
+        return self.data.items()
 
     def _load_file(self, path):
         if path.endswith((".csv", ".tsv")):

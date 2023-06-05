@@ -5,30 +5,34 @@ import torch
 import torch.nn.functional as F
 from collections import defaultdict
 from typing import Union, List, Tuple
+import logging
 
 from retrieval.configs import BaseConfig
 from retrieval.data import Passages
-from retrieval.models import ColBERTTokenizer, ColBERTInference, get_colbert_and_tokenizer
+from retrieval.models import ColBERTTokenizer, ColBERTInference, get_colbert_and_tokenizer, load_colbert_and_tokenizer
 from retrieval.indexing.indexer import IndexerInterface
 
 
+logging.basicConfig(level=logging.INFO, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+
 
 class ColBERTIndexer(IndexerInterface):
-    def __init__(self, inference: ColBERTInference, device: Union[str, torch.device]="cpu"):
+    def __init__(self, inference: ColBERTInference, device: Union[str, torch.device]="cpu", dtype: torch.dtype = torch.float32):
         if isinstance(device, str):
             device = torch.device(device)
         self.device = device
+        self.dtype = dtype
 
         self.inference = inference
         self.inference.to(device)
         self.similarity = self.inference.colbert.config.similarity
 
-        self.embeddings = torch.tensor([], device=self.device)
+        self.embeddings = torch.tensor([], device=self.device, dtype=self.dtype)
         self.iid2pid = torch.empty(0, device=self.device, dtype=torch.int32)
         self.pid2iid = torch.empty((0, 0), device=self.device, dtype=torch.int32)
         self.next_iid = 0
             
-    def index(self, passages: List[str], pids: List[str], bsize: int = 16, dtype: torch.dtype = torch.float32) -> None:
+    def index(self, passages: List[str], pids: List[str], bsize: int = 16) -> None:
         batch_passages, batch_pids = self._new_passages(passages, pids)
         # if there are no passages which haven't been indexed yet, return
         if len(passages) == 0:
@@ -47,12 +51,12 @@ class ColBERTIndexer(IndexerInterface):
             max_pid = max(max(pids) + 1, self.pid2iid.shape[0])
 
             # extends the pid2iid matrix (padded with -1)
-            pid2iid = torch.full((max_pid, max_iids_per_pid), -1, dtype=torch.int64, device=self.device)
+            pid2iid = torch.full((max_pid, max_iids_per_pid), -1, dtype=torch.int32, device=self.device)
             pid2iid[:self.pid2iid.shape[0], :self.pid2iid.shape[1]] = self.pid2iid
 
             # extends the iid2pid vector
             num_new_iids = sum(emb.shape[0] for emb in psgs_embedded)
-            iid2pid = torch.empty((self.iid2pid.shape[0] + num_new_iids,), dtype=torch.int64, device=self.device)
+            iid2pid = torch.empty((self.iid2pid.shape[0] + num_new_iids,), dtype=torch.int32, device=self.device)
             iid2pid[:self.iid2pid.shape[0]] = self.iid2pid
             
             # update the pid2iid matrix and iid2pid vector for the new embeddings
@@ -69,17 +73,22 @@ class ColBERTIndexer(IndexerInterface):
             self.iid2pid = iid2pid
             
             # Concatenate the new embeddings onto the previous embedding matrix
-            self.embeddings = torch.cat([self.embeddings, *psgs_embedded], dim=0)
+            # this is done on the cpu to save GPU-RAM
+            cat = torch.cat([self.embeddings.cpu(), *map(lambda x: x.cpu(), psgs_embedded)], dim=0)
+            del psgs_embedded
+            self.embeddings = cat.to(device=self.device, dtype=self.dtype)
+            # self.embeddings = torch.cat([self.embeddings, *psgs_embedded], dim=0)
     
     def search(self, query: torch.Tensor, k: int) -> Tuple[torch.IntTensor, torch.IntTensor]:
         # add batch dimension
         if query.dim() == 2:
             query = query[None]
+        query = query.to(dtype=self.dtype)
         # query shape: (B, L_q, D)
 
         # TODO: use similarity from model config
         if self.similarity == "l2":
-            sim = -1.0 * (query - self.embeddings).pow(2).sum(dim=-1) # shape: (B * L_q, N_embs)
+            sim = -1.0 * (query.unsqueeze(-2) - self.embeddings.unsqueeze(-3)).pow(2).sum(dim=-1) # shape: (B * L_q, N_embs)
             # sim = -1.0 * torch.norm(query - self.embeddings, ord=2, dim=-1) # shape: (B * L_q, N_embs)
 
         elif self.similarity == "cosine":
@@ -130,6 +139,8 @@ class ColBERTIndexer(IndexerInterface):
         self.iid2pid = parameters["iid2pid"].to(self.device)
         self.pid2iid = parameters["pid2iid"].to(self.device)
         self.embeddings = parameters["embeddings"].to(self.device)
+        self.dtype = self.embeddings.dtype
+        logging.info(f"Successfully loaded the precomputed indices. Changed dtype to {self.dtype}!")
         
     def _new_passages(self, passages: List[str], pids: List[str]) -> Tuple[List[str], List[str]]:
         passages_, pids_ = [], []
@@ -171,28 +182,29 @@ if __name__ == "__main__":
     torch.cuda.manual_seed_all(SEED)
 
     # enable TensorFloat32 tensor cores for float32 matrix multiplication if available
-    torch.set_float32_matmul_precision('high')
+    torch.set_float32_matmul_precision("high")
 
     DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
-    PASSAGES_PATH = "../../data/fandoms_qa/witcher/all/passages.tsv"
-    INDEX_PATH = "../../data/fandoms_qa/witcher/all/passages.indices.pt"
-    # PASSAGES_PATH = "../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
-    # INDEX_PATH = "../../data/ms_marco/ms_marco_v1_1/val/passages.indices.pt"
-    MODEL_PATH = "../../data/colbertv2.0/" # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
+    PASSAGES_PATH = "../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
+    INDEX_PATH = "../../data/ms_marco/ms_marco_v1_1/val/passages.indices.pt"
+    BACKBONE = "bert-base-uncased" # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
+    CHECKPOINT_PATH = "../../data/colbertv2.0/"
+    
 
     config = BaseConfig(
-        tok_name_or_path=MODEL_PATH,
-        backbone_name_or_path=MODEL_PATH,
+        tok_name_or_path=BACKBONE,
+        backbone_name_or_path=BACKBONE,
         similarity="cosine",
         dim = 128,
         batch_size = 16,
         accum_steps = 1,
-        doc_maxlen=512
+        doc_maxlen=512,
+        checkpoint=CHECKPOINT_PATH
     )
-    colbert, tokenizer = get_colbert_and_tokenizer(config)
+    colbert, tokenizer = load_colbert_and_tokenizer(CHECKPOINT_PATH, device=DEVICE, config=config)
     print(config)
     inference = ColBERTInference(colbert, tokenizer, device=DEVICE)
-    indexer = ColBERTIndexer(inference, device=DEVICE)
+    indexer = ColBERTIndexer(inference, device=DEVICE, dtype=torch.float16)
 
     passages = Passages(PASSAGES_PATH)
     data = passages.values().tolist()
@@ -212,7 +224,7 @@ if __name__ == "__main__":
     test_embs = indexer.get_pid_embedding(test_pids)
 
     # index the entire data
-    indexer.index(data, pids, bsize=8, dtype=torch.float32)
+    indexer.index(data, pids, bsize=8)
     indexer.save(INDEX_PATH)
     indexer.load(INDEX_PATH)
     print(indexer.embeddings.shape)
@@ -237,7 +249,7 @@ if __name__ == "__main__":
         # print(Q.shape, pids.shape, topk_embs.shape, mask.shape)
 
         # topk_embs @ Q.mT instead of Q @ topk_embs.mT because of the masking later on
-        sim = topk_embs @ Q.mT # (N_doc, L_d, L_q)
+        sim = topk_embs @ Q.to(dtype=topk_embs.dtype).mT # (N_doc, L_d, L_q)
 
         # replace the similarity results for padding vectors
         sim[~mask] = -torch.inf
