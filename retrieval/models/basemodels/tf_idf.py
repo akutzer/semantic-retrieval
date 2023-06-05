@@ -13,7 +13,7 @@ from retrieval.models.basemodels.metrics import Metrics
 #   (X@Q.T, where X is matrix of all paragraph vectors and Q is the query matrix)
 '''
 
-FOLDERS = ['../../../data/fandom_qa/harry_potter_qa_small'
+FOLDERS = ['../../../data/fandoms_qa/harry_potter/all'
            #,'../../../data/fandom_qa/witcher_qa'
            ]
 
@@ -47,7 +47,7 @@ class TfIdf():
 
         self.metrics = Metrics()
         self.vectorizer, self.X = self.tfIDFCreatorFromArr(self.paragraphs)
-        self.X = self.X.toarray()
+        self.X = self.X.T #.toarray()
 
 
     # def __init__(cls, passages):
@@ -65,16 +65,20 @@ class TfIdf():
         self.metrics.startCPUTime()
         self.metrics.startWallTime()
 
-        Q = self.vectorizer.transform([question]).T
-        M = self.X@Q
-        max_ind = np.argsort(-M, axis=0).flatten()
-        best_k = [(max_ind[i],self.paragraphs[max_ind[i]]) for i in range(k)]
+        Q = self.vectorizer.transform([question])
+        M = Q @ self.X
+        max_ind = np.argsort(-M.toarray(), axis=-1)
+
+        # topk_idcs = 
+        # max_ind = np.argsort(-M, axis=0).flatten()
+        # print(type(max_ind), max_ind.shape)
+        # best_k = [(max_ind[i],self.paragraphs[max_ind[i]]) for i in range(k)]
 
         # measure time
         self.metrics.stopCPUTime(1)
         self.metrics.stopWallTime(1)
 
-        return best_k
+        return max_ind[:, :k]
 
 
 
@@ -96,12 +100,11 @@ class TfIdf():
 
         '''input: embeddings of passages and batch of queries
         returns: '''
-        Q = self.vectorizer.transform(Q).T
-        Q = Q.toarray()
+        Q = self.vectorizer.transform(Q)
+        M = Q @ self.X
 
-        M = self.X @ Q
-        max_ind = np.argsort(-M, axis=0)
-        best_k = max_ind.T[:,:k]
+        max_ind = np.argsort(-M.toarray(), axis=-1)
+        best_k = max_ind[:,:k]
 
         return best_k
 
