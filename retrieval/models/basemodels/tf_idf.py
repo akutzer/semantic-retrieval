@@ -105,8 +105,9 @@ class TfIdf():
 
         max_ind = np.argsort(-M.toarray(), axis=-1)
         best_k = max_ind[:,:k]
+        scores = np.take_along_axis(M, best_k, axis=-1)
 
-        return best_k
+        return scores.toarray(), best_k
 
 
     def evaluate_folders(self,k,beta):

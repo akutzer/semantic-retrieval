@@ -25,8 +25,10 @@ class ColBERTRetriever:
         print("tf idf fertig")
     
     def tf_idf_rank(self, query: List[str], k: int):
-        batch_pids = self.tfidf.batchBestKPIDs(k, query) # shape: (B, k)
-        return torch.tensor(batch_pids, dtype=torch.int32)
+        batch_sims, batch_pids = self.tfidf.batchBestKPIDs(k, query) # shape: (B, k)
+        batch_pids = torch.tensor(batch_pids, dtype=torch.int32)
+        batch_sims = torch.tensor(batch_sims)
+        return zip(batch_sims, batch_pids)
 
     def rerank(self, query: List[str], k: int):
         # embed the query
@@ -35,7 +37,7 @@ class ColBERTRetriever:
             Qs = Qs[None]
         
         # for each query search for the best k PIDs using TF-IDF
-        batch_pids = self.tfidf.batchBestKPIDs(k, query) # shape: (B, k)
+        _, batch_pids = self.tfidf.batchBestKPIDs(k, query) # shape: (B, k)
 
         # since self.indexer.get_pid_embedding expects a torch.Tensor, we
         # need to convert batch_pids to a torch Tensor of shape (B, k)
@@ -172,12 +174,12 @@ if __name__ == "__main__":
 
             if len(query_batch) == BSIZE or i + 1 == len(dataset):
                 with torch.autocast(retriever.device.type):
-                    pids = retriever.tf_idf_rank(query_batch, K)
+                    # pids = retriever.tf_idf_rank(query_batch, K)
                     # pids = retriever.rerank(query_batch, K)
-                    # pids = retriever.full_retrieval(query_batch, K)
+                    pids = retriever.full_retrieval(query_batch, K)
                     
                 
-                for j, ((*_, pred_pids), target_pid) in enumerate(zip(pids, target_batch)):
+                for j, ((sims, pred_pids), target_pid) in enumerate(zip(pids, target_batch)):
                     idx = torch.where(pred_pids == target_pid)[0]
                     # print(idx, torch.where(pred_pids == target_pid))
                     if idx.numel() == 0:
