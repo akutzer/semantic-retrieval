@@ -105,6 +105,8 @@ if __name__ == "__main__":
     K = 100
     
     top1, top3, top5, top10, top25, top100 = 0, 0, 0, 0, 0, 0
+    mrr_10 = 0
+    recall_50 = 0
 
     with cProfile.Profile() as pr:
         query_batch = []
@@ -118,26 +120,31 @@ if __name__ == "__main__":
             if len(query_batch) == BSIZE or i + 1 == len(dataset):
                 pids = retriever.full_retrieval(query_batch, K)
                 
-                for i, ((sims, pred_pids), target_pit) in enumerate(zip(pids, target_batch)):
-                    if target_pit in pred_pids[:100]:
+                for j, ((sims, pred_pids), target_pid) in enumerate(zip(pids, target_batch)):
+                    idx = torch.tensor([idx for idx, pred_pid in enumerate(pred_pids) if pred_pid == target_pid])
+                    if idx.numel() == 0:
+                        continue
+                    if idx < 100:
                         top100 += 1
-                        if target_pit in pred_pids[:25]:
-                            top25 += 1
-                            if target_pit in pred_pids[:10]:
-                                top10 += 1
-                                if target_pit in pred_pids[:5]:
-                                    top5 += 1
-                                    if target_pit in pred_pids[:3]:
-                                        top3 += 1
-                                        if target_pit == pred_pids[0]:
-                                            top1 += 1
+                        if idx < 50:
+                            recall_50 += len(set.intersection(set([target_pid]), set(pred_pids[:50])))
+                            if idx < 25:
+                                top25 += 1
+                                if idx < 10:
+                                    top10 += 1
+                                    mrr_10 += 1 / (idx + 1)
+                                    if idx < 5:
+                                        top5 += 1
+                                        if idx < 3:
+                                            top3 += 1
+                                            if idx < 1:
+                                                top1 += 1
 
-                    
                 
                 query_batch = []
                 target_batch = []
 
-        pr.print_stats()
+        # pr.print_stats()
 
 
     print("Top-1-Acc:", round((100 * top1) / len(dataset), 3))
@@ -146,3 +153,7 @@ if __name__ == "__main__":
     print("Top-10-Acc:", round((100 * top10) / len(dataset), 3))
     print("Top-25-Acc:", round((100 * top25) / len(dataset), 3))
     print("Top-100-Acc:", round((100 * top100) / len(dataset), 3))
+
+    print("MRR@10:", round((100 * mrr_10.item()) / len(dataset), 3))
+    print("Recall@50:", round((100 * recall_50) / len(dataset), 3))
+
