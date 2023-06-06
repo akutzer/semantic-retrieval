@@ -1,9 +1,10 @@
 import pandas as pd
-from retrieval.models.basemodels import TfIdf
+from retrieval.models.basemodels.tf_idf import TfIdf
 import numpy as np
 import swifter
 import os
 import pandas as pd
+
 
 SEARCH_PATH = "../../data/"
 
@@ -42,11 +43,13 @@ def statistics(path, passages_from_triples=False):
         queries = df_queries['query'].values
         tf_idf = TfIdf(passages)
         k = len(passages)
-        best_ind_all = tf_idf.answerQuestion(queries,k)
-        best_ind_in_m = np.argsort(best_ind_all, axis=1)
+        #best_ind_all = tf_idf.answerQuestion(queries,k)
+        # best_ind_in_m = np.argsort(best_ind_all, axis=1)
+
+        # i tried matrix multiplication which is much faster but doing it the naive way requires 250 gb ram which i sadly do not have
         
-        df_triple['pos+'] = df_triple.swifter.apply(lambda row : positionPidQid(best_ind_in_m, row["PID"], row["QID+"]), axis=1)
-        df_triple['pos-'] = df_triple.swifter.apply(lambda row : positionPidQid(best_ind_in_m, row["PID"], row["QID-"]), axis=1)
+        df_triple['pos+'] = df_triple.swifter.apply(lambda row : np.argsort(tf_idf.answerQuestion([queries[row["QID+"]]],k),axis=1)[0,row['PID']], axis=1)
+        df_triple['pos-'] = df_triple.swifter.apply(lambda row : np.argsort(tf_idf.answerQuestion([queries[row["QID-"]]],k),axis=1)[0,row['PID']], axis=1)
 
         mrrplus = df_triple['pos+'].apply(lambda x: 1.0/(x+1)).sum() / len(df_triple)
         mrrminus = df_triple['pos-'].apply(lambda x: 1.0/(x+1)).sum() / len(df_triple)
@@ -59,7 +62,7 @@ def statistics(path, passages_from_triples=False):
 
         print('describe pos-')
         print(f'MRR pos-: {mrrminus}')
-        print(df_triple['pos+'].describe())
+        print(df_triple['pos-'].describe())
 
         print('----------------------------')
 
@@ -71,5 +74,6 @@ if __name__ == "__main__":
         if 'passages.tsv' in files and ('MS' in root ):
             continue
             print(statistics(root, passages_from_triples=True))
-        elif 'passages.tsv' in files and ('/all' in root ):
+        elif 'passages.tsv' in files and ('val' in root ):
+        # elif 'passages.tsv' in files and ('dc' in root ):
             statistics(root, passages_from_triples=False)
