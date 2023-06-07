@@ -35,8 +35,11 @@ def html_heatmap(tokens, flat_topk_cossim_indices_list, flat_topk_cossim_values_
                                             32 (64) query vectors (duplicates necessary)
     '''
     num_best_tokens = len(flat_topk_cossim_indices_list)
+
+    #remove first two and last token for kde
+    kde_flat_topk_cossim_indices_list = [i for i in flat_topk_cossim_indices_list if i != 0 and i!=1 and i!=(len(tokens)-1)]
     # plot density function
-    density = gaussian_kde(flat_topk_cossim_indices_list)
+    density = gaussian_kde(kde_flat_topk_cossim_indices_list)
 
     #remove leading #-symbols
     stripped_tokens = []
@@ -198,20 +201,30 @@ if __name__ == "__main__":
               'Who is the author of ''The Witcher''?',
               'How does an NPC react if it starts raining?',
               'How does an NPC behave if it starts raining?',
-              'What is the name of the red car?'
-              ]
+              'What is the name of the red car?',
+               "Who did Sigismund recruit as his informant during the interwar period?",
+               "What did Yennefer do to protect Dandelion when he was captured by Rience?",
+               "Why did Temerian agents pursue Geralt and Ciri?",
+               "What is the end of the end?"
+                ]
     passages = ["[Personality and traits] At the same time, he was far from being devoid of attachment towards his allies and comrades: He was visibly saddened by the insanity of Alice and Frank Longbottom, noting how being dead would have be better than having to live the rest of their lives insane, and openly acknowledged he was never able to find it easy to get over the loss of a comrade and only by turning the sadness he felt into motivation to get justice was he able to move on, as seen by his expressing sympathy towards Jacob's sibling after they lost Rowan Khanna and even acknowledging he should have trained them well enough.",
                 """"The Witcher" (Polish: "Wiedźmin") is a short story written by Andrzej Sapkowski, having first been published in the "Fantastyka" magazine and later in the now obsolete book, "Wiedźmin" before being re-published in . It introduces the witcher Geralt and his famous fight with a striga. 21.335 2492 The Witcher (Polish: "Cykl wiedźmiński") by Andrzej Sapkowski is a series of fantasy short stories (collected in two books, except for two stories) and five novels about the witcher Geralt of Rivia. The books have been adapted into a movie and two television series ("The Hexer" and ), a video game series (), a comic book and others. The novel series (excluding the short stories) is also called the Witcher Saga (Polish: "saga o wiedźminie") or the Blood of the Elves saga.""",
                  """The Witcher" follows the story of Geralt of Rivia, a witcher: a traveling monster hunter for hire, gifted with unnatural powers. Taking place in a fictional medieval world, the game implements detailed visuals. The natural light during various phases of the day is realistically altered, and the day and night transitions serve to enrich the game's ambiance. The weather can dynamically change from a light drizzle to a dark, stormy downpour accompanied by thunder and lightning, and the NPCs react to the rain by hiding under roofs trying to get out of the rain.""",
                  """The Witcher" follows the story of Geralt of Rivia, a witcher: a traveling monster hunter for hire, gifted with unnatural powers. Taking place in a fictional medieval world, the game implements detailed visuals. The natural light during various phases of the day is realistically altered, and the day and night transitions serve to enrich the game's ambiance. The weather can dynamically change from a light drizzle to a dark, stormy downpour accompanied by thunder and lightning, and the NPCs react to the rain by hiding under roofs trying to get out of the rain.""",
-                "The name of the red car is Gerald and it is very fast."
+                "The name of the red car is Gerald and it is very fast.",
+                "[Interwar Period] In , he recruited Dandelion as his informant and asked Yennefer to protect the bard when he was captured by Rience in a town near Bleobheris. The sorceress saved Dandelion and ordered him to hide under Dijkstra's wing. Later, Sigismund managed to calm the tension when Geralt and Olsen killed Temerian agents who, while they were legit agents, had at the time been acting on their own in pursuit of Geralt and Ciri to try and claim Rience's reward for the pair. Together with Philippa, the spymaster asked Dandelion about Geralt's current whereabouts; Dijkstra was surprised when Philippa mentioned Ciri as well, perceiving it as a hasty move.",
+                "[Interwar Period] In , he recruited Dandelion as his informant and asked Yennefer to protect the bard when he was captured by Rience in a town near Bleobheris. The sorceress saved Dandelion and ordered him to hide under Dijkstra's wing. Later, Sigismund managed to calm the tension when Geralt and Olsen killed Temerian agents who, while they were legit agents, had at the time been acting on their own in pursuit of Geralt and Ciri to try and claim Rience's reward for the pair. Together with Philippa, the spymaster asked Dandelion about Geralt's current whereabouts; Dijkstra was surprised when Philippa mentioned Ciri as well, perceiving it as a hasty move.",
+                "[Interwar Period] In , he recruited Dandelion as his informant and asked Yennefer to protect the bard when he was captured by Rience in a town near Bleobheris. The sorceress saved Dandelion and ordered him to hide under Dijkstra's wing. Later, Sigismund managed to calm the tension when Geralt and Olsen killed Temerian agents who, while they were legit agents, had at the time been acting on their own in pursuit of Geralt and Ciri to try and claim Rience's reward for the pair. Together with Philippa, the spymaster asked Dandelion about Geralt's current whereabouts; Dijkstra was surprised when Philippa mentioned Ciri as well, perceiving it as a hasty move.",
+                "start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start end"
+
                 ]
 
     #get best k tokens per query vectory (32)
 
-    k = 10
+    k = 2
+    query_indices = [0,1,2,3,4,5,6,7,8]
     html_heatmap_kde_list, html_heatmap_absolute_list, html_added_values_list = [], [], []
-    for query_index in range(0, len(queries)):
+    for query_index in query_indices:
         print(query_index)
         topk_cossim_indices_list, topk_cossim_values_list = get_topk_cossim_indices_and_values(k, inference,
                                                                             queries[query_index], passages[query_index])
@@ -231,6 +244,8 @@ if __name__ == "__main__":
             print("The only relevant Token is:", tokens[flat_topk_cossim_indices_list[0]])
         else:
             print(k,"* 32 = ", len(flat_topk_cossim_indices_list), "datapoints used")
+            print("Max topk index:", max(flat_topk_cossim_indices_list))
+            print("len(tokens):", len(tokens))
             #create heatmaps
             html_heatmap_kde, html_heatmap_absolute, html_added_values = html_heatmap(tokens, flat_topk_cossim_indices_list
                                                                                       , flat_topk_cossim_values_list, True, '#')
