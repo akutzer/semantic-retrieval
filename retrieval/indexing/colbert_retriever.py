@@ -69,6 +69,7 @@ if __name__ == "__main__":
     import numpy as np
     from tqdm import tqdm
     import cProfile
+    import pandas as pd
 
     SEED = 125
     random.seed(SEED)
@@ -107,6 +108,10 @@ if __name__ == "__main__":
     top1, top3, top5, top10, top25, top100 = 0, 0, 0, 0, 0, 0
     mrr_10 = 0
     recall_50 = 0
+    
+    df = pd.read_csv(dataset.triples.path, sep='\t', header=None)
+    df.drop(df.columns[2], axis=1, inplace=True)
+    qrels = df.groupby([df.columns[0]], as_index=False).agg(lambda x: x)
 
     with cProfile.Profile() as pr:
         query_batch = []
@@ -127,7 +132,7 @@ if __name__ == "__main__":
                     if idx < 100:
                         top100 += 1
                         if idx < 50:
-                            recall_50 += len(set.intersection(set([target_pid]), set(pred_pids[:50])))
+                            recall_50 += [len(set.intersection(set([target_pid]), set(pred_pids[:50]))) / max(1.0, len(qrels[qid]))]
                             if idx < 25:
                                 top25 += 1
                                 if idx < 10:
