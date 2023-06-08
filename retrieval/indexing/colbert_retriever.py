@@ -108,19 +108,21 @@ if __name__ == "__main__":
     top1, top3, top5, top10, top25, top100 = 0, 0, 0, 0, 0, 0
     mrr_10 = 0
     recall_50 = 0
-    
+
     df = pd.read_csv(dataset.triples.path, sep='\t', header=None)
     df.drop(df.columns[2], axis=1, inplace=True)
     qrels = df.groupby([df.columns[0]], as_index=False).agg(lambda x: x)
-
+    
     with cProfile.Profile() as pr:
+        qids_batch = []
         query_batch = []
         target_batch = []
-        qids_batch = []
 
         for i, triple in enumerate(tqdm(dataset)):
             qid, pid_pos, *pid_neg = triple
             query, psg_pos, *psg_neg = dataset.id2string(triple)
+            
+            qids_batch.append(qid)
             query_batch.append(query)
             target_batch.append(pid_pos)
 
@@ -134,7 +136,11 @@ if __name__ == "__main__":
                     if idx < 100:
                         top100 += 1
                         if idx < 50:
-                            recall_50 += (len(set.intersection(set(qrels.iloc[list(qrels.iloc[:,0]).index(qid)][1]), set(pred_pids[:50]))) / max(1.0, len(qrels[qid])))
+                            # print(set([qrels.iloc[list(qrels.iloc[:,0]).index(qid)][1]]))
+                            qrel = qrels.iloc[list(qrels.iloc[:,0]).index(qid)][1]
+                            print('len',len(set([qrel])))
+                            print(target_pid, qrel)
+                            recall_50 += (len(set.intersection(set([qrel]), set(pred_pids[:50]))) / max(1.0, len(set([qrel]))))
                             if idx < 25:
                                 top25 += 1
                                 if idx < 10:
@@ -161,6 +167,5 @@ if __name__ == "__main__":
     print("Top-25-Acc:", round((100 * top25) / len(dataset), 3))
     print("Top-100-Acc:", round((100 * top100) / len(dataset), 3))
 
-    print("MRR@10:", round((100 * mrr_10) / len(dataset), 3))
+    print("MRR@10:", round((100 * mrr_10.item()) / len(dataset), 3))
     print("Recall@50:", round((100 * recall_50) / len(dataset), 3))
-
