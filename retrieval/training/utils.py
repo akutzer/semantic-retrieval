@@ -24,7 +24,7 @@ def seed_worker(worker_id):
 
 
 def get_run_name(args):
-    time = datetime.now().isoformat(timespec="seconds")
+    time = datetime.now().isoformat(timespec="milliseconds")
 
     if "roberta" in args.backbone:
         backbone_name = "roberta"
@@ -35,7 +35,7 @@ def get_run_name(args):
     else:
         backbone_name = args.backbone
 
-    run_name = f"{args.dataset_name}_{backbone_name}_{time}"
+    run_name = f"{args.dataset_name}_{backbone_name}_{args.similarity}_{args.dim}_{time}"
     return run_name
 
 
