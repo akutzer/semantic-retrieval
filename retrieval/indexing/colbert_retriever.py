@@ -116,6 +116,8 @@ if __name__ == "__main__":
     with cProfile.Profile() as pr:
         query_batch = []
         target_batch = []
+        qids_batch = []
+
         for i, triple in enumerate(tqdm(dataset)):
             qid, pid_pos, *pid_neg = triple
             query, psg_pos, *psg_neg = dataset.id2string(triple)
@@ -125,14 +127,14 @@ if __name__ == "__main__":
             if len(query_batch) == BSIZE or i + 1 == len(dataset):
                 pids = retriever.full_retrieval(query_batch, K)
                 
-                for j, ((sims, pred_pids), target_pid) in enumerate(zip(pids, target_batch)):
+                for j, ((sims, pred_pids), qid, target_pid) in enumerate(zip(pids, qids_batch, target_batch)):
                     idx = torch.tensor([idx for idx, pred_pid in enumerate(pred_pids) if pred_pid == target_pid])
                     if idx.numel() == 0:
                         continue
                     if idx < 100:
                         top100 += 1
                         if idx < 50:
-                            recall_50 += [len(set.intersection(set([target_pid]), set(pred_pids[:50]))) / max(1.0, len(qrels[qid]))]
+                            recall_50 += (len(set.intersection(set(qrels.iloc[list(qrels.iloc[:,0]).index(qid)][1]), set(pred_pids[:50]))) / max(1.0, len(qrels[qid])))
                             if idx < 25:
                                 top25 += 1
                                 if idx < 10:
@@ -159,6 +161,6 @@ if __name__ == "__main__":
     print("Top-25-Acc:", round((100 * top25) / len(dataset), 3))
     print("Top-100-Acc:", round((100 * top100) / len(dataset), 3))
 
-    print("MRR@10:", round((100 * mrr_10.item()) / len(dataset), 3))
+    print("MRR@10:", round((100 * mrr_10) / len(dataset), 3))
     print("Recall@50:", round((100 * recall_50) / len(dataset), 3))
 
