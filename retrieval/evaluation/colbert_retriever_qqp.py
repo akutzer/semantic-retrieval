@@ -138,10 +138,10 @@ if __name__ == "__main__":
         checkpoint=CHECKPOINT_PATH
     )
 
-    triples_path = "../../data/ms_marco/ms_marco_v1_1/val/triples.tsv"
-    queries_path = "../../data/ms_marco/ms_marco_v1_1/val/queries.tsv"
-    passages_path = "../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
-    dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QPP")
+    triples_path = "../../data/fandoms_qa/harry_potter/val/triples.tsv"
+    queries_path = "../../data/fandoms_qa/harry_potter/val/queries.tsv"
+    passages_path = "../../data/fandoms_qa/harry_potter/val/passages.tsv"
+    dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QQP")
 
     # get passage list
     passage_list = [p[1] for p in dataset.passages_items()]
@@ -158,61 +158,62 @@ if __name__ == "__main__":
     mrr_10, mrr_100, recall_50 = 0, 0, 0
 
     df = pd.read_csv(dataset.triples.path, sep='\t')
-    df.drop(df.columns[2:], axis=1, inplace=True)
-    qrels = df.groupby([df.columns[0]], as_index=False).agg(lambda x: x)
+    df.drop(df.columns[1:2], axis=1, inplace=True)
+    prels = df.groupby([df.columns[1]], as_index=False).agg(lambda x: x)
     
     with cProfile.Profile() as pr:
-        qids_batch = []
-        query_batch = []
+        pids_batch = []
+        passage_batch = []
         target_batch = []
-        qids_visit = np.zeros(len(dataset), dtype=bool)
+        pids_visit = np.zeros(len(dataset), dtype=bool)
         
         for i, triple in enumerate(tqdm(dataset)):
 
             # for QPP datasets:
-            qid, pid_pos, *pid_neg = triple
-            query, psg_pos, *psg_neg = dataset.id2string(triple)
-            
-            qids_batch.append(qid)
-            query_batch.append(query)
-            target_batch.append(pid_pos)
+            # qid, pid_pos, *pid_neg = triple
+            # query, psg_pos, *psg_neg = dataset.id2string(triple)
+            # qids_batch.append(qid)
+            # query_batch.append(query)
+            # target_batch.append(pid_pos)
 
             # for QQP datasets:
-            # qid_pos, qid_neg, pid_pos = triple
-            # query_pos, query_neg, passage = dataset.id2string(triple)
-            # query_batch.append(query_pos)
-            # target_batch.append(pid_pos)
+            qid_pos, qid_neg, pid = triple
+            query_pos, query_neg, passage = dataset.id2string(triple)
+                
+            pids_batch.append(pid)
+            passage_batch.append(passage)
+            target_batch.append(qid_pos)
 
             if len(query_batch) == BSIZE or i + 1 == len(dataset):
                 with torch.autocast(retriever.device.type):
-                    pids = retriever.tf_idf_rank(query_batch, K)
-                    # pids = retriever.rerank(query_batch, K)
-                    # pids = retriever.full_retrieval(query_batch, K)
+                    qids = retriever.tf_idf_rank(passage_batch, K)
+                    # qids = retriever.rerank(passage_batch, K)
+                    # qids = retriever.full_retrieval(passage_batch, K)
                 
-                # print(qids_batch)
+                # print(pids_batch)
 
-                for j, ((sims, pred_pids), qid, target_pid) in enumerate(zip(pids, qids_batch, target_batch)):
-                    idx = torch.where(pred_pids == target_pid)[0]
-                    # idx = torch.tensor([idx for idx, pred_pid in enumerate(pred_pids) if pred_pid == target_pid])
-                    # print(idx, torch.where(pred_pids == target_pid))
+                for j, ((sims, pred_qids), pid, target_qid) in enumerate(zip(qids, pids_batch, target_batch)):
+                    idx = torch.where(pred_qids == target_qid)[0]
+                    # idx = torch.tensor([idx for idx, pred_qid in enumerate(pred_qids) if pred_qid == target_qid])
+                    # print(idx, torch.where(pred_qids == target_qid))
                     if idx.numel() == 0:
                         continue
-                    # print(target_pid, pred_pids[:10])
+                    # print(target_qid, pred_qids[:10])
                     if idx < 100:
                         top100 += 1
                         mrr_100 += 1 / (idx + 1)
                         if idx < 50:
-                            # print(set([qrels.iloc[list(qrels.iloc[:,0]).index(qid)][1]]))
-                            qrel = qrels.iloc[list(qrels.iloc[:,0]).index(qid)][1]
-                            if isinstance(qrel, np.int64):
-                                # print(qid, target_pid, qrel, set([qrel]), pred_pids[:50])
-                                common = set([qrel]) & set(pred_pids[:50].cpu().numpy())
-                                recall_50 += (len(common) / max(1.0, len(set([qrel]))))
-                            if isinstance(qrel, np.ndarray) and qids_visit[qid]==False:
-                                # print(qid, target_pid, qrel, set([qrel]), pred_pids[:50])
-                                common = set(qrel) & set(pred_pids[:50].cpu().numpy())
-                                recall_50 += (len(common) / max(1.0, len(set(qrel))))
-                                qids_visit[qid] = True
+                            # print(set([prels.iloc[list(prels.iloc[:,0]).index(pid)][1]]))
+                            prel = prels.iloc[list(prels.iloc[:,0]).index(pid)][1]
+                            if isinstance(prel, np.int64):
+                                # print(pid, target_qid, prel, set([prel]), pred_qids[:50])
+                                common = set([prel]) & set(pred_qids[:50].cpu().numpy())
+                                recall_50 += (len(common) / max(1.0, len(set([prel]))))
+                            if isinstance(prel, np.ndarray) and pids_visit[pid]==False:
+                                # print(pid, target_qid, prel, set([prel]), pred_qids[:50])
+                                common = set(prel) & set(pred_qids[:50].cpu().numpy())
+                                recall_50 += (len(common) / max(1.0, len(set(prel))))
+                                pids_visit[pid] = True
                             if idx < 25:
                                 top25 += 1
                                 if idx < 10:
@@ -226,8 +227,8 @@ if __name__ == "__main__":
                                                 top1 += 1
 
                 
-                qids_batch = []
-                query_batch = []
+                pids_batch = []
+                passage_batch = []
                 target_batch = []
             
 

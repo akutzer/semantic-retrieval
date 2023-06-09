@@ -185,8 +185,8 @@ if __name__ == "__main__":
     torch.set_float32_matmul_precision("high")
 
     DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
-    PASSAGES_PATH = "../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
-    INDEX_PATH = "../../data/ms_marco/ms_marco_v1_1/val/passages.indices.pt"
+    PASSAGES_PATH = "../../data/fandoms_qa/harry_potter/val/passages.tsv"
+    INDEX_PATH = "../../data/fandoms_qa/harry_potter/val/passages.indices.pt"
     BACKBONE = "bert-base-uncased" # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
     CHECKPOINT_PATH = "../../data/colbertv2.0/"
     

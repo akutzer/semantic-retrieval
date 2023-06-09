@@ -159,7 +159,7 @@ if __name__ == "__main__":
 
     df = pd.read_csv(dataset.triples.path, sep='\t')
     df.drop(df.columns[2:], axis=1, inplace=True)
-    qrels = df.groupby([df.columns[0]], as_index=False).agg(lambda x: x)
+    qrels = df.groupby(['QID'], as_index=False).agg(lambda x: x)
     
     with cProfile.Profile() as pr:
         qids_batch = []
@@ -176,12 +176,6 @@ if __name__ == "__main__":
             qids_batch.append(qid)
             query_batch.append(query)
             target_batch.append(pid_pos)
-
-            # for QQP datasets:
-            # qid_pos, qid_neg, pid_pos = triple
-            # query_pos, query_neg, passage = dataset.id2string(triple)
-            # query_batch.append(query_pos)
-            # target_batch.append(pid_pos)
 
             if len(query_batch) == BSIZE or i + 1 == len(dataset):
                 with torch.autocast(retriever.device.type):
