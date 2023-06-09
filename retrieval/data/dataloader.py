@@ -1,134 +1,130 @@
 #!/usr/bin/env python3
 import math
+import numpy as np
 
+from torch.utils.data import Dataset, DataLoader
 from retrieval.configs import BaseConfig
 from retrieval.data.dataset import TripleDataset
 from retrieval.models import ColBERTTokenizer
 
 
-
-
-class BucketIterator():
-    def __init__(self, config: BaseConfig, dataset: TripleDataset, tokenizer: ColBERTTokenizer):
+class TokenizedTripleDataset(Dataset):
+    def __init__(
+        self, config: BaseConfig, dataset: TripleDataset, tokenizer: ColBERTTokenizer
+    ):
         self.config = config
-        self.bucket_size = config.bucket_size
-        self.batch_size = config.batch_size
-
         self.tokenizer = tokenizer
         self.dataset = dataset
 
-        self.drop_last = config.drop_last
-        self.position = 0
-
-    def __iter__(self):
-        return self
-
     def __len__(self):
-        if self.drop_last:
-            math.floor(len(self.dataset) / self.bucket_size)
-        return math.ceil(len(self.dataset) / self.bucket_size)
+        return len(self.dataset)
 
-    def __next__(self):
-        offset, endpos = self.position, min(self.position + self.bucket_size, len(self.dataset))
-        self.position = endpos
-
-        # drops the last incomplete batch
-        if self.drop_last and offset + self.bucket_size > len(self.dataset):
-            raise StopIteration
-        
-        if offset >= len(self.dataset):
-            raise StopIteration
-        
-        qry_batch, psg_batch = [], []
-        for idx in range(offset, endpos):
-            if self.dataset.is_qqp():
-                *qids,  pids = self.dataset[idx]
-                pids = [pids]
-            else:   # mode == "qpp"
-                qids, *pids = self.dataset[idx]
-                qids = [qids]
-                pids = pids[:self.config.passages_per_query]
-            
-            qry_batch.extend(self.dataset.qid2string(qids))
-            psg_batch.extend(self.dataset.pid2string(pids))
-        
-        return self.collate_fn(qry_batch, psg_batch)
-    
-    def collate_fn(self, queries, passages):
-        size = len(queries)
-
-        subbatch_size = math.ceil(self.batch_size / self.config.accum_steps)
-
+    def __getitem__(self, index):
         if self.dataset.is_qqp():
-            q_batch_size = subbatch_size * 2
-            p_batch_size = subbatch_size
-        else:   # mode == "qpp"
-            q_batch_size = subbatch_size
-            p_batch_size = subbatch_size * self.config.passages_per_query
+            *qids, pids = self.dataset[index]
+            pids = [pids]
+        else:
+            qids, *pids = self.dataset[index]
+            qids = [qids]
+            pids = pids[: self.config.passages_per_query]
 
-        Q_batches = self.tokenizer.tensorize(queries, mode="query", bsize=q_batch_size)
-        P_batches = self.tokenizer.tensorize(passages, mode="doc", bsize=p_batch_size)
+        queries = self.dataset.qid2string(qids)
+        passages = self.dataset.pid2string(pids)
 
-        return zip(Q_batches, P_batches)
-    
-    def collate_fn_sort(self, queries, passages):
-        raise DeprecationWarning
+        return queries, passages
 
-        size = len(queries)
+    def collate_fn(self, batch):
+        queries_flatten, passages_flatten = [], []
+        for queries, passages in batch:
+            queries_flatten.extend(queries)
+            passages_flatten.extend(passages)
 
-        # tokenize
-        q_tokens, q_masks = self.tokenizer.tensorize(queries, mode="query")
-        p_tokens, p_masks = self.tokenizer.tensorize(passages, mode="doc")
+        Q_batches = self.tokenizer.tensorize(queries_flatten, mode="query")
+        P_batches = self.tokenizer.tensorize(passages_flatten, mode="doc")
 
-        # sort by paragraph length
-        sorted_indices = p_masks.sum(dim=-1).sort(descending=True).indices
-        q_tokens, q_masks = q_tokens[sorted_indices], q_masks[sorted_indices]
-        p_tokens, p_masks = p_tokens[sorted_indices], p_masks[sorted_indices]
+        return Q_batches, P_batches
 
-        # split into sub-batches, while also removing unnecessary padding
-        batch_p_maxlen = p_masks[::self.batch_size].sum(dim=-1)
-        q_tokens = [q_tokens[i:i+self.batch_size] for i in range(0, size, self.batch_size)]
-        q_masks = [q_masks[i:i+self.batch_size] for i in range(0, size, self.batch_size)]
-        p_tokens = [p_tokens[i:i+self.batch_size, :batch_p_maxlen[i//self.batch_size]] for i in range(0, size, self.batch_size)]
-        p_masks = [p_masks[i:i+self.batch_size, :batch_p_maxlen[i//self.batch_size]] for i in range(0, size, self.batch_size)]
 
-        return zip(q_tokens, q_masks, p_tokens, p_masks)  
+def get_pytorch_dataloader(
+    config: BaseConfig, dataset: TripleDataset, tokenizer: ColBERTTokenizer, **kwargs
+):
+    token_dataset = TokenizedTripleDataset(config, dataset, tokenizer)
 
-    def shuffle(self, reset_index=False):
-        # TODO: don't shuffle dataset, shuffle the iterator indicies
-        self.dataset.shuffle(reset_index=False)
-    
-    def reset(self):
-        self.position = 0
+    shuffle = kwargs["shuffle"] if "shuffle" in kwargs else config.shuffle
+    pin_memory = kwargs["pin_memory"] if "pin_memory" in kwargs else config.pin_memory
+    drop_last = kwargs["drop_last"] if "drop_last" in kwargs else config.drop_last
+    num_workers = (
+        kwargs["num_workers"] if "num_workers" in kwargs else config.num_workers
+    )
+    batch_size = (
+        kwargs["batch_size"]
+        if "batch_size" in kwargs
+        else math.ceil(config.batch_size / config.accum_steps)
+    )
 
+    dataloader = DataLoader(
+        dataset=token_dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        collate_fn=token_dataset.collate_fn,
+        pin_memory=pin_memory,
+        drop_last=drop_last,
+        num_workers=num_workers,
+    )
+
+    return dataloader
 
 
 if __name__ == "__main__":
     from tqdm import tqdm
+    import torch
+
+    SEED = 125
+    np.random.seed(SEED)
+    torch.manual_seed(SEED)
+    torch.cuda.manual_seed_all(SEED)
 
     config = BaseConfig(
-        bucket_size=16*4,
         batch_size=32,
         accum_steps=2,
-        passages_per_query=1)
-    triples_path = "../../data/fandom-qa/witcher_qa/triples.train.tsv"
-    queries_path = "../../data/fandom-qa/witcher_qa/queries.train.tsv"
-    passages_path = "../../data/fandom-qa/witcher_qa/passages.train.tsv"
+        passages_per_query=10,
+        shuffle=True,
+        pin_memory=True,
+        drop_last=True,
+    )
 
-    dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QPP")
-    tokenize = ColBERTTokenizer(config)
-    data_iter = BucketIterator(config, dataset, tokenize)
+    triples_path = "../../data/ms_marco/ms_marco_v1_1/train/triples.tsv"
+    queries_path = "../../data/ms_marco/ms_marco_v1_1/train/queries.tsv"
+    passages_path = "../../data/ms_marco/ms_marco_v1_1/train/passages.tsv"
+    dataset = TripleDataset(
+        config, triples_path, queries_path, passages_path, mode="QPP"
+    )
 
+    # triples_path = "../../data/fandoms_qa/harry_potter/train/triples.tsv"
+    # queries_path = "../../data/fandoms_qa/harry_potter/train/queries.tsv"
+    # passages_path = "../../data/fandoms_qa/harry_potter/train/passages.tsv"
+    # dataset = TripleDataset(
+    #     config, triples_path, queries_path, passages_path, mode="QQP"
+    # )
 
+    tokenizer = ColBERTTokenizer(config)
+    dataloader = get_pytorch_dataloader(config, dataset, tokenizer, num_workers=4)
 
-    data_iter.shuffle()
-    for i, bucket in enumerate(tqdm(data_iter)):
-        for batch in bucket:
-            Q, P = batch
-            (q_tokens, q_masks), (p_tokens, p_masks) = Q, P
+    for i, batch in enumerate(tqdm(dataloader)):
+        Q, P = batch
+        (q_tokens, q_masks), (p_tokens, p_masks) = Q, P
+        # q_tokens, q_masks, p_tokens, p_masks = (
+        #     q_tokens.to("cuda:0", non_blocking=True),
+        #     q_masks.to("cuda:0", non_blocking=True),
+        #     p_tokens.to("cuda:0", non_blocking=True),
+        #     p_masks.to("cuda:0", non_blocking=True),
+        # )
 
-            # print(q_tokens.shape, q_masks.shape, p_tokens.shape, p_masks.shape)
-            # print(Q[0][0], P[0][0])
-            # print(data_iter.tokenizer.decode(Q[0][0]))
-            # print(data_iter.tokenizer.decode(P[0][0]))
-            # exit(0)
+        # print(q_tokens.shape, q_masks.shape, p_tokens.shape, p_masks.shape)
+        # print(q_tokens.is_pinned())
+        # print(q_tokens[0], p_tokens[0])
+        # print(tokenizer.decode(q_tokens[0]))
+        # print(tokenizer.decode(q_tokens[1]))
+        # print(tokenizer.decode(p_tokens[0]))
+        # print(tokenizer.decode(p_tokens[1]))
+        # exit(0)

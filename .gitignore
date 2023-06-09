@@ -1,18 +1,14 @@
 # ignore everything in data/ directory, except the README
-!data/README.md
-
-# keep json files in fandoms_qa folder
-!data/
 data/*
-!data/fandoms_qa
-data/fandoms_qa/*
-!data/fandoms_qa/*.json
-
+!data/README.md
 !retrieval/data
 
 # ignores tensorboard logging directory
 runs/
 
+# ignore saved models
+checkpoints/
+checkpoint/
 
 # ignore mac files
 .DS_Store
