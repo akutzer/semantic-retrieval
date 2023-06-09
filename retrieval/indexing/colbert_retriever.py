@@ -22,8 +22,8 @@ class ColBERTRetriever:
         self.indexer = ColBERTIndexer(inference, device=device)
         # TODO: precompute TF-IDF passages!!!!!!!
         self.tfidf = TfIdf(passages = passages)
-        print("tf idf fertig")
-    
+        # print("tf idf fertig")
+
     def tf_idf_rank(self, query: List[str], k: int):
         batch_sims, batch_pids = self.tfidf.batchBestKPIDs(k, query) # shape: (B, k)
         batch_pids = torch.tensor(batch_pids, dtype=torch.int32)
@@ -119,6 +119,7 @@ if __name__ == "__main__":
     from tqdm import tqdm
     import cProfile
     import pandas as pd
+    import numpy as np
 
     # enable TensorFloat32 tensor cores for float32 matrix multiplication if available
     torch.set_float32_matmul_precision("high")
@@ -156,15 +157,16 @@ if __name__ == "__main__":
     top1, top3, top5, top10, top25, top100 = 0, 0, 0, 0, 0, 0
     mrr_10, mrr_100, recall_50 = 0, 0, 0
 
-    df = pd.read_csv(dataset.triples.path, sep='\t', header=None)
-    df.drop(df.columns[2], axis=1, inplace=True)
+    df = pd.read_csv(dataset.triples.path, sep='\t')
+    df.drop(df.columns[2:], axis=1, inplace=True)
     qrels = df.groupby([df.columns[0]], as_index=False).agg(lambda x: x)
     
     with cProfile.Profile() as pr:
         qids_batch = []
         query_batch = []
         target_batch = []
-
+        qids_visit = np.zeros(len(dataset), dtype=bool)
+        
         for i, triple in enumerate(tqdm(dataset)):
 
             # for QPP datasets:
@@ -186,7 +188,9 @@ if __name__ == "__main__":
                     # pids = retriever.tf_idf_rank(query_batch, K)
                     # pids = retriever.rerank(query_batch, K)
                     pids = retriever.full_retrieval(query_batch, K)
-                    
+                
+                # print(qids_batch)
+
                 for j, ((sims, pred_pids), qid, target_pid) in enumerate(zip(pids, qids_batch, target_batch)):
                     idx = torch.where(pred_pids == target_pid)[0]
                     # idx = torch.tensor([idx for idx, pred_pid in enumerate(pred_pids) if pred_pid == target_pid])
@@ -200,9 +204,15 @@ if __name__ == "__main__":
                         if idx < 50:
                             # print(set([qrels.iloc[list(qrels.iloc[:,0]).index(qid)][1]]))
                             qrel = qrels.iloc[list(qrels.iloc[:,0]).index(qid)][1]
-                            # print('len',len(set([qrel])))
-                            print(qid, target_pid, qrel)
-                            recall_50 += (len(set.intersection(set([qrel]), set(pred_pids[:50]))) / max(1.0, len(set([qrel]))))
+                            if isinstance(qrel, np.int64):
+                                # print(qid, target_pid, qrel, set([qrel]), pred_pids[:50])
+                                common = set([qrel]) & set(pred_pids[:50].cpu().numpy())
+                                recall_50 += (len(common) / max(1.0, len(set([qrel]))))
+                            if isinstance(qrel, np.ndarray) and qids_visit[qid]==False:
+                                # print(qid, target_pid, qrel, set([qrel]), pred_pids[:50])
+                                common = set(qrel) & set(pred_pids[:50].cpu().numpy())
+                                recall_50 += (len(common) / max(1.0, len(set(qrel))))
+                                qids_visit[qid] = True
                             if idx < 25:
                                 top25 += 1
                                 if idx < 10:
@@ -216,6 +226,7 @@ if __name__ == "__main__":
                                                 top1 += 1
 
                 
+                qids_batch = []
                 query_batch = []
                 target_batch = []
             
