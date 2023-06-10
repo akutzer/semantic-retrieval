@@ -126,7 +126,7 @@ if __name__ == "__main__":
 
 
     BACKBONE = "bert-base-uncased" # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
-    INDEX_PATH = "../../data/ms_marco/ms_marco_v1_1/val/passages.indices.pt"
+    INDEX_PATH = "../../data/fandoms_qa/harry_potter/val/passages.indices.pt"
     CHECKPOINT_PATH = "../../data/colbertv2.0/" # or "../../checkpoints/harry_potter_bert_2023-06-03T08:58:15/epoch3_2_loss0.1289_mrr0.9767_acc95.339/"
 
     config = BaseConfig(
@@ -159,7 +159,7 @@ if __name__ == "__main__":
 
     df = pd.read_csv(dataset.triples.path, sep='\t')
     df.drop(df.columns[1:2], axis=1, inplace=True)
-    prels = df.groupby([df.columns[1]], as_index=False).agg(lambda x: x)
+    prels = df.groupby('PID', as_index=False).agg(lambda x: set(x))
     
     with cProfile.Profile() as pr:
         pids_batch = []
@@ -177,40 +177,36 @@ if __name__ == "__main__":
             # target_batch.append(pid_pos)
 
             # for QQP datasets:
-            qid_pos, qid_neg, pid = triple
-            query_pos, query_neg, passage = dataset.id2string(triple)
+            qid_pos, *qid_neg, pid = triple
+            query_pos, *query_neg, passage = dataset.id2string(triple)
                 
             pids_batch.append(pid)
             passage_batch.append(passage)
             target_batch.append(qid_pos)
 
-            if len(query_batch) == BSIZE or i + 1 == len(dataset):
+            if len(passage_batch) == BSIZE or i + 1 == len(dataset):
                 with torch.autocast(retriever.device.type):
-                    qids = retriever.tf_idf_rank(passage_batch, K)
+                    # qids = retriever.tf_idf_rank(passage_batch, K)
                     # qids = retriever.rerank(passage_batch, K)
-                    # qids = retriever.full_retrieval(passage_batch, K)
+                    qids = retriever.full_retrieval(passage_batch, K)
                 
-                # print(pids_batch)
-
                 for j, ((sims, pred_qids), pid, target_qid) in enumerate(zip(qids, pids_batch, target_batch)):
                     idx = torch.where(pred_qids == target_qid)[0]
-                    # idx = torch.tensor([idx for idx, pred_qid in enumerate(pred_qids) if pred_qid == target_qid])
-                    # print(idx, torch.where(pred_qids == target_qid))
+                    print(target_qid, pred_qids[:10])
                     if idx.numel() == 0:
                         continue
-                    # print(target_qid, pred_qids[:10])
                     if idx < 100:
                         top100 += 1
                         mrr_100 += 1 / (idx + 1)
-                        if idx < 50:
+                        if idx < 99:
                             # print(set([prels.iloc[list(prels.iloc[:,0]).index(pid)][1]]))
                             prel = prels.iloc[list(prels.iloc[:,0]).index(pid)][1]
                             if isinstance(prel, np.int64):
-                                # print(pid, target_qid, prel, set([prel]), pred_qids[:50])
+                                print(pid, target_qid, prel, set([prel]), pred_qids[:50])
                                 common = set([prel]) & set(pred_qids[:50].cpu().numpy())
                                 recall_50 += (len(common) / max(1.0, len(set([prel]))))
                             if isinstance(prel, np.ndarray) and pids_visit[pid]==False:
-                                # print(pid, target_qid, prel, set([prel]), pred_qids[:50])
+                                print(pid, target_qid, prel, set([prel]), pred_qids[:50])
                                 common = set(prel) & set(pred_qids[:50].cpu().numpy())
                                 recall_50 += (len(common) / max(1.0, len(set(prel))))
                                 pids_visit[pid] = True

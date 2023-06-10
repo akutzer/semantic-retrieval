@@ -23,3 +23,7 @@ class IndexerInterface(ABC):
     @abstractmethod
     def get_pid_embedding(self, pid):
         pass
+    
+    @abstractmethod
+    def get_qid_embedding(self, qid):
+        pass
