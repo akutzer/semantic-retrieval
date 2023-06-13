@@ -23,9 +23,16 @@ K = 5
 
 class TfIdf():
 
-    def __init__(self, passages):
+    def __init__(self, passages, mapping_rowInd_pid={}):
         self.vectorizer, self.X = self.tfIDFCreatorFromArr(arr=passages)
         self.X = self.X#.toarray()
+        self.mapping_row_pid = mapping_rowInd_pid
+
+    def mapRowIndexToPid(self, ind):
+        if not self.mapping_row_pid:
+            return ind
+        else:
+            return self.mapping_row_pid[ind]
 
 
     def tfIDFCreatorFromArr(self, arr, min_df=5):
@@ -40,6 +47,9 @@ class TfIdf():
         M = M.toarray()
         max_ind = np.argsort(-M, axis=0)
 
+        vecfun = np.vectorize(self.mapRowIndexToPid)
+        max_ind = vecfun(max_ind)
+
         return max_ind[:k, :].T
 
     def best_and_worst_pids(self, questions, topk, bottomk):
@@ -47,6 +57,9 @@ class TfIdf():
         M = self.X @ Q
         M = M.toarray()
         max_ind = np.argsort(-M, axis=0)
+
+        vecfun = np.vectorize(self.mapRowIndexToPid)
+        max_ind = vecfun(max_ind)
 
         return max_ind[:topk, :].T, max_ind[-bottomk:, :].T
 

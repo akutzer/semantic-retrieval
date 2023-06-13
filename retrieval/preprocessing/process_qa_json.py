@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import glob
 import os
-from tqdm import tqdm
+import tqdm
 import pandas as pd
 import json
 import shutil
@@ -12,12 +12,17 @@ output_path_dir = "../../data/fandoms_qa/"
 
 
 def transform_triple(df, len_p,len_q):
+    return df
+    len_p = 0
+    len_q = 0
     df['QID+'] = df['QID+'].apply(lambda row : row + len_q)
     df['QID-'] = df['QID-'].apply(lambda row : row + len_q)
     df['PID'] = df['PID'].apply(lambda row : row + len_p)
     return df
 
 def transform_wiki(json_dic, len_p):
+    return json_dic
+    len_p = 0
     json_dic_ret = json_dic
     for key, value in json_dic.items():
         for key2, _ in value.items():
@@ -47,7 +52,7 @@ FRACS = [0.8, 0.1, 0.1]
 REGEX_STRING = r'(.*\?).*'
 
 if __name__ == "__main__":
-    for ALL, COMPLETE in [(False, False), (True, False), (True, True)]:
+    for ALL, COMPLETE in [(False, False)]:
     #for ALL, COMPLETE in [(True, True)]:
         print((ALL,COMPLETE))
         if ALL:
@@ -71,7 +76,8 @@ if __name__ == "__main__":
             os.makedirs(preprocessed_qa_json_path_dir, exist_ok=True)
             dft.to_json(preprocessed_qa_json_path_dir+ "fandoms_all_qa"+".json", orient='records', indent=4)
             
-
+        qid_id = 0
+        pid_id = 0
         for file in os.listdir(preprocessed_qa_json_path_dir):
             if file.endswith(".json"):
                 current_frac = 0
@@ -89,8 +95,6 @@ if __name__ == "__main__":
                 pids = []
                 pid_wid = []
                 passages = []
-                qid_id = 0
-                pid_id = 0
                 triples = []
                 wikis = []
                 inconsistent = 0
@@ -100,12 +104,12 @@ if __name__ == "__main__":
 
                 df2 = df2.sample(frac=1, random_state=42)
 
-            total_p = len([(i,j,k) for i in tqdm(range(len(df2))) for j in range(len(df2.iloc[i]['text'])) for k in range(min(len(df2.iloc[i]['positive'][j]), len(df2.iloc[i]['negative'][j]))) if not df2.iloc[i]['text'][j].endswith(' .')])
+                total_p = len([(i,j,k) for i in range(len(df2)) for j in range(len(df2.iloc[i]['text'])) for k in range(min(len(df2.iloc[i]['positive'][j]), len(df2.iloc[i]['negative'][j]))) if not df2.iloc[i]['text'][j].endswith(' .')])
 
-            ii = 0
-            for i in tqdm(range(len(df2))):
-                row = df2.iloc[i]
-                wiki_pids = []
+                ii = 0
+                for i in tqdm.tqdm(range(len(df2))):
+                    row = df2.iloc[i]
+                    wiki_pids = []
 
                     for j in range(len(row['text'])):
                         total = total + 1
@@ -150,6 +154,7 @@ if __name__ == "__main__":
                             out_dir = output_path_dir + file.split('/')[-1][:-8] + '/' + endings_dir[current_frac] + '/'
 
                             os.makedirs(out_dir,exist_ok=True)
+                            print(qid_id)
                         else:
                             continue
 
@@ -163,8 +168,8 @@ if __name__ == "__main__":
                         pids = []
                         pid_wid = []
                         passages = []
-                        qid_id = 0
-                        pid_id = 0
+                        # qid_id = 0
+                        # pid_id = 0
                         triples = []
     
                         df2n = df2.iloc[last_ind:(i + 1)]
@@ -232,7 +237,7 @@ if __name__ == "__main__":
                 i, j = (0,0)
                 name = 'PID'
                 df = pd.read_csv(path, sep ='\t')
-                df[name] = df[name].apply(lambda row : row + len(train_test_eval_df[i][j]))
+                # df[name] = df[name].apply(lambda row : row + len(train_test_eval_df[i][j]))
                 train_test_eval_df[i][j] = pd.concat([train_test_eval_df[i][j], df], ignore_index=True)
             elif path.endswith('train/triples.tsv'):
                 i, j = (0,2)
@@ -241,13 +246,13 @@ if __name__ == "__main__":
                 i, j = (0,1)
                 name = 'QID'
                 df = pd.read_csv(path, sep ='\t')
-                df[name] = df[name].apply(lambda row : row + len(train_test_eval_df[i][j]))
+                # df[name] = df[name].apply(lambda row : row + len(train_test_eval_df[i][j]))
                 train_test_eval_df[i][j] = pd.concat([train_test_eval_df[i][j], df], ignore_index=True)
             elif path.endswith('test/passages.tsv'):
                 i, j = (1,0)
                 name = 'PID'
                 df = pd.read_csv(path, sep ='\t')
-                df[name] = df[name].apply(lambda row : row + len(train_test_eval_df[i][j]))
+                # df[name] = df[name].apply(lambda row : row + len(train_test_eval_df[i][j]))
                 train_test_eval_df[i][j] = pd.concat([train_test_eval_df[i][j], df], ignore_index=True)
             elif path.endswith('test/triples.tsv'):
                 i, j = (1,2)
@@ -256,13 +261,13 @@ if __name__ == "__main__":
                 i, j = (1,1)
                 name = 'QID'
                 df = pd.read_csv(path, sep ='\t')
-                df[name] = df[name].apply(lambda row : row + len(train_test_eval_df[i][j]))
+                # df[name] = df[name].apply(lambda row : row + len(train_test_eval_df[i][j]))
                 train_test_eval_df[i][j] = pd.concat([train_test_eval_df[i][j], df], ignore_index=True)
             elif path.endswith('val/passages.tsv'):
                 i, j = (2,0)
                 name = 'PID'
                 df = pd.read_csv(path, sep ='\t')
-                df[name] = df[name].apply(lambda row : row + len(train_test_eval_df[i][j]))
+                # df[name] = df[name].apply(lambda row : row + len(train_test_eval_df[i][j]))
                 train_test_eval_df[i][j] = pd.concat([train_test_eval_df[i][j], df], ignore_index=True)
             elif path.endswith('val/triples.tsv'):
                 i, j = (2,2)
@@ -271,7 +276,7 @@ if __name__ == "__main__":
                 i, j = (2,1)
                 name = 'QID'
                 df = pd.read_csv(path, sep ='\t')
-                df[name] = df[name].apply(lambda row : row + len(train_test_eval_df[i][j]))
+                # df[name] = df[name].apply(lambda row : row + len(train_test_eval_df[i][j]))
                 train_test_eval_df[i][j] = pd.concat([train_test_eval_df[i][j], df], ignore_index=True)
             elif 'fandoms_all' not in path and path.endswith('train/wiki.json'):
                 f = open(path)
@@ -304,3 +309,36 @@ if __name__ == "__main__":
         train_test_eval_df[i][2].to_csv(dirs[i] + 'triples.tsv', index=False, sep="\t")
         with open(dirs[i] + 'wiki.json', 'w') as f:
             json.dump(wikis[i], f, indent=4)
+
+    
+    dir = '../../data/fandoms_qa/'
+    subfolders = [ f.path for f in os.scandir(dir) if f.is_dir() ]
+
+    for folder in subfolders:
+        passages_df = pd.DataFrame()
+        triples_df = pd.DataFrame()
+        query_df = pd.DataFrame()
+        wiki = {}
+        all_folder = folder + '/all/'
+        os.makedirs(all_folder, exist_ok=True)
+        for root, dirs, files in os.walk(folder):
+            for file in files:
+                if file.endswith('passages.tsv'):
+                    df = pd.read_csv(root + '/'+ file, sep ='\t')
+                    passages_df = pd.concat([passages_df, df], ignore_index=True)
+                elif file.endswith('triples.tsv'):
+                    df = pd.read_csv(root + '/'+ file, sep ='\t')
+                    triples_df = pd.concat([triples_df, df], ignore_index=True)
+                elif file.endswith('queries.tsv'):
+                    df = pd.read_csv(root + '/'+ file, sep ='\t')
+                    query_df = pd.concat([query_df, df], ignore_index=True)
+                elif file.endswith('wiki.json'):
+                    wiki = wiki | json.load(open(root + '/'+ file))
+
+        with open(all_folder + 'wiki.json', 'w') as f:
+            json.dump(wiki, f, indent=4)
+
+
+        passages_df.to_csv(all_folder + 'passages.tsv', index=False, sep="\t")
+        query_df.to_csv(all_folder + 'queries.tsv', index=False, sep="\t")
+        triples_df.to_csv(all_folder + 'triples.tsv', index=False, sep="\t")
