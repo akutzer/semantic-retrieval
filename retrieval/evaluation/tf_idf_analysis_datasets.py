@@ -48,8 +48,8 @@ def statistics(path, passages_from_triples=False):
 
         # i tried matrix multiplication which is much faster but doing it the naive way requires 250 gb ram which i sadly do not have
         
-        df_triple['pos+'] = df_triple.swifter.apply(lambda row : np.argsort(tf_idf.answerQuestion([queries[row["QID+"]]],k),axis=1)[0,row['PID']], axis=1)
-        df_triple['pos-'] = df_triple.swifter.apply(lambda row : np.argsort(tf_idf.answerQuestion([queries[row["QID-"]]],k),axis=1)[0,row['PID']], axis=1)
+        df_triple['pos+'] = df_triple.apply(lambda row : np.argsort(tf_idf.answerQuestion([queries[row["QID+"]]],k),axis=1)[0,row['PID']], axis=1)
+        df_triple['pos-'] = df_triple.apply(lambda row : np.argsort(tf_idf.answerQuestion([queries[row["QID-"]]],k),axis=1)[0,row['PID']], axis=1)
 
         mrrplus = df_triple['pos+'].apply(lambda x: 1.0/(x+1)).sum() / len(df_triple)
         mrrminus = df_triple['pos-'].apply(lambda x: 1.0/(x+1)).sum() / len(df_triple)
@@ -74,6 +74,6 @@ if __name__ == "__main__":
         if 'passages.tsv' in files and ('MS' in root ):
             continue
             print(statistics(root, passages_from_triples=True))
-        elif 'passages.tsv' in files and ('val' in root ):
+        elif 'passages.tsv' in files and ('val' in root ) and not ('all' in root ) and not ('elder' in root ) and not ('harry' in root ):
         # elif 'passages.tsv' in files and ('dc' in root ):
             statistics(root, passages_from_triples=False)
