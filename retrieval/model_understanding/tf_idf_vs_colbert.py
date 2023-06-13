@@ -1,16 +1,10 @@
-
-import torch
 import random
-import numpy as np
 from tqdm import tqdm
 
-from operator import itemgetter
 from retrieval.indexing.colbert_retriever import ColBERTRetriever
-from retrieval.configs import BaseConfig
-from retrieval.data import Passages, Queries, TripleDataset, BucketIterator
-from retrieval.models import ColBERTTokenizer, ColBERTInference, get_colbert_and_tokenizer
+from retrieval.data import TripleDataset
 from retrieval.models.basemodels.tf_idf import TfIdf
-from retrieval.indexing.visualize_similarity import *
+from retrieval.model_understanding.visualize_similarity import *
 
 
 BSIZE=1
