@@ -216,11 +216,12 @@ Maybe we should have a hpc directory in the repository where all the scripts for
     3. ColRoBERTa + MS MARCO v1.1
     4. ColRoBERTa + MS MARCO v2.1 \
 :arrow_right: decide if we should use BERT or RoBERTa as backbone
-3. Train ColBERT on one Wiki of our choice and test different hyperparameters:
+3. Train ColBERT on MS MARCO v1.1 and test different hyperparameters:
     - compare similarities: Normalized+Dot (=Cosine-Sim), Normalized+L2 and just L2
     - compare different embedding dims (maybe: 8, 16, 32, 64, 128)
-4. Train ColBERT with the best set of hyperparameters (determined in step 3) on each wiki
-5. Train ColBERT with the best set of hyperparameters on all wikis combined
+    - compare different loss functions
+4. Train ColBERT models with the best set of hyperparameters (determined in step 3) on each wiki
+5. Train a ColBERT model on all wikis and fine-tune it on the human-verified dataset, compare both on the `fandoms_all` and `human-verified` validation dataset
 
 
 
@@ -232,7 +233,7 @@ Count the parameters in a model, meassure the FLOPs and ms per answer-retrieval.
 (Parameters & FLOPs only necessary for neural IR approaches)
 
 ### :bangbang: :hourglass_flowing_sand: Meassuring (assigned: Zhiwei, ??)
-Run the baseline and neural models on the test dataset and log their performance for later use in the paper. This script will probably look fairly similar to the training scripts.
+Run the baseline and neural models on the **test dataset** and log their performance for later use in the paper. This script will probably look fairly similar to the training scripts.
 
 - Evaluate TF-IDF on MS MARCO and our Fandom datasets
     - for MS MARCO:
