@@ -126,8 +126,9 @@ if __name__ == "__main__":
 
 
     BACKBONE = "bert-base-uncased" # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
-    INDEX_PATH = "../../data/ms_marco/ms_marco_v1_1/val/passages.indices.pt"
-    CHECKPOINT_PATH = "../../data/colbertv2.0/" # or "../../checkpoints/harry_potter_bert_2023-06-03T08:58:15/epoch3_2_loss0.1289_mrr0.9767_acc95.339/"
+    INDEX_PATH = "../../data/fandoms_qa/harry_potter/val/passages.indices.pt"
+    CHECKPOINT_PATH = "../../data/colbertv2.0/" #"../../saves/colbert_ms_marco_v1_1/checkpoints/epoch3_2_loss1.7869_mrr0.5846_acc41.473/" 
+    # "../../data/colbertv2.0/" # or "../../checkpoints/harry_potter_bert_2023-06-03T08:58:15/epoch3_2_loss0.1289_mrr0.9767_acc95.339/"
 
     config = BaseConfig(
         tok_name_or_path=BACKBONE,
@@ -138,15 +139,16 @@ if __name__ == "__main__":
         checkpoint=CHECKPOINT_PATH
     )
 
-    triples_path = "../../data/ms_marco/ms_marco_v1_1/val/triples.tsv"
-    queries_path = "../../data/ms_marco/ms_marco_v1_1/val/queries.tsv"
-    passages_path = "../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
-    dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QPP")
+    triples_path = "../../data/fandoms_qa/harry_potter/val/triples.tsv"
+    queries_path = "../../data/fandoms_qa/harry_potter/val/queries.tsv"
+    passages_path = "../../data/fandoms_qa/harry_potter/val/passages.tsv"
+    dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QQP")
 
     # get passage list
     passage_list = [p[1] for p in dataset.passages_items()]
     
-    colbert, tokenizer = load_colbert_and_tokenizer(CHECKPOINT_PATH, device="cuda:0", config=config)
+    # colbert, tokenizer = load_colbert_and_tokenizer(CHECKPOINT_PATH, device="cuda:0", config=config)
+    colbert, tokenizer = load_colbert_and_tokenizer(CHECKPOINT_PATH, device="cuda:0")
     inference = ColBERTInference(colbert, tokenizer)
     retriever = ColBERTRetriever(inference, device="cuda:0", passages=passage_list)
     retriever.indexer.load(INDEX_PATH)
@@ -170,18 +172,18 @@ if __name__ == "__main__":
         for i, triple in enumerate(tqdm(dataset)):
 
             # for QPP datasets:
-            qid, pid_pos, *pid_neg = triple
-            query, psg_pos, *psg_neg = dataset.id2string(triple)
+            # qid, pid_pos, *pid_neg = triple
+            # query, psg_pos, *psg_neg = dataset.id2string(triple)
             
-            qids_batch.append(qid)
-            query_batch.append(query)
-            target_batch.append(pid_pos)
+            # qids_batch.append(qid)
+            # query_batch.append(query)
+            # target_batch.append(pid_pos)
 
             # for QQP datasets:
-            # qid_pos, qid_neg, pid_pos = triple
-            # query_pos, query_neg, passage = dataset.id2string(triple)
-            # query_batch.append(query_pos)
-            # target_batch.append(pid_pos)
+            qid_pos, qid_neg, pid_pos = triple
+            query_pos, query_neg, passage = dataset.id2string(triple)
+            query_batch.append(query_pos)
+            target_batch.append(pid_pos)
 
             if len(query_batch) == BSIZE or i + 1 == len(dataset):
                 with torch.autocast(retriever.device.type):
