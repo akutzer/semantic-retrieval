@@ -1,12 +1,14 @@
 # ignore everything in data/ directory, except the README
-!data/README.md
 data/*
-
+!data/README.md
 !retrieval/data
 
 # ignores tensorboard logging directory
 runs/
 
+# ignore saved models
+checkpoints/
+checkpoint/
 
 # ignore mac files
 .DS_Store

@@ -4,7 +4,7 @@ from dataclasses import asdict, is_dataclass
 
 from retrieval.configs.configs import BaseConfig
 
-    
+
 def save_config(config: BaseConfig, config_path: str):
     # save the model's config if available
     if is_dataclass(config):
@@ -12,7 +12,7 @@ def save_config(config: BaseConfig, config_path: str):
         with open(config_path, "w", encoding="utf-8") as config_file:
             json.dump(config_dict, config_file)
         return True
-        
+
     return False
 
 
