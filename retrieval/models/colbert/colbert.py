@@ -370,13 +370,13 @@ class ColBERT(nn.Module):
             model.backbone = AutoModel.from_pretrained(
                 directory, config=model.backbone_config
             )
+            
+            # override old checkpoint in the config
+            config.checkpoint = directory
 
             # try to load the output layer
             if model._load_linear_weights():
-                logging.info("Successfully loaded weights for last ColBERTv2 layer!")
-
-            # override old checkpoint in the config
-            config.checkpoint = directory
+                logging.info("Successfully loaded weights for last ColBERTv2 layer!")            
             
         elif normal_checkpoint:
             logging.info("Detected regular ColBERT checkpoint. Loading the model!")
@@ -416,7 +416,7 @@ class ColBERT(nn.Module):
             path_to_weights = os.path.join(self.config.checkpoint, file)
             if not os.path.isfile(path_to_weights):
                 continue
-
+                
             if "pytorch_model" in file or ".pt" in file or ".pth" in file:
                 try:
                     with open(path_to_weights, mode="br") as f:
