@@ -18,141 +18,55 @@ FOLDERS = ['C:/Daten/Florian/Dev/Python/semantic-retrieval/data/fandom_qa/harry_
 # number of paragraphs that are acceptable for a question
 K = 5
 
-
 # def read_df_from_tsv(file, column_names):
 #     return pd.read_csv(file, sep='\t', header=None).rename(columns=dict(enumerate(column_names)))
 
 class TfIdf():
 
-    def __init__(self, passages=None, folders=None, combine_paragraphs=True, mode="qpp"):
-        if folders:
-            self.folders = folders
-            self.passage_files = [x + '/' + y for x in folders for y in os.listdir(x) if
-                                  'passages' in y and '.tsv' in y]
-            self.question_files = [x + '/' + y for x in folders for y in os.listdir(x) if
-                                   'queries' in y and '.tsv' in y]
-            self.triple_files = [x + '/' + y for x in folders for y in os.listdir(x) if 'triples' in y and '.tsv' in y]
-            self.folder_objects = [(Passages(passage_file), Queries(question_file), Triples(triple_file, mode)) for
-                                   passage_file, question_file, triple_file in
-                                   zip(self.passage_files, self.question_files, self.triple_files)]
-            self.paragraphs = []
-            passages_objs = list(zip(*self.folder_objects))[0]
-            for passage_obj in passages_objs:
-                self.paragraphs = self.paragraphs + list(passage_obj.values())
+    def __init__(self, passages):
+        self.vectorizer, self.X = self.tfIDFCreatorFromArr(arr=passages)
+        self.X = self.X#.toarray()
 
-            if passages:
-                print("Passages and folders are defined. passages are ignored!")
-        elif passages:
-            self.paragraphs = passages
-        else:
-            print("Either passages or folders has to be defined!")
 
-        self.metrics = Metrics()
-        self.vectorizer, self.X = self.tfIDFCreatorFromArr(self.paragraphs)
-        self.X = self.X.T  # .toarray()
-
-    # def __init__(cls, passages):
-    #     #cls.vectorizer, cls.X = cls.tfIDFCreatorFromArr(passsages)
-    #     #cls.X = cls.X.toarray()
-    #     #cls.vectorizer = TfidfVectorizer(strip_accents='unicode', min_df=10)
-    #     print("fromPassages created")
-    #     cls.vectorizer, cls.X = cls.tfIDFCreatorFromArr(arr=passages)
-    #     cls.X = cls.X.toarray()
-
-    def answerQuestion(self, question, k):
-        # measure time
-        self.metrics.startCPUTime()
-        self.metrics.startWallTime()
-
-        Q = self.vectorizer.transform([question])
-        M = Q @ self.X
-        max_ind = np.argsort(-M.toarray(), axis=-1)
-
-        # measure time
-        self.metrics.stopCPUTime(1)
-        self.metrics.stopWallTime(1)
-
-        return max_ind[:, :k]
-
-    def tfIDFCreatorFromArr(self, arr, min_df=10):
+    def tfIDFCreatorFromArr(self, arr, min_df=5):
         vectorizer = TfidfVectorizer(strip_accents='unicode', min_df=min_df)
         X = vectorizer.fit_transform(arr)
         return vectorizer, X
 
-    # def batchBestKPIDs(self, k, Q, best_and_worst=False):
-    #     # order is the same i googled it
-    #     # row_pid_mapping = dict(enumerate(passages.keys()))
-    #     # col_qid_mapping = dict(enumerate(queries.keys()))
-    #
-    #     # create tf-idf vectorizer and matrix
-    #     # vectorizer, X = self.tfIDFCreatorFromArr(passages.values())
-    #
-    #     '''input: embeddings of passages and batch of queries
-    #     returns: '''
-    #     Q = self.vectorizer.transform(Q)
-    #     M = Q @ self.X
-    #
-    #     max_ind = np.argsort(-M.toarray(), axis=-1)
-    #
-    #     best_k = max_ind[:, :k]
-    #     scores = np.take_along_axis(M, best_k, axis=-1)
-    #     if best_and_worst:
-    #         worst_k = max_ind[:, -k:]
-    #         return best_k, worst_k
-    #
-    #     return scores.toarray(), best_k
 
-    def evaluate_folders(self, k, beta):
-        for i in range(len(self.folders)):
-            paragraphs, queries, qpp_triples = self.folder_objects[i]
+    def answerQuestion(self, questions, k):
+        Q = self.vectorizer.transform(questions).T
+        M = self.X @ Q
+        M = M.toarray()
+        max_ind = np.argsort(-M, axis=0)
 
-            # measuring time
-            query_count = len(qpp_triples)
-            self.metrics.startCPUTime()
-            self.metrics.startWallTime()
+        return max_ind[:k, :].T
 
-            # order is the same i googled it
-            row_pid_mapping = dict(enumerate(paragraphs.keys()))
-            col_qid_mapping = dict(enumerate(queries.keys()))
+    def best_and_worst_pids(self, questions, topk, bottomk):
+        Q = self.vectorizer.transform(questions).T
+        M = self.X @ Q
+        M = M.toarray()
+        max_ind = np.argsort(-M, axis=0)
 
-            # create tf-idf vectorizer and matrix
-            vectorizer, X = self.tfIDFCreatorFromArr(paragraphs.values())
-
-            Q = vectorizer.transform(queries.values()).T
-
-            Q = Q.toarray()
-            X = X.toarray()
-            M = X @ Q
-
-            self.metrics.evaluateDatasetIntoM(M, row_pid_mapping, col_qid_mapping, dataset_name=self.folders[i],
-                                              qpp_triples=qpp_triples)
-
-            # measuring time
-            self.metrics.stopCPUTime(query_count)
-            self.metrics.stopWallTime(query_count)
-
-            self.metrics.printStatistics(k, beta)
-
-    def printMeanWallAndCPUTime(self):
-        self.metrics.printMeanWallAndCPUTime()
+        return max_ind[:topk, :].T, max_ind[-bottomk:, :].T
 
 
 if __name__ == "__main__":
-    #
-    # tf_idf = TfIdf(passages=["halger gr eehe heh er e", " gaeh rh4hz 4 4 sr 4wuz45z shae5z "
-    #                                 , " gaeh rh4hz 4 sdgsg shae5z ", " gaeh rhGEWgwegw45z shae5z "
-    #                                 , " gaeh rh4hz 4 sdgsg shae5z ", " gaeh rhGEWgwegw45z shae5z "
-    #                                 , " gaeh rh4hz 4 sdgsg shae5z ", " gaeh rhGEWgwegw45z shae5z "
-    #                                 , " gaeh rh4hz 4 sdgsg shae5z ", " gaeh rhGEWgwegw45z shae5z "
-    #                                 , "hallo", " gaeh rhGEWgwegw45z shae5z "
-    #                              ])
-    # queries = ["hallo ? ", "syasuu a6g f? ", "ssrjusrjusrg f? ","srtzurursg f? "]
-    # best_k = tf_idf.batchBestKPIDs(3, queries)
-    # print(best_k)
-    tf_idf = TfIdf(folders=FOLDERS)
-    print(tf_idf.answerQuestion("who killed severus snape", 5))
-    print(tf_idf.answerQuestion("what is god", 5))
-    print(tf_idf.answerQuestion("is aaron god", 5))
-    print(tf_idf.answerQuestion("does god love me", 5))
-    tf_idf.evaluate_folders(8, 3)
-    tf_idf.printMeanWallAndCPUTime()
+    # #
+    tf_idf = TfIdf(passages=["halger gr eehe heh er e", " gaeh rh4hz 4 4 sr 4wuz45z shae5z "
+                                    , " gaeh rh4hz 4 sdgsg shae5z ", " gaeh rhGEWgwegw45z shae5z "
+                                    , " gaeh rh4hz 4 sdgsg shae5z ", " gaeh rhGEWgwegw45z shae5z "
+                                    , " gaeh rh4hz 4 sdgsg shae5z ", " gaeh rhGEWgwegw45z shae5z "
+                                    , " gaeh rh4hz 4 sdgsg shae5z ", " gaeh rhGEWgwegw45z shae5z "
+                                    , "hallo", " gaeh rhGEWgwegw45z shae5z aaron god snape"
+                                 ])
+    # # queries = ["hallo ? ", "syasuu a6g f? ", "ssrjusrjusrg f? ","srtzurursg f? "]
+    # # best_k = tf_idf.batchBestKPIDs(3, queries)
+    # # print(best_k)
+    # tf_idf = TfIdf(folders=FOLDERS)
+    print(tf_idf.answerQuestion(["who killed severus snape"], 5))
+    print(tf_idf.answerQuestion(["what is god"], 5))
+    print(tf_idf.answerQuestion(["is aaron god"], 5))
+    print(tf_idf.answerQuestion(["does god love me"], 5))
+    # tf_idf.evaluate_folders(8, 3)
+    # tf_idf.printMeanWallAndCPUTime()

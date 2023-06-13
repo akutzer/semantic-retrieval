@@ -100,12 +100,12 @@ class ColBERTRetriever:
             # select the top-k PIDs and their similarity score wrt. query
             k_ = min(sms.shape[0], k)
 
-            topk_sims, topk_indices = torch.topk(sms, k=k_)
-            bottomk_sims, bottomk_indices = torch.topk(-sms, k=k_)
-
-
+            _, topk_indices = torch.topk(sms, k=k_)
             topk_pids.append(pids[topk_indices].tolist())
-            bottomk_pids.append(pids[bottomk_pids].tolist())
+
+
+            _, bottomk_indices = torch.topk(-sms, k=k_)
+            bottomk_pids.append(pids[bottomk_indices].tolist())
 
         return topk_pids, bottomk_pids
 
