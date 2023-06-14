@@ -198,10 +198,10 @@ if __name__ == "__main__":
     torch.set_float32_matmul_precision("high")
 
     DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
-    PASSAGES_PATH = "../../data/fandoms_qa/harry_potter/all/passages.tsv" # "../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
-    INDEX_PATH = "../../data/fandoms_qa/harry_potter/all/passages.indices.pt" # "../../data/ms_marco/ms_marco_v1_1/val/passages.indices.pt"
+    PASSAGES_PATH = "../../data/ms_marco/ms_marco_v1_1/val/passages.tsv" # "../../data/fandoms_qa/harry_potter/val/passages.tsv" # "../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
+    INDEX_PATH = "../../data/ms_marco/ms_marco_v1_1/val/passages.indices.pt" # "../../data/fandoms_qa/harry_potter/val/passages.indices.pt" # "../../data/ms_marco/ms_marco_v1_1/val/passages.indices.pt"
     BACKBONE = "bert-base-uncased" # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
-    CHECKPOINT_PATH = "../../saves/colbert_ms_marco_v1_1/checkpoints/epoch3_2_loss1.7869_mrr0.5846_acc41.473/" # "../../data/colbertv2.0/"
+    CHECKPOINT_PATH = "../../data/colbertv2.0/" #"../../saves/colbert_ms_marco_v1_1/checkpoints/epoch3_2_loss1.7869_mrr0.5846_acc41.473/" # "../../data/colbertv2.0/"
     
 
     # config = BaseConfig(
@@ -227,25 +227,26 @@ if __name__ == "__main__":
     pids = passages.keys().tolist()
     
     # test indexing of already seen data
-    indexer.index(data[2:3], pids[2:3], bsize=8)
-    indexer.index(data[1:2], pids[1:2], bsize=8)
-    indexer.index(data[:3], pids[:3], bsize=8)
-    print(indexer.embeddings.shape)
-    print(indexer.iid2pid)
-    print(indexer.pid2iid)
-    print(indexer.iid2pid.shape, indexer.pid2iid.shape, indexer.offset)
+    # indexer.index(data[1:2], pids[1:2], bsize=8)
+    # indexer.index(data[:2], pids[:2], bsize=8)
+    # indexer.index(data[:3], pids[:3], bsize=8)
+    # print(indexer.embeddings.shape)
+    # print(indexer.iid2pid)
+    # print(indexer.pid2iid)
+    # print(indexer.iid2pid.shape, indexer.pid2iid.shape, indexer.offset)
+    # exit(0)
     # print()
     
 
     # test some other methods
-    test_iids = torch.arange(0, 10).reshape(5, 2).T[:, None]
-    test_pids = indexer.iids_to_pids(test_iids)
-    test_embs = indexer.get_pid_embedding(test_pids)
+    # test_iids = torch.arange(0, 10).reshape(5, 2).T[:, None]
+    # test_pids = indexer.iids_to_pids(test_iids)
+    # test_embs = indexer.get_pid_embedding(test_pids)
 
 
     # index the entire data
-    # indexer.index(data, pids, bsize=8)
-    # indexer.save(INDEX_PATH)
+    indexer.index(data, pids, bsize=8)
+    indexer.save(INDEX_PATH)
     indexer.load(INDEX_PATH)
     print(indexer.embeddings.shape)
     print(indexer.iid2pid.shape)
