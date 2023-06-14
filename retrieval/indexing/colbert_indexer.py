@@ -1,15 +1,9 @@
 #!/usr/bin/env python3
-import time
-from tqdm import tqdm
-import torch
-import torch.nn.functional as F
-from collections import defaultdict
-from typing import Union, List, Tuple
 import logging
+from typing import Union, List, Tuple
+import torch
 
-from retrieval.configs import BaseConfig
-from retrieval.data import Passages
-from retrieval.models import ColBERTTokenizer, ColBERTInference, get_colbert_and_tokenizer, load_colbert_and_tokenizer
+from retrieval.models import ColBERTInference
 from retrieval.indexing.indexer import IndexerInterface
 
 
@@ -31,6 +25,7 @@ class ColBERTIndexer(IndexerInterface):
         self.iid2pid = torch.empty(0, device=self.device, dtype=torch.int32)
         self.pid2iid = torch.empty((0, 0), device=self.device, dtype=torch.int32)
         self.next_iid = 0
+        self.offset = 0
             
     def index(self, passages: List[str], pids: List[str], bsize: int = 16) -> None:
         batch_passages, batch_pids = self._new_passages(passages, pids)
@@ -175,6 +170,10 @@ if __name__ == "__main__":
     import random
     import numpy as np
 
+    from retrieval.configs import BaseConfig
+    from retrieval.data import Passages
+    from retrieval.models import load_colbert_and_tokenizer
+
     SEED = 125
     random.seed(SEED)
     np.random.seed(SEED)
@@ -185,25 +184,27 @@ if __name__ == "__main__":
     torch.set_float32_matmul_precision("high")
 
     DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
-    PASSAGES_PATH = "../../data/fandoms_qa/harry_potter/val/passages.tsv" # "../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
-    INDEX_PATH = "../../data/fandoms_qa/harry_potter/val/passages.indices.pt" # "../../data/ms_marco/ms_marco_v1_1/val/passages.indices.pt"
+    PASSAGES_PATH = "../../data/fandoms_qa/harry_potter/all/passages.tsv" # "../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
+    INDEX_PATH = "../../data/fandoms_qa/harry_potter/all/passages.indices.pt" # "../../data/ms_marco/ms_marco_v1_1/val/passages.indices.pt"
     BACKBONE = "bert-base-uncased" # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
-    CHECKPOINT_PATH = "../../data/colbertv2.0/" #"../../saves/colbert_ms_marco_v1_1/checkpoints/epoch3_2_loss1.7869_mrr0.5846_acc41.473/" # "../../data/colbertv2.0/"
+    CHECKPOINT_PATH = "../../saves/colbert_ms_marco_v1_1/checkpoints/epoch3_2_loss1.7869_mrr0.5846_acc41.473/" # "../../data/colbertv2.0/"
     
 
-    config = BaseConfig(
-        tok_name_or_path=BACKBONE,
-        backbone_name_or_path=BACKBONE,
-        similarity="cosine",
-        dim = 128,
-        batch_size = 16,
-        accum_steps = 1,
-        doc_maxlen=512,
-        checkpoint=CHECKPOINT_PATH
-    )
+    # config = BaseConfig(
+    #     tok_name_or_path=BACKBONE,
+    #     backbone_name_or_path=BACKBONE,
+    #     similarity="cosine",
+    #     dim = 128,
+    #     batch_size = 16,
+    #     accum_steps = 1,
+    #     doc_maxlen=512,
+    #     checkpoint=CHECKPOINT_PATH
+    # )
+
+
     # colbert, tokenizer = load_colbert_and_tokenizer(CHECKPOINT_PATH, device=DEVICE, config=config)
     colbert, tokenizer = load_colbert_and_tokenizer(CHECKPOINT_PATH, device=DEVICE)
-    print(config)
+    print(colbert.config)
     inference = ColBERTInference(colbert, tokenizer, device=DEVICE)
     indexer = ColBERTIndexer(inference, device=DEVICE, dtype=torch.float16)
 
@@ -218,6 +219,9 @@ if __name__ == "__main__":
     print(indexer.embeddings.shape)
     print(indexer.iid2pid)
     print(indexer.pid2iid)
+    print(indexer.iid2pid.shape, indexer.pid2iid.shape)
+    # print()
+    exit(0)
 
     # test some other methods
     test_iids = torch.arange(0, 10).reshape(5, 2).T[:, None]

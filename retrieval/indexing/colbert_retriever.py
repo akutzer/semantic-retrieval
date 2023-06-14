@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import math
 import torch
-from typing import List, Union
+from typing import List, Union, Optional
 
 from retrieval.configs import BaseConfig
 from retrieval.data import Passages, Queries, TripleDataset, BucketIterator
@@ -12,7 +12,7 @@ from retrieval.models.basemodels.tf_idf import TfIdf
 
 
 class ColBERTRetriever:
-    def __init__(self, inference: ColBERTInference, device: Union[str, torch.device] = "cpu", passages=None):
+    def __init__(self, inference: ColBERTInference, device: Union[str, torch.device] = "cpu", passages: Optional[Passages] = None):
         if isinstance(device, str):
             device = torch.device(device)
         self.device = device
@@ -20,12 +20,13 @@ class ColBERTRetriever:
         self.inference = inference
         self.inference.to(device)
         self.indexer = ColBERTIndexer(inference, device=device)
+
         # TODO: precompute TF-IDF passages!!!!!!!
-        self.tfidf = TfIdf(passages = passages)
-        print("tf idf fertig")
+        passages.ignore_wid = True
+        self.tfidf = TfIdf(passages=passages.values(), mapping_rowInd_pid=dict(enumerate(passages.keys())))
     
     def tf_idf_rank(self, query: List[str], k: int):
-        batch_sims, batch_pids = self.tfidf.batchBestKPIDs(k, query) # shape: (B, k)
+        batch_sims, batch_pids = self.tfidf.batchBestKPIDs(query, k) # shape: (B, k)
         batch_pids = torch.tensor(batch_pids, dtype=torch.int32)
         batch_sims = torch.tensor(batch_sims)
         return zip(batch_sims, batch_pids)
@@ -37,7 +38,7 @@ class ColBERTRetriever:
             Qs = Qs[None]
         
         # for each query search for the best k PIDs using TF-IDF
-        _, batch_pids = self.tfidf.batchBestKPIDs(k, query) # shape: (B, k)
+        _, batch_pids = self.tfidf.batchBestKPIDs(query, k) # shape: (B, k)
 
         # since self.indexer.get_pid_embedding expects a torch.Tensor, we
         # need to convert batch_pids to a torch Tensor of shape (B, k)
@@ -124,8 +125,8 @@ if __name__ == "__main__":
 
 
     BACKBONE = "bert-base-uncased" # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
-    INDEX_PATH = "../../data/fandoms_qa/harry_potter/val/passages.indices.pt"
-    CHECKPOINT_PATH = "../../data/colbertv2.0/" #"../../saves/colbert_ms_marco_v1_1/checkpoints/epoch3_2_loss1.7869_mrr0.5846_acc41.473/" # "../../data/colbertv2.0/" # or "../../checkpoints/harry_potter_bert_2023-06-03T08:58:15/epoch3_2_loss0.1289_mrr0.9767_acc95.339/"
+    INDEX_PATH = "../../data/fandoms_qa/harry_potter/all/passages.indices.pt"
+    CHECKPOINT_PATH = "../../saves/colbert_ms_marco_v1_1/checkpoints/epoch3_2_loss1.7869_mrr0.5846_acc41.473/" # "../../data/colbertv2.0/" # or "../../checkpoints/harry_potter_bert_2023-06-03T08:58:15/epoch3_2_loss0.1289_mrr0.9767_acc95.339/"
 
     config = BaseConfig(
         tok_name_or_path=BACKBONE,
@@ -147,7 +148,7 @@ if __name__ == "__main__":
     # colbert, tokenizer = load_colbert_and_tokenizer(CHECKPOINT_PATH, device="cuda:0", config=config)
     colbert, tokenizer = load_colbert_and_tokenizer(CHECKPOINT_PATH, device="cuda:0")
     inference = ColBERTInference(colbert, tokenizer)
-    retriever = ColBERTRetriever(inference, device="cuda:0", passages=passage_list)
+    retriever = ColBERTRetriever(inference, device="cuda:0", passages=dataset.passages)
     retriever.indexer.load(INDEX_PATH)
 
 
