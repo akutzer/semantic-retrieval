@@ -22,8 +22,8 @@ class ColBERTRetriever:
         self.indexer = ColBERTIndexer(inference, device=device)
         # TODO: precompute TF-IDF passages!!!!!!!
         self.tfidf = TfIdf(passages = passages)
-        # print("tf idf fertig")
-
+        print("tf idf fertig")
+    
     def tf_idf_rank(self, query: List[str], k: int):
         batch_sims, batch_pids = self.tfidf.batchBestKPIDs(k, query) # shape: (B, k)
         batch_pids = torch.tensor(batch_pids, dtype=torch.int32)
@@ -139,6 +139,13 @@ if __name__ == "__main__":
         checkpoint=CHECKPOINT_PATH
     )
 
+    # for QPP datasets:
+    # triples_path = "../../data/ms_marco/ms_marco_v1_1/val/triples.tsv"
+    # queries_path = "../../data/ms_marco/ms_marco_v1_1/val/queries.tsv"
+    # passages_path = "../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
+    # dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QPP")
+    
+    # for QQP datasets:
     triples_path = "../../data/fandoms_qa/harry_potter/val/triples.tsv"
     queries_path = "../../data/fandoms_qa/harry_potter/val/queries.tsv"
     passages_path = "../../data/fandoms_qa/harry_potter/val/passages.tsv"
@@ -158,38 +165,45 @@ if __name__ == "__main__":
     K = 100
     top1, top3, top5, top10, top25, top100 = 0, 0, 0, 0, 0, 0
     mrr_10, mrr_100, recall_50 = 0, 0, 0
-
-    df = pd.read_csv(dataset.triples.path, sep='\t')
-    df.drop(df.columns[2:], axis=1, inplace=True)
-    qrels = df.groupby([df.columns[0]], as_index=False).agg(lambda x: x)
     
+
+    # for QPP datasets:
+    # df = pd.read_csv(dataset.triples.path, sep='\t')
+    # df.drop(df.columns[2:], axis=1, inplace=True)
+    # qrels = df.groupby([df.columns[0]], as_index=False).agg(lambda x: x)
+
+    # for QQP datasets:
+    df = pd.read_csv(dataset.triples.path, sep='\t')
+    df.drop(df.columns[1:2], axis=1, inplace=True)
+    qrels = df.groupby('QID+', as_index=False).agg(lambda x: set(x))
+
     with cProfile.Profile() as pr:
         qids_batch = []
         query_batch = []
         target_batch = []
         qids_visit = np.zeros(len(dataset), dtype=bool)
-        
+
         for i, triple in enumerate(tqdm(dataset)):
 
             # for QPP datasets:
             # qid, pid_pos, *pid_neg = triple
             # query, psg_pos, *psg_neg = dataset.id2string(triple)
-            
             # qids_batch.append(qid)
             # query_batch.append(query)
             # target_batch.append(pid_pos)
-
+            
             # for QQP datasets:
             qid_pos, qid_neg, pid_pos = triple
             query_pos, query_neg, passage = dataset.id2string(triple)
+            qids_batch.append(qid_pos)
             query_batch.append(query_pos)
             target_batch.append(pid_pos)
 
             if len(query_batch) == BSIZE or i + 1 == len(dataset):
                 with torch.autocast(retriever.device.type):
-                    pids = retriever.tf_idf_rank(query_batch, K)
+                    # pids = retriever.tf_idf_rank(query_batch, K)
                     # pids = retriever.rerank(query_batch, K)
-                    # pids = retriever.full_retrieval(query_batch, K)
+                    pids = retriever.full_retrieval(query_batch, K)
                 
                 # print(qids_batch)
 
@@ -206,12 +220,16 @@ if __name__ == "__main__":
                         if idx < 50:
                             # print(set([qrels.iloc[list(qrels.iloc[:,0]).index(qid)][1]]))
                             qrel = qrels.iloc[list(qrels.iloc[:,0]).index(qid)][1]
+                            # print(qid, target_pid, qrel, pred_pids[:50])
+                            common = qrel & set(pred_pids[:50].cpu().numpy())
+                            recall_50 += (len(common) / max(1.0, len(qrel)))
+
                             if isinstance(qrel, np.int64):
-                                # print(qid, target_pid, qrel, set([qrel]), pred_pids[:50])
+                                print(qid, target_pid, qrel, set([qrel]), pred_pids[:50])
                                 common = set([qrel]) & set(pred_pids[:50].cpu().numpy())
                                 recall_50 += (len(common) / max(1.0, len(set([qrel]))))
                             if isinstance(qrel, np.ndarray) and qids_visit[qid]==False:
-                                # print(qid, target_pid, qrel, set([qrel]), pred_pids[:50])
+                                print(qid, target_pid, qrel, set([qrel]), pred_pids[:50])
                                 common = set(qrel) & set(pred_pids[:50].cpu().numpy())
                                 recall_50 += (len(common) / max(1.0, len(set(qrel))))
                                 qids_visit[qid] = True
@@ -227,12 +245,10 @@ if __name__ == "__main__":
                                             if idx < 1:
                                                 top1 += 1
 
-                
                 qids_batch = []
                 query_batch = []
                 target_batch = []
             
-
         # pr.print_stats()
 
 
