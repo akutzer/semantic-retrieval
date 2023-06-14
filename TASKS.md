@@ -26,7 +26,7 @@ If we have time we might also download and extract multi-linguistic wikis.
 
 
 ## 2. :white_check_mark: Generate Dataset/Training Set
-### :hourglass_flowing_sand: Generating the question-answer pairs (assigned: Till)
+### :heavy_check_mark: Generating the question-answer pairs
 For each wiki, generate two datasets of the following type:
  - QQP-Dataset: `{(q⁺,q⁻,p) | for most passages p in the wiki}`
  - QPP-Dataset: `{(q,p⁺,p⁻) | for most passages p⁺ in the wiki}`
@@ -81,7 +81,7 @@ It is extremely important that there is no overlap between the three data sets.
 
 Try to find a good split ratio (80%-10%-10%, ...), search for typical ratios for similarly sized datasets.
 
-### :heavy_check_mark: Classes for loading the dataset (assigned: Aaron)
+### :heavy_check_mark: Classes for loading the dataset
 :heavy_check_mark: Write a Python class for efficient loading to be capable of working with both of the dataset types.
 
 The task is to create a Python class that takes the paths to the dataset files as input and can be used as either a *map-style* dataset or an *iterable-style* dataset. \
@@ -92,12 +92,12 @@ Maybe some inspiration can be found here: https://pytorch.org/docs/stable/data.h
 
 The current [ColBERT dataloader](retrieval/data/dataloader.py) could be a good starting point, which implements an iterable-style dataset and also dataloader. One could base the dataset on this one, but maybe use better datastructures (maybe pandas.DataFrame). The tokenization step should be left out, as it should be implemented in each models dataloader. 
 
-### :heavy_check_mark: Benchmark datasets (assigned: Aaron)
+### :heavy_check_mark: Benchmark datasets
 Find benchmarks/ gold standard datasets, on which we can train our models and compare with other papers. (For example to make sure our implementation is correct or if we design our own model to be able to compare it with others) \
 Look into: SQuAD 2.0, MS MARCO, TREC CAR... \
 Choose a dataset with is similar to our task & dataset (I think MS MARCO should be similar to our QPP dataset)
 
-### Structuring of the data directory
+### :heavy_check_mark: Structuring of the data directory
 
 To ensure that all scripts work without problems, the structure of the data directory is defined as follows:
 ```
@@ -145,7 +145,7 @@ data/
             └─ ...
 ```
 
-### Analyzing the datasets
+### :hourglass_flowing_sand: Analyzing the datasets (assigned: Till)
 
 Write a simple script which collects some basic statistics of the datasets.
 Some examples would be:
@@ -161,64 +161,67 @@ The script should be run on MS MARCO v1.1 & v2.1 as well as on all the `human_ve
 
 ## 3. Implement Models
 ### :white_check_mark: Baseline: BM-25 or TF-IDF (assigned: Till, Florian)
-:heavy_check_mark: Implement the BM-25 or TF-IDF model, using an external library. \
-:hourglass_flowing_sand: Use the dataset class for the BM-25 or TF-IDF model \
-:white_check_mark: Implement efficient inference, so given a query find the best passages as fast as possible; maybe try to precompute the wiki passages? \
+- :heavy_check_mark: Implement the BM-25 or TF-IDF model, using an external library.
+- :hourglass_flowing_sand: Use the dataset class for the BM-25 or TF-IDF model
+- :white_check_mark: Implement efficient inference, so given a query find the best passages as fast as possible; maybe try to precompute the wiki passages?
+- :hourglass_flowing_sand: Finish everything, polish the code, add a methode for saving precomputed embeddings as well as loading them
+
 The implementation should work with the previous described datasets class. In case the output of the dataset class is not directly usable, you can write a dataloader, which for example tokenizes the data from the dataset class and then combines these into a batch of data, which is then directly feed into the model. I don't know if this is necessary tho. ^^
 
-### :hourglass_flowing_sand: Neural Retrieval Model: ColBERT (assigned: Aaron)
+### :white_check_mark: Neural Retrieval Model: ColBERT (assigned: Aaron)
 - :heavy_check_mark: Implement the ColBERT model from the ColBERTv1 paper.
 - :heavy_check_mark: Add support for other backbones, like RoBERTa, TinyBERT, etc.
 - :heavy_check_mark: Write dataloaders base on the dataset class.
 - :heavy_check_mark: Write dataloaders base on the dataset class and PyTorch dataloader class.
-- :white_check_mark: Implement Model/Tokenizer saving and loading.
+- :heavy_check_mark: Implement Model/Tokenizer saving and loading.
 - :hourglass_flowing_sand: Formulate the loss function, so that the training loop can just call .backward() on the loss.
-- :hourglass_flowing_sand: Implement efficient inference using re-ranking (requires efficient TF-IDF or BM-25 implementation)
-- :white_check_mark: Implement efficient inference using full-retrieval.
+- :heavy_check_mark: Implement efficient inference using re-ranking (requires efficient TF-IDF or BM-25 implementation)
+- :heavy_check_mark: Implement efficient inference using full-retrieval.
 Focus on inference performance ("model performance"/FLOPs, "model performance"/inference time [µs])
-- :white_check_mark: Improve code quality (comments, typing, docstrings,...)
+- :heavy_check_mark: Improve code quality (comments, typing, docstrings,...)
 
 
 
 ## 4. Training
 
-### :bangbang: :hourglass_flowing_sand: Create a training script (assigned: Zhiwei)
+### :white_check_mark: Create a training script
 Write a script for training the neural IR models. Have a look at the [ColBERT training script](https://github.com/stanford-futuredata/ColBERT/blob/main/colbert/training/training.py) as an example.
 
 - :heavy_check_mark: It should use the dataset class for our datasets and the dataloader for the selected model. 
-- :hourglass_flowing_sand: Add [Learning-Rate-Schedulers](https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate) (Warmup & LR-decay). 
+- :heavy_check_mark: Add [Learning-Rate-Schedulers](https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate) (Warmup & LR-decay). 
 - :heavy_check_mark: Look into [AMP](https://pytorch.org/docs/stable/amp.html?highlight=amp#module-torch.amp) and maybe add AMP support. 
 - :hourglass_flowing_sand: Look into [DistributedDataParallel](https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html#torch.nn.parallel.DistributedDataParallel) training. It is important, that we get this working on the HPC, otherwise it is useless for us, so reading into the HPC would be necessary too.
 - :heavy_check_mark: Look into logging, either using [Tensorboard](https://pytorch.org/docs/stable/tensorboard.html) or [Weights&Biases](https://docs.wandb.ai/guides/integrations/pytorch). 
 - :heavy_check_mark: After each epoch, validate our model on the validation set using fitting evaluation metrics. 
 - :heavy_check_mark: Implement Checkpoiting, where after a certain number of steps the model is saved.
-- :hourglass_flowing_sand: Implement model loading and resuming of training
-- :hourglass_flowing_sand: Add CLI for the training script
+- :heavy_check_mark: Implement model loading and resuming of training
+- :heavy_check_mark: Add CLI for the training script
 
 
-### :bangbang: :hourglass_flowing_sand: Get HPC running (assigned: Tommy)
+### :heavy_check_mark: Get HPC running 
 Maybe we should have a hpc directory in the repository where all the scripts for the HPC will be stored.
 
-- :hourglass_flowing_sand: Move repository to the HPC 
-- :hourglass_flowing_sand: Create and move all data to a data directory on the HPC (should be in the data/ directory and follow the above defined structure) 
-- :bangbang: :hourglass_flowing_sand: Getting a training script on a single GPU running (i dont care what GPU it is, K80 could be enough for testing in the beginning) 
+- :heavy_check_mark: Move repository to the HPC 
+- :heavy_check_mark: Create and move all data to a data directory on the HPC (should be in the data/ directory and follow the above defined structure) 
+- :heavy_check_mark: Getting a training script on a single GPU running (i dont care what GPU it is, K80 could be enough for testing in the beginning) 
 - (maybe: Getting a training script on multiple GPUs running)
 
 
-### :bangbang: Train the models
+### :bangbang: Train the models (assigned: Tommy)
 **Roadmap:**
-1. Validate the pretrained ColBERTv2 weights on MS MARCO v1.1 and v2.1 and compare them with the paper
-2. Train our ColBERT implementation on MS MARCO (order of priority, not everything has to be done):
+1. :hourglass_flowing_sand: Validate the pretrained ColBERTv2 weights on MS MARCO v1.1 and v2.1 and compare them with the paper
+2. :hourglass_flowing_sand: Train our ColBERT implementation on MS MARCO (order of priority, not everything has to be done):
     1. ColBERT + MS MARCO v1.1
     2. ColBERT + MS MARCO v2.1
     3. ColRoBERTa + MS MARCO v1.1
     4. ColRoBERTa + MS MARCO v2.1 \
 :arrow_right: decide if we should use BERT or RoBERTa as backbone
-3. Train ColBERT on one Wiki of our choice and test different hyperparameters:
+3. Train ColBERT on MS MARCO v1.1 and test different hyperparameters:
     - compare similarities: Normalized+Dot (=Cosine-Sim), Normalized+L2 and just L2
     - compare different embedding dims (maybe: 8, 16, 32, 64, 128)
-4. Train ColBERT with the best set of hyperparameters (determined in step 3) on each wiki
-5. Train ColBERT with the best set of hyperparameters on all wikis combined
+    - compare different loss functions
+4. Train ColBERT models with the best set of hyperparameters (determined in step 3) on each wiki
+5. Train a ColBERT model on all wikis and fine-tune it on the human-verified dataset, compare both on the `fandoms_all` and `human-verified` validation dataset
 
 
 
@@ -229,8 +232,8 @@ The metrics should use a fairly universal interface, so the outputs of the model
 Count the parameters in a model, meassure the FLOPs and ms per answer-retrieval.
 (Parameters & FLOPs only necessary for neural IR approaches)
 
-### :bangbang: Meassuring (assigned: ???)
-Run the baseline and neural models on the test dataset and log their performance for later use in the paper. This script will probably look fairly similar to the training scripts.
+### :bangbang: :hourglass_flowing_sand: Meassuring (assigned: Zhiwei, ??)
+Run the baseline and neural models on the **test dataset** and log their performance for later use in the paper. This script will probably look fairly similar to the training scripts.
 
 - Evaluate TF-IDF on MS MARCO and our Fandom datasets
     - for MS MARCO:
@@ -258,16 +261,16 @@ Run the baseline and neural models on the test dataset and log their performance
 
 
 
-## 6. Mockup
+## 6. :bangbang: Mockup
 Demonstration of the model (done however you like; website, colab, application, ...)
 Maybe some inference optimizations & pruning if the person in charge is interested in it and there is time
 
 
-### 7. Presentation
+## 7. :bangbang: Presentation (13.07.2023)
 blablabla buzzword blablabla
 
-## 8. Paper
+## 8. :bangbang: Paper (14.07.2023)
 Final paper blablabla
 
 
-## :checkered_flag:
+# :checkered_flag:

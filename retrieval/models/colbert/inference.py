@@ -27,18 +27,21 @@ class ColBERTInference:
 
         self.to(device)
         self.colbert.eval()
+        self.colbert.backbone.eval()
+        self.colbert.linear.eval()
 
     def query(
         self,
         input_ids: torch.IntTensor,
         attention_mask: torch.BoolTensor,
         to_cpu: bool = False,
+        dtype: Optional[torch.dtype] = torch.float32
     ) -> List[torch.Tensor]:
         """
         Calculates the ColBERT embedding for a tokenized query.
         """
         with torch.inference_mode():
-            Q = self.colbert.query(input_ids, attention_mask)
+            Q = self.colbert.query(input_ids, attention_mask).to(dtype)
 
         if to_cpu:
             Q = Q.cpu()
@@ -51,6 +54,7 @@ class ColBERTInference:
         input_ids: torch.IntTensor,
         attention_mask: torch.BoolTensor,
         to_cpu: bool = False,
+        dtype: Optional[torch.dtype] = torch.float32
     ) -> List[torch.Tensor]:
         """
         Calculates the ColBERT embedding for a tokenized document/passage.
@@ -63,7 +67,7 @@ class ColBERTInference:
             )
 
         if to_cpu:
-            D, mask = D.cpu(), mask.cpu()
+            D, mask = D.cpu().to(dtype), mask.cpu()
 
         # split the tensor of shape (B, L_pad, dim) into a list of d tensors with shape (L, dim)
         # while also removing padding & punctuation embeddings
@@ -77,6 +81,7 @@ class ColBERTInference:
         bsize: Optional[int] = None,
         to_cpu: bool = False,
         show_progress: bool = False,
+        dtype: Optional[torch.dtype] = torch.float32
     ) -> torch.Tensor:
         """
         Calculates the ColBERT embedding for a query or list of queries represented as strings.
@@ -106,7 +111,7 @@ class ColBERTInference:
                 batches = tqdm(batches, total=total)
 
             for i, Q in enumerate(batches):
-                Q = self.query(*Q, to_cpu=to_cpu)
+                Q = self.query(*Q, to_cpu=to_cpu, dtype=dtype)
                 Qs[i : i + bsize] = Q
                 # Qs.extend(Q)
 
@@ -118,6 +123,7 @@ class ColBERTInference:
         bsize: Optional[int] = None,
         to_cpu: bool = False,
         show_progress: bool = False,
+        dtype: Optional[torch.dtype] = torch.float32
     ) -> List[torch.Tensor]:
         """
         Calculates the ColBERT embedding for a document/passages or list of document/passages represented as strings.
@@ -134,7 +140,7 @@ class ColBERTInference:
                 batches = tqdm(batches, total=total)
 
             for D in batches:
-                D = self.doc(*D, to_cpu=to_cpu)
+                D = self.doc(*D, to_cpu=to_cpu, dtype=dtype)
                 Ds.extend(D)
 
         return Ds[0] if is_single_doc else Ds
