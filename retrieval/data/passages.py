@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-import logging
 import pandas as pd
 
 
-# TODO: Add WID support
+
 class Passages:
     def __init__(self, path=None, ignore_wid=True):
         self.path = path
@@ -19,20 +18,22 @@ class Passages:
         return iter(data.items())
 
     def __getitem__(self, key):
-        data = self.data.iloc[:, 0] if self.ignore_wid else self.data
-        return data.loc[key]
+        item = self.data.loc[key]
+        if self.ignore_wid:
+            if isinstance(key, list):
+                return item.iloc[:, 0] #.tolist()
+            else:
+                return item[0]
+        return item
 
     def keys(self):
-        data = self.data.iloc[:, 0] if self.ignore_wid else self.data
-        return data.index
+        return  self.data.iloc[:, 0].index if self.ignore_wid else self.data.index
 
     def values(self):
-        data = self.data.iloc[:, 0] if self.ignore_wid else self.data
-        return data.values
+        return self.data.iloc[:, 0].values if self.ignore_wid else self.data.values
 
     def items(self):
-        data = self.data.iloc[:, 0] if self.ignore_wid else self.data
-        return data.items()
+        return self.data.iloc[:, 0].items() if self.ignore_wid else self.data.items()
 
     def _load_file(self, path):
         if path.endswith((".csv", ".tsv")):
@@ -45,8 +46,6 @@ class Passages:
         return self.data
 
     def _load_tsv(self, path, drop_nan=False):
-        # logging.basicConfig(level=logging.WARNING, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%y-%m-%d %H:%M:%S")
-        # logging.warning("Passages currently drops the WID column!")
         delimiter = "\t" if path.endswith(".tsv") else ","
         passages = pd.read_csv(path, delimiter=delimiter, index_col=False)
 
@@ -78,13 +77,11 @@ class Passages:
     def pid2string(self, pid, skip_non_existing=False):
         if isinstance(pid, list):
             return [
-                self.data[p] for p in pid if (not skip_non_existing) or p in self.keys()
+                self[p][0] for p in pid if (not skip_non_existing) or p in self.keys()
             ]
         else:
             return (
-                self.data[pid]
-                if (not skip_non_existing) or pid in self.keys()
-                else None
+                self[pid][0] if (not skip_non_existing) or pid in self.keys() else None
             )
 
 
@@ -100,4 +97,5 @@ if __name__ == "__main__":
     print(len(passages))
     print(passages.values())
     print(passages[173654], type(passages[173654]))
+    print(passages[[173654, 173655]], type(passages[[173654, 173655]]))
     print(passages.pid2string([0, 2 * len(passages)], skip_non_existing=True))

@@ -237,10 +237,10 @@ if __name__ == "__main__":
     CHECKPOINT_PATH = "../../data/colbertv2.0/"  # "../../saves/colbert_ms_marco_v1_1/checkpoints/epoch3_2_loss1.7869_mrr0.5846_acc41.473/" # "../../data/colbertv2.0/"
 
     colbert, tokenizer = load_colbert_and_tokenizer(CHECKPOINT_PATH, device=DEVICE)
-    print(colbert.config)
     inference = ColBERTInference(colbert, tokenizer, device=DEVICE)
     indexer = ColBERTIndexer(inference, device=DEVICE, dtype=torch.float16)
-
+    print(colbert.config)
+    
     passages = Passages(PASSAGES_PATH)
     data = passages.values().tolist()
     pids = passages.keys().tolist()
