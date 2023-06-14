@@ -126,7 +126,7 @@ if __name__ == "__main__":
 
 
     BACKBONE = "bert-base-uncased" # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
-    INDEX_PATH = "../../data/fandoms_qa/harry_potter/val/passages.indices.pt"
+    INDEX_PATH = "../../data/ms_marco/ms_marco_v1_1/val/passages.indices.pt" # "../../data/ms_marco/ms_marco_v1_1/val/triples.tsv"
     CHECKPOINT_PATH = "../../data/colbertv2.0/" #"../../saves/colbert_ms_marco_v1_1/checkpoints/epoch3_2_loss1.7869_mrr0.5846_acc41.473/" 
     # "../../data/colbertv2.0/" # or "../../checkpoints/harry_potter_bert_2023-06-03T08:58:15/epoch3_2_loss0.1289_mrr0.9767_acc95.339/"
 
@@ -140,16 +140,16 @@ if __name__ == "__main__":
     )
 
     # for QPP datasets:
-    # triples_path = "../../data/ms_marco/ms_marco_v1_1/val/triples.tsv"
-    # queries_path = "../../data/ms_marco/ms_marco_v1_1/val/queries.tsv"
-    # passages_path = "../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
-    # dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QPP")
+    triples_path = "../../data/ms_marco/ms_marco_v1_1/val/triples.tsv"
+    queries_path = "../../data/ms_marco/ms_marco_v1_1/val/queries.tsv"
+    passages_path = "../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
+    dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QPP")
     
     # for QQP datasets:
-    triples_path = "../../data/fandoms_qa/harry_potter/val/triples.tsv"
-    queries_path = "../../data/fandoms_qa/harry_potter/val/queries.tsv"
-    passages_path = "../../data/fandoms_qa/harry_potter/val/passages.tsv"
-    dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QQP")
+    # triples_path = "../../data/fandoms_qa/harry_potter/val/triples.tsv"
+    # queries_path = "../../data/fandoms_qa/harry_potter/val/queries.tsv"
+    # passages_path = "../../data/fandoms_qa/harry_potter/val/passages.tsv"
+    # dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QQP")
 
     # get passage list
     passage_list = [p[1] for p in dataset.passages_items()]
@@ -166,16 +166,15 @@ if __name__ == "__main__":
     top1, top3, top5, top10, top25, top100 = 0, 0, 0, 0, 0, 0
     mrr_10, mrr_100, recall_50 = 0, 0, 0
     
+    df = dataset.triples.data
 
     # for QPP datasets:
-    # df = pd.read_csv(dataset.triples.path, sep='\t')
-    # df.drop(df.columns[2:], axis=1, inplace=True)
-    # qrels = df.groupby([df.columns[0]], as_index=False).agg(lambda x: x)
+    df.drop(df.columns[2:], axis=1, inplace=True)
+    qrels = df.groupby(['QID'], as_index=False).agg(lambda x: set(x))
 
     # for QQP datasets:
-    df = pd.read_csv(dataset.triples.path, sep='\t')
-    df.drop(df.columns[1:2], axis=1, inplace=True)
-    qrels = df.groupby('QID+', as_index=False).agg(lambda x: set(x))
+    # df.drop(df.columns[1:2], axis=1, inplace=True)
+    # qrels = df.groupby('QID+', as_index=False).agg(lambda x: set(x))
 
     with cProfile.Profile() as pr:
         qids_batch = []
@@ -186,27 +185,25 @@ if __name__ == "__main__":
         for i, triple in enumerate(tqdm(dataset)):
 
             # for QPP datasets:
-            # qid, pid_pos, *pid_neg = triple
-            # query, psg_pos, *psg_neg = dataset.id2string(triple)
-            # qids_batch.append(qid)
-            # query_batch.append(query)
-            # target_batch.append(pid_pos)
+            qid, pid_pos, *pid_neg = triple
+            query, psg_pos, *psg_neg = dataset.id2string(triple)
+            qids_batch.append(qid)
+            query_batch.append(query)
+            target_batch.append(pid_pos)
             
             # for QQP datasets:
-            qid_pos, qid_neg, pid_pos = triple
-            query_pos, query_neg, passage = dataset.id2string(triple)
-            qids_batch.append(qid_pos)
-            query_batch.append(query_pos)
-            target_batch.append(pid_pos)
+            # qid_pos, qid_neg, pid_pos = triple
+            # query_pos, query_neg, passage = dataset.id2string(triple)
+            # qids_batch.append(qid_pos)
+            # query_batch.append(query_pos)
+            # target_batch.append(pid_pos)
 
             if len(query_batch) == BSIZE or i + 1 == len(dataset):
                 with torch.autocast(retriever.device.type):
-                    # pids = retriever.tf_idf_rank(query_batch, K)
+                    pids = retriever.tf_idf_rank(query_batch, K)
                     # pids = retriever.rerank(query_batch, K)
-                    pids = retriever.full_retrieval(query_batch, K)
+                    # pids = retriever.full_retrieval(query_batch, K)
                 
-                # print(qids_batch)
-
                 for j, ((sims, pred_pids), qid, target_pid) in enumerate(zip(pids, qids_batch, target_batch)):
                     idx = torch.where(pred_pids == target_pid)[0]
                     # idx = torch.tensor([idx for idx, pred_pid in enumerate(pred_pids) if pred_pid == target_pid])
@@ -217,22 +214,12 @@ if __name__ == "__main__":
                     if idx < 100:
                         top100 += 1
                         mrr_100 += 1 / (idx + 1)
-                        if idx < 50:
-                            # print(set([qrels.iloc[list(qrels.iloc[:,0]).index(qid)][1]]))
+                        if idx < 50 and qids_visit[qid]==False:
                             qrel = qrels.iloc[list(qrels.iloc[:,0]).index(qid)][1]
                             # print(qid, target_pid, qrel, pred_pids[:50])
                             common = qrel & set(pred_pids[:50].cpu().numpy())
                             recall_50 += (len(common) / max(1.0, len(qrel)))
-
-                            if isinstance(qrel, np.int64):
-                                print(qid, target_pid, qrel, set([qrel]), pred_pids[:50])
-                                common = set([qrel]) & set(pred_pids[:50].cpu().numpy())
-                                recall_50 += (len(common) / max(1.0, len(set([qrel]))))
-                            if isinstance(qrel, np.ndarray) and qids_visit[qid]==False:
-                                print(qid, target_pid, qrel, set([qrel]), pred_pids[:50])
-                                common = set(qrel) & set(pred_pids[:50].cpu().numpy())
-                                recall_50 += (len(common) / max(1.0, len(set(qrel))))
-                                qids_visit[qid] = True
+                            qids_visit[qid] = True
                             if idx < 25:
                                 top25 += 1
                                 if idx < 10:

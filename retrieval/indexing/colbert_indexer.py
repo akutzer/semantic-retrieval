@@ -186,8 +186,13 @@ if __name__ == "__main__":
 
     DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-    PASSAGES_PATH = "../../data/fandoms_qa/harry_potter/val/passages.tsv" # "../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
-    INDEX_PATH = "../../data/fandoms_qa/harry_potter/val/passages.indices.pt" # "../../data/ms_marco/ms_marco_v1_1/val/passages.indices.pt"
+    # for QPP datasets:
+    PASSAGES_PATH = "../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
+    INDEX_PATH = "../../data/ms_marco/ms_marco_v1_1/val/passages.indices.pt"
+    
+    # for QQP datasets:
+    # PASSAGES_PATH = "../../data/fandoms_qa/harry_potter/val/passages.tsv" 
+    # INDEX_PATH = "../../data/fandoms_qa/harry_potter/val/passages.indices.pt"
 
     BACKBONE = "bert-base-uncased" # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
     CHECKPOINT_PATH = "../../data/colbertv2.0/" #"../../saves/colbert_ms_marco_v1_1/checkpoints/epoch3_2_loss1.7869_mrr0.5846_acc41.473/" # "../../data/colbertv2.0/"
