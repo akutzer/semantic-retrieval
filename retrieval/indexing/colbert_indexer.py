@@ -25,12 +25,12 @@ class ColBERTIndexer(IndexerInterface):
         self.iid2pid = torch.empty(0, device=self.device, dtype=torch.int32)
         self.pid2iid = torch.empty((0, 0), device=self.device, dtype=torch.int32)
         self.next_iid = 0
-        self.offset = 0
+        self.offset = None
             
     def index(self, passages: List[str], pids: List[str], bsize: int = 16) -> None:
         batch_passages, batch_pids = self._new_passages(passages, pids)
         # if there are no passages which haven't been indexed yet, return
-        if len(passages) == 0:
+        if len(batch_passages) == 0:
             return
 
         with torch.inference_mode():
@@ -43,11 +43,20 @@ class ColBERTIndexer(IndexerInterface):
             max_iids_per_pid = max(max(emb.shape[0] for emb in psgs_embedded), self.pid2iid.shape[-1])
 
             # calculate the new height of the pid2iid matrix (aka the new maximal PIDs)
-            max_pid = max(max(pids) + 1, self.pid2iid.shape[0])
+            max_pid = max(max(batch_pids), self.pid2iid.shape[0] + (self.offset if self.offset is not None else 0) - 1)
+            if self.offset is not None:
+                new_offset = min(self.offset, min(batch_pids)) 
+                diff_offset = self.offset - new_offset
+            else:
+                new_offset = min(batch_pids)
+                diff_offset = 0
+            print(new_offset, diff_offset)
 
             # extends the pid2iid matrix (padded with -1)
-            pid2iid = torch.full((max_pid, max_iids_per_pid), -1, dtype=torch.int32, device=self.device)
-            pid2iid[:self.pid2iid.shape[0], :self.pid2iid.shape[1]] = self.pid2iid
+            pid2iid = torch.full((max_pid + 1 - new_offset, max_iids_per_pid), -1, dtype=torch.int32, device=self.device)
+            print("pid2iid", pid2iid.shape, max_pid, new_offset, diff_offset)
+            print(diff_offset, self.pid2iid.shape[0])
+            pid2iid[diff_offset:diff_offset + self.pid2iid.shape[0], :self.pid2iid.shape[1]] = self.pid2iid
 
             # extends the iid2pid vector
             num_new_iids = sum(emb.shape[0] for emb in psgs_embedded)
@@ -59,13 +68,14 @@ class ColBERTIndexer(IndexerInterface):
             for pid, emb in zip(batch_pids, psgs_embedded):
                 # adds new iids in the range [next_iid_, next_iid_ + n_embeddings)
                 new_iids = torch.arange(next_iid_, next_iid_ + emb.shape[0], device=self.device)
-                pid2iid[pid, :emb.shape[0]] = new_iids
+                pid2iid[pid - new_offset, :emb.shape[0]] = new_iids
                 iid2pid[new_iids] = pid
                 next_iid_ += emb.shape[0]
             
             # Update the mappings
             self.pid2iid = pid2iid
             self.iid2pid = iid2pid
+            self.offset = new_offset
             
             # Concatenate the new embeddings onto the previous embedding matrix
             # this is done on the cpu to save GPU-RAM
@@ -111,7 +121,7 @@ class ColBERTIndexer(IndexerInterface):
     def get_pid_embedding(self, batch_pids: List[torch.IntTensor]) -> Tuple[List[torch.Tensor], List[torch.BoolTensor]]:
         batch_embs, batch_masks = [], []
         for pids in batch_pids:
-            iids = self.pid2iid[pids]
+            iids = self.pid2iid[pids - self.offset]
             embs = self.embeddings[iids]
             mask = iids != -1
             embs[~mask] = 0
@@ -126,6 +136,7 @@ class ColBERTIndexer(IndexerInterface):
             "iid2pid": self.iid2pid.cpu(),
             "pid2iid": self.pid2iid.cpu(),
             "embeddings": self.embeddings.cpu(),
+            "offset": self.offset
         }
         torch.save(parameters, path)
     
@@ -134,6 +145,7 @@ class ColBERTIndexer(IndexerInterface):
         self.iid2pid = parameters["iid2pid"].to(self.device)
         self.pid2iid = parameters["pid2iid"].to(self.device)
         self.embeddings = parameters["embeddings"].to(self.device)
+        self.offset = parameters["offset"]
         self.dtype = self.embeddings.dtype
         logging.info(f"Successfully loaded the precomputed indices. Changed dtype to {self.dtype}!")
         
@@ -146,8 +158,10 @@ class ColBERTIndexer(IndexerInterface):
 
         # else use only passages from unseen pids
         else:
+            current_max_pid = self.pid2iid.shape[0] + self.offset - 1
+            current_min_pid = 0 if self.offset is None else self.offset
             for pid, passage in zip(pids, passages):
-                if pid > self.pid2iid.shape[0] - 1 or self.pid2iid[pid][0] == -1:
+                if pid > current_max_pid or pid < current_min_pid or self.pid2iid[pid - self.offset][0] == -1:
                     passages_.append(passage)
                     pids_.append(pid)
 
@@ -213,27 +227,30 @@ if __name__ == "__main__":
     pids = passages.keys().tolist()
     
     # test indexing of already seen data
-    indexer.index(data[:1], pids[:1], bsize=8)
+    indexer.index(data[2:3], pids[2:3], bsize=8)
     indexer.index(data[1:2], pids[1:2], bsize=8)
     indexer.index(data[:3], pids[:3], bsize=8)
     print(indexer.embeddings.shape)
     print(indexer.iid2pid)
     print(indexer.pid2iid)
-    print(indexer.iid2pid.shape, indexer.pid2iid.shape)
+    print(indexer.iid2pid.shape, indexer.pid2iid.shape, indexer.offset)
     # print()
-    exit(0)
+    
 
     # test some other methods
     test_iids = torch.arange(0, 10).reshape(5, 2).T[:, None]
     test_pids = indexer.iids_to_pids(test_iids)
     test_embs = indexer.get_pid_embedding(test_pids)
 
+
     # index the entire data
-    indexer.index(data, pids, bsize=8)
-    indexer.save(INDEX_PATH)
+    # indexer.index(data, pids, bsize=8)
+    # indexer.save(INDEX_PATH)
     indexer.load(INDEX_PATH)
     print(indexer.embeddings.shape)
-
+    print(indexer.iid2pid.shape)
+    print(indexer.pid2iid.shape)
+    print((indexer.pid2iid.sum(dim=-1) == -32).sum())
 
     # test retrieval
     queries = ["Who is the author of 'The Witcher'?", "How does an NPC behave when it starts raining?", "Who the hell is Cynthia?"]
