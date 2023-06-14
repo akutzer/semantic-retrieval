@@ -57,8 +57,8 @@ POS, NEG = (2,2)
 def getProxyList():
     proxies = []
     regex = ">([0-9]*.[0-9]*.[0-9]*.[0-9]*.[0-9]*)</td>"
-    files = ['https://github.com/TheSpeedX/PROXY-List/blob/master/http.txt','https://github.com/TheSpeedX/PROXY-List/blob/master/socks4.txt', 'https://github.com/TheSpeedX/PROXY-List/blob/master/socks5.txt']
-    # files = ['https://github.com/mertguvencli/http-proxy-list/blob/main/proxy-list/data.txt']
+    #files = ['https://github.com/TheSpeedX/PROXY-List/blob/master/http.txt','https://github.com/TheSpeedX/PROXY-List/blob/master/socks4.txt', 'https://github.com/TheSpeedX/PROXY-List/blob/master/socks5.txt']
+    files = ['https://github.com/mertguvencli/http-proxy-list/blob/main/proxy-list/data.txt']
 
     for file in files:
         res = requests.get(file)
@@ -272,6 +272,8 @@ def mainLoop(import_path, export_file):
 
 
             for provider_i in range(num_providers):
+                if provider_i == 1:
+                    continue
                 # continue if list empty
                 if not pairs_ind:
                     continue
@@ -316,23 +318,13 @@ if __name__ == "__main__":
     # print(deepai.Completion.create(messages='hi wie gehts', proxy_https=getProxyList()[0], timeout=TIMEOUT))
 
 
-    rn = random.randint(0,2)
-    rn = 2
+    rn = random.randint(0,0)
     if rn == 0:
         print('elder')
         mainLoop(import_path="../../../../data/fandoms/elder_scrolls.json", export_file="../../elder_scrolls_qa.csv")
     elif rn == 0:
         print('star wars')
         mainLoop(import_path="../../../../data/fandoms/starwars.json", export_file="../../starwars_qa.csv")
-    elif rn == 1:
-        print('witcher')
-        mainLoop(import_path="../../../../data/fandoms/witcher.json", export_file="../../witcher_qa.csv")
-    elif rn == 2:
-        print('harry')
-        mainLoop(import_path="../../../../data/fandoms/harry_potter.json", export_file="../../harry_potter_question_para.csv")
-    elif rn == 3:
-        print('marvel')
-        mainLoop(import_path="../../../../data/fandoms/marvel.json", export_file="../../marvel_qa.csv")
     # elif rn == 5:
     #     mainLoop(import_path="../../../../data/flo/harry_pqq_blueprint1_.json", export_file="../../harry_pqq_blueprint1_flo_qa.csv")
 
