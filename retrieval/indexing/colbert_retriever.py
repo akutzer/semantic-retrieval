@@ -120,46 +120,47 @@ if __name__ == "__main__":
     import cProfile
     import pandas as pd
     import numpy as np
-
+    import argparse
+ 
     # enable TensorFloat32 tensor cores for float32 matrix multiplication if available
     torch.set_float32_matmul_precision("high")
+        
+    parser = argparse.ArgumentParser(description="ColBERT Retrieving")
+    # Dataset arguments
+    dataset_args = parser.add_argument_group("Dataset Arguments")
+    dataset_args.add_argument("--dataset_name", type=str, required=True, help="Name of the dataset")
+    dataset_args.add_argument("--dataset_mode", type=str, required=True, choices=["QQP", "QPP"], help="Mode of the dataset")
+    dataset_args.add_argument("--passages_path_val", type=str, help="Path to the validation passages.tsv file")
+    dataset_args.add_argument("--queries_path_val", type=str, help="Path to the validation queries.tsv file")
+    dataset_args.add_argument("--triples_path_val", type=str, help="Path to the validation triples.tsv file")
 
-
-    BACKBONE = "bert-base-uncased" # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
-    INDEX_PATH = "../../data/ms_marco/ms_marco_v1_1/val/passages.indices.pt" # "../../data/ms_marco/ms_marco_v1_1/val/triples.tsv"
-    CHECKPOINT_PATH = "../../data/colbertv2.0/" #"../../saves/colbert_ms_marco_v1_1/checkpoints/epoch3_2_loss1.7869_mrr0.5846_acc41.473/" 
-    # "../../data/colbertv2.0/" # or "../../checkpoints/harry_potter_bert_2023-06-03T08:58:15/epoch3_2_loss0.1289_mrr0.9767_acc95.339/"
+    # Model arguments
+    model_args = parser.add_argument_group("Model Arguments")
+    model_args.add_argument("--backbone", type=str, help="Name of the backbone model")
+    model_args.add_argument("--indexer", type=str, help="Path of the indexer which should be loaded")
+    model_args.add_argument("--checkpoint", type=str, help="Path of the checkpoint which should be loaded")
+    
+    args = parser.parse_args()
 
     config = BaseConfig(
-        tok_name_or_path=BACKBONE,
-        backbone_name_or_path=BACKBONE,
+        tok_name_or_path=args.backbone,
+        backbone_name_or_path=args.backbone,
         similarity="cosine",
         doc_maxlen=512,
         passages_per_query=10,
-        checkpoint=CHECKPOINT_PATH
+        checkpoint=args.checkpoint
     )
 
-    # for QPP datasets:
-    triples_path = "../../data/ms_marco/ms_marco_v1_1/val/triples.tsv"
-    queries_path = "../../data/ms_marco/ms_marco_v1_1/val/queries.tsv"
-    passages_path = "../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
-    dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QPP")
+    dataset = TripleDataset(config, args.triples_path_val, args.queries_path_val, args.passages_path_val, mode=args.dataset_mode)
     
-    # for QQP datasets:
-    # triples_path = "../../data/fandoms_qa/harry_potter/val/triples.tsv"
-    # queries_path = "../../data/fandoms_qa/harry_potter/val/queries.tsv"
-    # passages_path = "../../data/fandoms_qa/harry_potter/val/passages.tsv"
-    # dataset = TripleDataset(config, triples_path, queries_path, passages_path, mode="QQP")
-
     # get passage list
     passage_list = [p[1] for p in dataset.passages_items()]
     
-    # colbert, tokenizer = load_colbert_and_tokenizer(CHECKPOINT_PATH, device="cuda:0", config=config)
-    colbert, tokenizer = load_colbert_and_tokenizer(CHECKPOINT_PATH, device="cuda:0")
+    # colbert, tokenizer = load_colbert_and_tokenizer(CHECKPOINT, device="cuda:0", config=config)
+    colbert, tokenizer = load_colbert_and_tokenizer(args.checkpoint, device="cuda:0")
     inference = ColBERTInference(colbert, tokenizer)
     retriever = ColBERTRetriever(inference, device="cuda:0", passages=passage_list)
-    retriever.indexer.load(INDEX_PATH)
-
+    retriever.indexer.load(args.indexer)
 
     BSIZE = 8 #8 #16 #8 #16
     K = 100
@@ -168,13 +169,13 @@ if __name__ == "__main__":
     
     df = dataset.triples.data
 
-    # for QPP datasets:
-    df.drop(df.columns[2:], axis=1, inplace=True)
-    qrels = df.groupby(['QID'], as_index=False).agg(lambda x: set(x))
+    if args.dataset_mode=="QPP":
+        df.drop(df.columns[2:], axis=1, inplace=True)
+        qrels = df.groupby('QID', as_index=False).agg(lambda x: set(x))
 
-    # for QQP datasets:
-    # df.drop(df.columns[1:2], axis=1, inplace=True)
-    # qrels = df.groupby('QID+', as_index=False).agg(lambda x: set(x))
+    if args.dataset_mode=="QQP":
+        df.drop(df.columns[1:2], axis=1, inplace=True)
+        qrels = df.groupby('QID+', as_index=False).agg(lambda x: set(x))
 
     with cProfile.Profile() as pr:
         qids_batch = []
@@ -184,25 +185,25 @@ if __name__ == "__main__":
 
         for i, triple in enumerate(tqdm(dataset)):
 
-            # for QPP datasets:
-            qid, pid_pos, *pid_neg = triple
-            query, psg_pos, *psg_neg = dataset.id2string(triple)
-            qids_batch.append(qid)
-            query_batch.append(query)
-            target_batch.append(pid_pos)
+            if args.dataset_mode=="QPP":
+                qid, pid_pos, *pid_neg = triple
+                query, psg_pos, *psg_neg = dataset.id2string(triple)
+                qids_batch.append(qid)
+                query_batch.append(query)
+                target_batch.append(pid_pos)
             
-            # for QQP datasets:
-            # qid_pos, qid_neg, pid_pos = triple
-            # query_pos, query_neg, passage = dataset.id2string(triple)
-            # qids_batch.append(qid_pos)
-            # query_batch.append(query_pos)
-            # target_batch.append(pid_pos)
+            if args.dataset_mode=="QQP":
+                qid_pos, qid_neg, pid_pos = triple
+                query_pos, query_neg, passage = dataset.id2string(triple)
+                qids_batch.append(qid_pos)
+                query_batch.append(query_pos)
+                target_batch.append(pid_pos)
 
             if len(query_batch) == BSIZE or i + 1 == len(dataset):
                 with torch.autocast(retriever.device.type):
-                    pids = retriever.tf_idf_rank(query_batch, K)
+                    # pids = retriever.tf_idf_rank(query_batch, K)
                     # pids = retriever.rerank(query_batch, K)
-                    # pids = retriever.full_retrieval(query_batch, K)
+                    pids = retriever.full_retrieval(query_batch, K)
                 
                 for j, ((sims, pred_pids), qid, target_pid) in enumerate(zip(pids, qids_batch, target_batch)):
                     idx = torch.where(pred_pids == target_pid)[0]
