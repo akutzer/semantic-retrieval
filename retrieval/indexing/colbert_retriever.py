@@ -167,7 +167,8 @@ if __name__ == "__main__":
     top1, top3, top5, top10, top25, top100 = 0, 0, 0, 0, 0, 0
     mrr_10, mrr_100, recall_50 = 0, 0, 0
     
-    df = dataset.triples.data
+    # df = dataset.triples.data
+    df = pd.read_csv(dataset.triples.path, sep='\t', index_col=False)
 
     if args.dataset_mode=="QPP":
         df.drop(df.columns[2:], axis=1, inplace=True)
@@ -181,7 +182,7 @@ if __name__ == "__main__":
         qids_batch = []
         query_batch = []
         target_batch = []
-        qids_visit = np.zeros(len(dataset), dtype=bool)
+        qids_visit = np.zeros(2*len(dataset), dtype=bool)
 
         for i, triple in enumerate(tqdm(dataset)):
 
