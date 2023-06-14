@@ -10,10 +10,12 @@ runs/
 checkpoints/
 checkpoint/
 
+# ignore taurus logs
+*.err
+*.out
+
 # ignore mac files
 .DS_Store
-src/preprocessing/daiaipy.py
-
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

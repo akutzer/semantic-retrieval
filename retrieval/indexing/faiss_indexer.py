@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-import faiss
 import time
-import torch
+import faiss
 
 from retrieval.indexing.colbert_indexer import ColBERTIndexer
 
 
-class FaissIndex():
+class FaissIndex:
     def __init__(self, dim, partitions, similarity="l2"):
         self.dim = dim
         self.partitions = partitions
@@ -22,7 +21,9 @@ class FaissIndex():
 
     def _create_index(self):
         quantizer = faiss.IndexFlatL2(self.dim)
-        index = faiss.IndexIVFPQ(quantizer, self.dim, self.partitions, self.num_subquantizers, 8)
+        index = faiss.IndexIVFPQ(
+            quantizer, self.dim, self.partitions, self.num_subquantizers, 8
+        )
         # index = faiss.IndexIVFFlat(quantizer, self.dim, self.partitions)
 
         return quantizer, index
@@ -44,21 +45,16 @@ class FaissIndex():
         faiss.write_index(self.index, output_path)
 
 
-
 if __name__ == "__main__":
     from retrieval.configs import BaseConfig
     import numpy as np
     import random
 
-    
     random.seed(125)
     np.random.seed(125)
 
     config = BaseConfig(
-        dim = 32,
-        batch_size = 16,
-        accum_steps = 1,
-        similarity = "cosine" # "l2" or "cosine"
+        dim=32, batch_size=16, accum_steps=1, similarity="cosine"  # "l2" or "cosine"
     )
 
     INDEX_PATH = "../../data/fandom-qa/witcher_qa/passages.train.indices.pt"
@@ -78,6 +74,3 @@ if __name__ == "__main__":
 
     D, I = faiss_indexer.search(indexer.embeddings[:10].numpy(), k=3, nprobe=1)
     print(D, I, sep="\n")
-
-
-
