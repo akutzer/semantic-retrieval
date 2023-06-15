@@ -21,10 +21,11 @@ def validation(model, criterion, dataloader):
 
         for Q, P in tqdm(dataloader):
             with torch.autocast(model.device.type, enabled=model.config.use_amp):
-                out = model(Q, P) * 32
-                target = torch.zeros(out.shape[0], device=out.device, dtype=torch.long)
+                out = model(Q, P)
+                target = -torch.zeros(out.shape, device=out.device, dtype=torch.float32)
+                target[:, 0] = 1
                 loss += criterion(out, target)
-                acc += torch.sum(out.max(dim=-1).indices == target)
+                acc += torch.sum(out.detach().max(dim=-1).indices == torch.zeros(out.shape[0], device=out.device, dtype=torch.long))
                 ranks = out.sort(dim=-1, descending=True).indices
                 positive_rank = torch.where(ranks == 0)[-1]
                 mrr += torch.sum(1.0 / (positive_rank + 1).float())
@@ -135,7 +136,7 @@ def train(args):
             scaler = load_grad_scaler_checkpoint(config.checkpoint, scaler)
 
 
-    criterion = torch.nn.CrossEntropyLoss(reduction="sum", label_smoothing=0.02)
+    criterion = torch.nn.MSELoss(reduction="sum")
 
 
     ###########################################################################
@@ -159,12 +160,10 @@ def train(args):
         colbert.train()
         for i, (Q, P) in enumerate(tqdm(train_dataloader)):
             with torch.autocast(device.type, enabled=config.use_amp):
-                out = colbert(Q, P) * 32
-                target = torch.zeros(out.shape[0], device=out.device, dtype=torch.long)
+                out = colbert(Q, P)
+                target = -torch.zeros(out.shape, device=out.device, dtype=torch.float32)
+                target[:, 0] = 1
                 loss = criterion(out, target)
-                # target = -torch.zeros(out.shape, device=out.device, dtype=torch.float32)
-                # target[:, 0] = 1
-                # loss = torch.nn.MSELoss(reduction="sum")(out, target)
                 loss *= 1 / config.batch_size
 
             if config.use_amp:
