@@ -44,7 +44,7 @@ def train(args):
     ###########################################################################
     run_name = get_run_name(args)
 
-    logging.basicConfig(level=logging.INFO, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%y-%m-%d %H:%M:%S")
+    logging.basicConfig(level=logging.INFO, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
     logging.info(f"Starting run: {run_name}")
     logging.info(f"Python Version: {sys.version}")
     logging.info(f"PyTorch Version: {torch.__version__}")
