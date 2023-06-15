@@ -7,7 +7,7 @@ class IndexerInterface(ABC):
     @abstractmethod
     def index(self, path_to_passages: str, bsize: Union[None, int] = None):
         pass
-    
+
     @abstractmethod
     def search(self, query):
         pass

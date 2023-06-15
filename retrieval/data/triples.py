@@ -9,14 +9,18 @@ class Triples:
         self.path = path
 
         mode = mode.lower()
-        assert mode in ["qqp", "qpp"], f"Mode must be either `QQP` or `QPP`, but was given as: {mode}"
+        assert mode in ["qqp", "qpp"], \
+            f"Mode must be either `QQP` or `QPP`, but was given as: {mode}"
         self.mode = mode
 
         if self.mode == "qqp" and psgs_per_qry is not None:
-            warnings.warn("psgs_per_qry argument will be ignored if mode = `QQP`", DeprecationWarning)
+            warnings.warn(
+                "psgs_per_qry argument will be ignored if mode = `QQP`",
+                DeprecationWarning,
+            )
 
         self._load_file(path, mode, psgs_per_qry)
-    
+
     def __len__(self):
         return len(self.data)
 
@@ -25,39 +29,39 @@ class Triples:
 
     def __getitem__(self, idx):
         return self.data.iloc[idx].values.tolist()
-    
+
     def _load_file(self, path, mode, psgs_per_qry=None):
         if path.endswith((".csv", ".tsv")):
             self.data = self._load_tsv(path, psgs_per_qry)
-        
+
         elif path.endswith(".json"):
             raise DeprecationWarning()
             # self.data = self._load_json(path, psgs_per_qry)
 
         return self.data
-        
+
     def _load_tsv(self, path, psgs_per_qry=None):
         delimiter = "\t" if path.endswith(".tsv") else ","
         triples = pd.read_csv(path, delimiter=delimiter)
 
         if psgs_per_qry is not None and self.mode == "qpp":
-            triples = triples.iloc[:, :psgs_per_qry+1]
+            triples = triples.iloc[:, : psgs_per_qry + 1]
         self._rename_df(triples)
- 
+
         return triples
-    
+
     # def _load_json(self, path, psgs_per_qry=None):
     #     triples = pd.read_json(path)
     #     if psgs_per_qry is not None and self.mode == "qpp":
     #         triples = triples.iloc[:, :psgs_per_qry+1]
     #     self._rename_df(triples)
-        
+
     #     return triples
-    
+
     def _rename_df(self, df: pd.DataFrame, psgs_per_qry=None):
         if psgs_per_qry is None:
             psgs_per_qry = df.shape[-1] - 2
- 
+
         if self.mode == "qqp":
             # names = ["QID⁺"] + ["QID⁻"] * psgs_per_qry + ["PID"]
             names = ["QID⁺", "QID⁻", "PID"]
@@ -78,17 +82,14 @@ class Triples:
             self.data = self.data.reset_index(drop=True)
 
 
-
 if __name__ == "__main__":
-    path = "../../data/ms_marco_v1.1/train/triples.train.tsv"
+    path = "../../data/ms_marco/ms_marco_v1_1/train/triples.tsv"
     triples = Triples(path=path, mode="QPP", psgs_per_qry=None)
     print(triples.data, end="\n\n")
 
-
-    path = "../../data/fandoms_qa/harry_potter/triples.tsv"
+    path = "../../data/fandoms_qa/harry_potter/train/triples.tsv"
     triples = Triples(path=path, mode="QQP", psgs_per_qry=None)
     print(triples.data, end="\n\n")
-
 
     # print(triples[0], triples.data.loc[0].tolist())
     # triples.shuffle(reset_index=False)
