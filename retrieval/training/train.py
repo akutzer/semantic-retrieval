@@ -2,14 +2,21 @@
 import os
 import sys
 import logging
-import argparse
 import torch
 from tqdm import tqdm
 
 from retrieval.data import get_pytorch_dataloader, TripleDataset
 from retrieval.models import get_colbert_and_tokenizer, load_colbert_and_tokenizer
-from retrieval.training.utils import seed, seed_worker, get_run_name, get_tensorboard_writer, get_config_from_argparser, load_optimizer_checkpoint, load_scheduler_checkpoint, load_grad_scaler_checkpoint
-
+from retrieval.training.utils import (
+    seed,
+    seed_worker,
+    get_run_name,
+    get_tensorboard_writer,
+    get_config_from_argparser,
+    load_optimizer_checkpoint,
+    load_scheduler_checkpoint,
+    load_grad_scaler_checkpoint,
+)
 
 
 def validation(model, criterion, dataloader):
@@ -28,7 +35,7 @@ def validation(model, criterion, dataloader):
                 ranks = out.sort(dim=-1, descending=True).indices
                 positive_rank = torch.where(ranks == 0)[-1]
                 mrr += torch.sum(1.0 / (positive_rank + 1).float())
-        
+
         n = len(dataloader.dataset)
         loss /= n
         acc /= n
@@ -44,7 +51,11 @@ def train(args):
     ###########################################################################
     run_name = get_run_name(args)
 
-    logging.basicConfig(level=logging.INFO, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+    logging.basicConfig(
+        level=logging.INFO,
+        format="[%(asctime)s][%(levelname)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
     logging.info(f"Starting run: {run_name}")
     logging.info(f"Python Version: {sys.version}")
     logging.info(f"PyTorch Version: {torch.__version__}")
@@ -75,8 +86,6 @@ def train(args):
 
     writer = get_tensorboard_writer(run_name, path=args.tensorboard_path)
     logging.info("Initialized TensorBoard @ `http://localhost:6006/`!")
- 
-
 
     ###########################################################################
     ########   INITIALIZATION OF MODEL, DATALOADERS, OPTIMIZER, etc.   ########
@@ -84,49 +93,99 @@ def train(args):
     load_checkpoint = config.checkpoint is not None and os.path.exists(config.checkpoint)
     if load_checkpoint:
         logging.info(f"Loading from checkpoint `{config.checkpoint}`")
-        colbert, tokenizer = load_colbert_and_tokenizer(config.checkpoint, device, config)
+        colbert, tokenizer = load_colbert_and_tokenizer(
+            config.checkpoint, device, config
+        )
     else:
         colbert, tokenizer = get_colbert_and_tokenizer(config, device)
     logging.info("Loaded ColBERT!")
     logging.info(tokenizer)
     logging.info(colbert)
 
-    # TODO: rewrite get_pytorch_dataloader and load_dataset
-    train_dataset = TripleDataset(config, args.triples_path_train, args.queries_path_train, args.passages_path_train, mode=args.dataset_mode)
-    train_dataloader = get_pytorch_dataloader(config, train_dataset, tokenizer, num_workers=args.train_workers, worker_init_fn=seed_worker, generator=g)
+    train_dataset = TripleDataset(
+        config,
+        args.triples_path_train,
+        args.queries_path_train,
+        args.passages_path_train,
+        mode=args.dataset_mode,
+    )
+    train_dataloader = get_pytorch_dataloader(
+        config,
+        train_dataset,
+        tokenizer,
+        num_workers=args.train_workers,
+        worker_init_fn=seed_worker,
+        generator=g,
+    )
     logging.info("Loaded Training-Dataset & initialized Training-DataLoader!")
 
     run_eval = args.triples_path_val and args.num_eval_per_epoch > 0
     if run_eval:
-        eval_dataset = TripleDataset(config, args.triples_path_val, args.queries_path_val, args.passages_path_val, mode=args.dataset_mode)
-        eval_dataloader = get_pytorch_dataloader(config, eval_dataset, tokenizer, batch_size=config.batch_size, shuffle=False, drop_last=False, num_workers=args.val_workers, worker_init_fn=seed_worker, generator=g)
+        eval_dataset = TripleDataset(
+            config,
+            args.triples_path_val,
+            args.queries_path_val,
+            args.passages_path_val,
+            mode=args.dataset_mode,
+        )
+        eval_dataloader = get_pytorch_dataloader(
+            config,
+            eval_dataset,
+            tokenizer,
+            batch_size=config.batch_size,
+            shuffle=False,
+            drop_last=False,
+            num_workers=args.val_workers,
+            worker_init_fn=seed_worker,
+            generator=g,
+        )
         logging.info("Loaded Evaluation-Dataset & initialized Evaluation-DataLoader!")
 
         eval_iterations = [round((i * len(train_dataloader)) / args.num_eval_per_epoch) for i in range(1, args.num_eval_per_epoch + 1)]
         eval_iterations[-1] = len(train_dataloader)
-    
+
     if args.checkpoints_per_epoch > 0:
         checkpoint_iterations = [round((i * len(train_dataloader)) / args.checkpoints_per_epoch) for i in range(1, args.checkpoints_per_epoch + 1)]
         checkpoint_iterations[-1] = len(train_dataloader)
     else:
         checkpoint_iterations = [len(train_dataloader)]
 
-
-    optimizer = torch.optim.AdamW(colbert.parameters(), lr=config.lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
+    optimizer = torch.optim.AdamW(
+        colbert.parameters(),
+        lr=config.lr,
+        betas=(0.9, 0.999),
+        eps=1e-08,
+        weight_decay=0.01,
+        amsgrad=False,
+    )
     if load_checkpoint:
         optimizer = load_optimizer_checkpoint(config.checkpoint, optimizer)
+
     use_scheduler = bool(config.warmup_epochs)
     if use_scheduler:
         total_iters = config.epochs * (len(train_dataloader) // config.accum_steps)
-        warmup_iters = config.warmup_epochs * (len(train_dataloader) // config.accum_steps)
-        warmup_scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=config.warmup_start_factor, total_iters=warmup_iters, verbose=False)
-        # main_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=total_iters - warmup_iters, verbose=False)
-        # scheduler = torch.optim.lr_scheduler.SequentialLR(optimizer, schedulers=[warmup_scheduler, main_scheduler], milestones=[warmup_iters])
+        warmup_iters = config.warmup_epochs * (
+            len(train_dataloader) // config.accum_steps
+        )
+        warmup_scheduler = torch.optim.lr_scheduler.LinearLR(
+            optimizer,
+            start_factor=config.warmup_start_factor,
+            total_iters=warmup_iters,
+            verbose=False,
+        )
+        # main_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        #     optimizer, T_max=total_iters - warmup_iters, verbose=False
+        # )
+        # scheduler = torch.optim.lr_scheduler.SequentialLR(
+        #     optimizer,
+        #     schedulers=[warmup_scheduler, main_scheduler],
+        #     milestones=[warmup_iters],
+        # )
         scheduler = warmup_scheduler
         if load_checkpoint:
             scheduler = load_scheduler_checkpoint(config.checkpoint, scheduler)
 
-        # enable automatic mixed precission
+    # enable automatic mixed precission
     if config.use_amp:
         scaler = torch.cuda.amp.GradScaler()
         logging.info("Enabled AMP!")
@@ -134,9 +193,7 @@ def train(args):
         if load_checkpoint:
             scaler = load_grad_scaler_checkpoint(config.checkpoint, scaler)
 
-
-    criterion = torch.nn.CrossEntropyLoss(reduction="sum", label_smoothing=0.02)
-
+    criterion = torch.nn.CrossEntropyLoss(reduction="sum", label_smoothing=0.0)
 
     ###########################################################################
     #################   TRAINING + EVALUATION OF THE MODEL   ##################
@@ -144,11 +201,14 @@ def train(args):
     if run_eval:
         logging.info("Starting initial evaluation!")
         eval_loss, eval_acc, eval_mrr = validation(colbert, criterion, eval_dataloader)
-        logging.info(f"Eval Loss: {round(eval_loss.item(), 5)}, Eval MRR: {round(eval_mrr.item(), 5)}, Eval Accuracy: {round(eval_acc.item() * 100, 3)}")
+        logging.info(
+            f"Eval Loss: {round(eval_loss.item(), 5)}, " 
+            f"Eval MRR: {round(eval_mrr.item(), 5)}, "  
+            f"Eval Accuracy: {round(eval_acc.item() * 100, 3)}"
+        )
         writer.add_scalar("Loss/eval", eval_loss, 0)
         writer.add_scalar("Accuracy/eval", eval_acc, 0)
         writer.add_scalar("MRR/eval", eval_mrr, 0)
-    
 
     logging.info("Starting training!")
     for epoch in range(1, config.epochs + 1):
@@ -162,9 +222,6 @@ def train(args):
                 out = colbert(Q, P) * 32
                 target = torch.zeros(out.shape[0], device=out.device, dtype=torch.long)
                 loss = criterion(out, target)
-                # target = -torch.zeros(out.shape, device=out.device, dtype=torch.float32)
-                # target[:, 0] = 1
-                # loss = torch.nn.MSELoss(reduction="sum")(out, target)
                 loss *= 1 / config.batch_size
 
             if config.use_amp:
@@ -178,30 +235,34 @@ def train(args):
                 ranks = out.sort(dim=-1, descending=True).indices
                 positive_rank = torch.where(ranks == 0)[-1]
                 mrr += torch.sum(1.0 / (positive_rank + 1).float())
-            
+
             if (i + 1) % config.accum_steps == 0:
                 if config.use_amp:
                     scaler.step(optimizer)
                     scaler.update()
                 else:
                     optimizer.step()
-                    
+
                 if use_scheduler:
                     scheduler.step()
-                
+
                 optimizer.zero_grad()
 
-                time_step = (epoch - 1) * (len(train_dataloader) // config.accum_steps)  + i // config.accum_steps
+                time_step = (epoch - 1) * (len(train_dataloader) // config.accum_steps) + i // config.accum_steps
                 writer.add_scalar("Loss/train", losses, time_step)
                 writer.add_scalar("Accuracy/train", accs / config.batch_size, time_step)
                 writer.add_scalar("MRR/train", mrr / config.batch_size, time_step)
                 losses, accs, mrr = 0.0, 0.0, 0.0
-            
+
             # run evaluation
             if run_eval and (i + 1) in eval_iterations:
                 eval_loss, eval_acc, eval_mrr = validation(colbert, criterion, eval_dataloader)
-                logging.info(f"Eval Loss: {round(eval_loss.item(), 5)}, Eval MRR: {round(eval_mrr.item(), 5)}, Eval Accuracy: {round(eval_acc.item() * 100, 3)}")
-                time_step = (epoch - 1) * (len(train_dataloader) // config.accum_steps)  + i // config.accum_steps
+                logging.info(
+                    f"Eval Loss: {round(eval_loss.item(), 5)}, "
+                    f"Eval MRR: {round(eval_mrr.item(), 5)}, "
+                    f"Eval Accuracy: {round(eval_acc.item() * 100, 3)}"
+                )
+                time_step = (epoch - 1) * (len(train_dataloader) // config.accum_steps) + i // config.accum_steps
                 writer.add_scalar("Loss/eval", eval_loss, time_step)
                 writer.add_scalar("Accuracy/eval", eval_acc, time_step)
                 writer.add_scalar("MRR/eval", eval_mrr, time_step)
@@ -212,24 +273,33 @@ def train(args):
                 checkpoint_path = f"{args.checkpoints_path}/{run_name}/epoch{epoch}_{checkpoint_in_epoch}"
                 if run_eval and (i + 1) in eval_iterations:
                     checkpoint_path += "_loss%.4f_mrr%.4f_acc%.3f" % (eval_loss.item(), eval_mrr.item(), eval_acc.item() * 100)
-                
+
                 colbert.save(checkpoint_path)
                 tokenizer.save(checkpoint_path, store_config=False)
-                torch.save(optimizer.state_dict(), os.path.join(checkpoint_path, "optimizer.pt"))
+                torch.save(
+                    optimizer.state_dict(),
+                    os.path.join(checkpoint_path, "optimizer.pt"),
+                )
                 if config.use_amp:
-                    torch.save(scaler.state_dict(), os.path.join(checkpoint_path, "gradient_scaler.pt"))
+                    torch.save(
+                        scaler.state_dict(),
+                        os.path.join(checkpoint_path, "gradient_scaler.pt"),
+                    )
                 if use_scheduler:
-                    torch.save(scheduler.state_dict(), os.path.join(checkpoint_path, "scheduler.pt"))
-                
+                    torch.save(
+                        scheduler.state_dict(),
+                        os.path.join(checkpoint_path, "scheduler.pt"),
+                    )
+
                 logging.info(f"Saved checkpoint: {checkpoint_path}")
 
     writer.flush()
     writer.close()
 
 
-
-
 if __name__ == "__main__":
+    import argparse
+    
     parser = argparse.ArgumentParser(description="ColBERT Training")
 
     # Dataset arguments
