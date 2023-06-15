@@ -85,7 +85,7 @@ def get_config_from_argparser(args):
 
 
 def load_optimizer_checkpoint(directory: str, optimizer: torch.optim.Optimizer):
-    logging.basicConfig(level=logging.WARNING, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%y-%m-%d %H:%M:%S")
+    logging.basicConfig(level=logging.WARNING, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
     optim_path = os.path.join(directory, "optimizer.pt")
 
     if os.path.exists(optim_path):
@@ -102,7 +102,7 @@ def load_optimizer_checkpoint(directory: str, optimizer: torch.optim.Optimizer):
 
 
 def load_scheduler_checkpoint(directory: str, scheduler: torch.optim.lr_scheduler.LRScheduler):
-    logging.basicConfig(level=logging.WARNING, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%y-%m-%d %H:%M:%S")
+    logging.basicConfig(level=logging.WARNING, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
     scheduler_path = os.path.join(directory, "scheduler.pt")
     
 
@@ -119,7 +119,7 @@ def load_scheduler_checkpoint(directory: str, scheduler: torch.optim.lr_schedule
     return scheduler
 
 def load_grad_scaler_checkpoint(directory: str, scaler: torch.cuda.amp.GradScaler):
-    logging.basicConfig(level=logging.WARNING, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%y-%m-%d %H:%M:%S")
+    logging.basicConfig(level=logging.WARNING, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
     scaler_path = os.path.join(directory, "gradient_scaler.pt")
 
     if os.path.exists(scaler_path):
