@@ -1,9 +1,11 @@
 import random
 from tqdm import tqdm
+import torch
 
-from retrieval.indexing.colbert_retriever import ColBERTRetriever
-from retrieval.data import TripleDataset
-from retrieval.models.basemodels.tf_idf import TfIdf
+from retrieval.configs import BaseConfig
+from retrieval.indexing import ColBERTIndexer, ColBERTRetriever
+from retrieval.data import TripleDataset, Passages
+from retrieval.models import TfIdf, load_colbert_and_tokenizer
 from retrieval.model_understanding.visualize_similarity import *
 
 
@@ -14,36 +16,46 @@ np.random.seed(SEED)
 torch.manual_seed(SEED)
 torch.cuda.manual_seed_all(SEED)
 
-MODEL_PATH = "../../data/colbertv2.0/"  # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
-INDEX_PATH = "../../data/fandom-qa/witcher_qa/passages.train.indices.pt"
+CHECKPOINT_PATH = "../../data/colbertv2.0/"  # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
+INDEX_PATH = "../../data/fandoms_qa/witcher/val/passages.indices.pt"
+DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-config = BaseConfig(
-    tok_name_or_path=MODEL_PATH,
-    backbone_name_or_path=MODEL_PATH,
-    similarity="cosine",
-    dim=128,
-    batch_size=32,
-    accum_steps=1,
-)
+
 
 def colbert_vs_tf_idf(testing_max_count = 100, size_datasets_good = 100, size_datasets_bad = 100, K_good=1000, K_bad = 1000, return_size=20):
     '''Args:
     testing_max_count: how many
     '''
-    colbert, tokenizer = get_colbert_and_tokenizer(config)
-    inference = ColBERTInference(colbert, tokenizer)
-    retriever = ColBERTRetriever(inference, device="cuda:0")
-    retriever.indexer.load(INDEX_PATH)
 
-    dataset = TripleDataset(config,
-                            triples_path="../../data/fandom-qa/witcher_qa/triples.train.tsv",
-                            queries_path="../../data/fandom-qa/witcher_qa/queries.train.tsv",
-                            passages_path="../../data/fandom-qa/witcher_qa/passages.train.tsv",
-                            mode="qpp")
+    dataset = TripleDataset(BaseConfig(passages_per_query=10),
+                            triples_path="../../data/fandoms_qa/witcher/val/triples.tsv",
+                            queries_path="../../data/fandoms_qa/witcher/val/queries.tsv",
+                            passages_path="../../data/fandoms_qa/witcher/val/passages.tsv",
+                            mode="QQP")
+
+    
+    colbert, tokenizer = load_colbert_and_tokenizer(CHECKPOINT_PATH)
+    inference = ColBERTInference(colbert, tokenizer)
+    retriever = ColBERTRetriever(inference, device=DEVICE, passages=dataset.passages)
+
+    # precompute indicies
+    # retriever.indexer.dtype = torch.float16
+    data = dataset.passages.values().tolist()
+    pids = dataset.passages.keys().tolist()
+    retriever.indexer.index(data, pids, bsize=8)
+    retriever.indexer.save(INDEX_PATH)
+    # retriever.indexer.load(INDEX_PATH)
+   
+
+    
+       
 
 
     #print([x for x in dataset.passages_items()])
-    tf_idf = TfIdf(passages=[x for (pid, x) in dataset.passages_items()])
+    tf_idf = TfIdf(
+            passages=dataset.passages.values(),
+            mapping_rowInd_pid=dict(enumerate(dataset.passages.keys())),
+    )
     print(tf_idf.best_and_worst_pids(["Who is gerald of riva?"], 5, 10))
     good_pairs_cb = {}
     good_pairs_tf_idf = {}
@@ -59,9 +71,16 @@ def colbert_vs_tf_idf(testing_max_count = 100, size_datasets_good = 100, size_da
         if testing_count >= testing_max_count:
             break
 
-        qid, pid_pos, *pid_neg = triple
-        query, psg_pos, *psg_neg = dataset.id2string(triple)
-        query_batch.append(query)
+        # for QPP datasets:
+        # qid, pid_pos, *pid_neg = triple
+        # query, psg_pos, *psg_neg = dataset.id2string(triple)
+        # query_batch.append(query)
+        # target_batch.append(pid_pos)
+
+        # for QQP datasets:
+        qid_pos, qid_neg, pid_pos = triple
+        query_pos, query_neg, passage = dataset.id2string(triple)
+        query_batch.append(query_pos)
         target_batch.append(pid_pos)
 
         if len(query_batch) == BSIZE or i + 1 == len(dataset):
@@ -72,9 +91,11 @@ def colbert_vs_tf_idf(testing_max_count = 100, size_datasets_good = 100, size_da
 
             # COLBERT
             for i, (pred_pids, target_pit, query) in enumerate(zip(pids, target_batch, query_batch)):
+                pred_pids = pred_pids.tolist()
                 if target_pit in pred_pids:
                     if len(good_pairs_cb.keys()) < size_datasets_good:
                         t = (query, target_pit)
+                        # print(target_pit, pred_pids)
                         good_pairs_cb[t] = pred_pids.index(target_pit)
                     else:
                         if pred_pids.index(target_pit) < max(set(good_pairs_cb.values())):
