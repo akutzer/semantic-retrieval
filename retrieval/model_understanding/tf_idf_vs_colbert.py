@@ -17,7 +17,7 @@ torch.manual_seed(SEED)
 torch.cuda.manual_seed_all(SEED)
 
 CHECKPOINT_PATH = "../../data/colbertv2.0/"  # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
-INDEX_PATH = "../../data/fandoms_qa/witcher/val/passages.indices.pt"
+INDEX_PATH = "../../data/fandoms_qa/witcher/all/passages.indices.pt"
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 
@@ -29,8 +29,8 @@ def colbert_vs_tf_idf(testing_max_count = 100, size_datasets_good = 100, size_da
 
     dataset = TripleDataset(BaseConfig(passages_per_query=10),
                             triples_path="../../data/fandoms_qa/witcher/val/triples.tsv",
-                            queries_path="../../data/fandoms_qa/witcher/val/queries.tsv",
-                            passages_path="../../data/fandoms_qa/witcher/val/passages.tsv",
+                            queries_path="../../data/fandoms_qa/witcher/all/queries.tsv",
+                            passages_path="../../data/fandoms_qa/witcher/all/passages.tsv",
                             mode="QQP")
 
     
@@ -167,7 +167,7 @@ def colbert_vs_tf_idf(testing_max_count = 100, size_datasets_good = 100, size_da
 
 
 if __name__ == "__main__":
-    sets = colbert_vs_tf_idf(size_datasets_good = 200, size_datasets_bad = 200, testing_max_count=10000, K_good=5000, return_size=5)
+    sets = colbert_vs_tf_idf(size_datasets_good = 200, size_datasets_bad = 200, testing_max_count=100_000_000, K_good=50_000, return_size=10)
     print("tf_good_cb_good, size:", len(sets[0].keys()), sets[0])
     print("tf_good_cb_bad, size:", len(sets[1].keys()), sets[1])
     print("tf_bad_cb_good, size:", len(sets[2].keys()), sets[2])
