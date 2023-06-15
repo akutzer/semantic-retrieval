@@ -227,7 +227,7 @@ class ColBERTTokenizer:
             config_path = os.path.join(directory, "colbert_config.json")
             config = load_config(config_path)
         if not config:
-            logging.basicConfig(level=logging.WARNING, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%y-%m-%d %H:%M:%S")
+            logging.basicConfig(level=logging.WARNING, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
             logging.warning("colbert_config.json does not exist, loading default config.")
             config = BaseConfig()
 

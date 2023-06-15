@@ -77,11 +77,11 @@ class Passages:
     def pid2string(self, pid, skip_non_existing=False):
         if isinstance(pid, list):
             return [
-                self[p][0] for p in pid if (not skip_non_existing) or p in self.keys()
+                self[p] for p in pid if (not skip_non_existing) or p in self.keys()
             ]
         else:
             return (
-                self[pid][0] if (not skip_non_existing) or pid in self.keys() else None
+                self[pid] if (not skip_non_existing) or pid in self.keys() else None
             )
 
 
@@ -98,4 +98,4 @@ if __name__ == "__main__":
     print(passages.values())
     print(passages[173654], type(passages[173654]))
     print(passages[[173654, 173655]], type(passages[[173654, 173655]]))
-    print(passages.pid2string([0, 2 * len(passages)], skip_non_existing=True))
+    print(passages.pid2string([173654, 2 * len(passages)], skip_non_existing=True))
