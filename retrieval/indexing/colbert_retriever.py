@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 import math
+from typing import List, Union, Optional
 import torch
-from typing import List, Union
 
-from retrieval.configs import BaseConfig
-from retrieval.data import Passages, Queries, TripleDataset, BucketIterator
-from retrieval.models import ColBERTTokenizer, ColBERTInference, get_colbert_and_tokenizer, load_colbert_and_tokenizer
+from retrieval.data import Passages
+from retrieval.models import ColBERTInference
 from retrieval.indexing.colbert_indexer import ColBERTIndexer
 from retrieval.models.basemodels.tf_idf import TfIdf
 
-
-
 class ColBERTRetriever:
-    def __init__(self, inference: ColBERTInference, device: Union[str, torch.device] = "cpu", passages=None):
+    def __init__(
+        self,
+        inference: ColBERTInference,
+        device: Union[str, torch.device] = "cpu",
+        passages: Optional[Passages] = None,
+    ):
         if isinstance(device, str):
             device = torch.device(device)
         self.device = device
@@ -20,24 +22,28 @@ class ColBERTRetriever:
         self.inference = inference
         self.inference.to(device)
         self.indexer = ColBERTIndexer(inference, device=device)
+
         # TODO: precompute TF-IDF passages!!!!!!!
-        self.tfidf = TfIdf(passages = passages)
-        print("tf idf fertig")
-    
+        passages.ignore_wid = True
+        self.tfidf = TfIdf(
+            passages=passages.values(),
+            mapping_rowInd_pid=dict(enumerate(passages.keys())),
+        )
+
     def tf_idf_rank(self, query: List[str], k: int):
-        batch_sims, batch_pids = self.tfidf.batchBestKPIDs(k, query) # shape: (B, k)
+        batch_sims, batch_pids = self.tfidf.batchBestKPIDs(query, k)  # shape: (B, k)
         batch_pids = torch.tensor(batch_pids, dtype=torch.int32)
         batch_sims = torch.tensor(batch_sims)
         return zip(batch_sims, batch_pids)
 
     def rerank(self, query: List[str], k: int):
         # embed the query
-        Qs = self.inference.query_from_text(query) # (B, L_q, D)
+        Qs = self.inference.query_from_text(query)  # (B, L_q, D)
         if Qs.dim() == 2:
             Qs = Qs[None]
-        
+
         # for each query search for the best k PIDs using TF-IDF
-        _, batch_pids = self.tfidf.batchBestKPIDs(k, query) # shape: (B, k)
+        batch_sim, batch_pids = self.tfidf.batchBestKPIDs(query, k)  # shape: (B, k)
 
         # since self.indexer.get_pid_embedding expects a torch.Tensor, we
         # need to convert batch_pids to a torch Tensor of shape (B, k)
@@ -45,17 +51,19 @@ class ColBERTRetriever:
 
         # get the pre-computed embeddings for the PIDs
         batch_embs, batch_masks = self.indexer.get_pid_embedding(batch_pids)
-        batch_embs = torch.stack(batch_embs, dim=0,)
+        batch_embs = torch.stack(batch_embs, dim=0)
         batch_masks = torch.stack(batch_masks, dim=0)
         # batch_embs: Tensor(B, k, L_d, D)
         #   contains for each query the embeddings of the topk documents/passages
-        # 
+        #
         # batch_masks: Tensor(B, k, L_d)
         #   boolean mask, which is needed since the embedding tensors are padded
         #   (because the number of embedding vectors for each PID is variable),
         #   so we can later ignore the similarity scores for those padding vectors
 
-        sms = self.inference.colbert.similarity(Qs.unsqueeze(1), batch_embs, batch_masks)
+        sms = self.inference.colbert.similarity(
+            Qs.unsqueeze(1), batch_embs, batch_masks
+        )
         # sms shape: (B, k)
 
         # select the top-k PIDs and their similarity score wrt. query
@@ -63,18 +71,17 @@ class ColBERTRetriever:
         topk_pids = batch_pids.gather(dim=1, index=topk_indices)
 
         reranked_pids = zip(topk_sims, topk_pids)
-        
+
         return reranked_pids
-    
 
     def full_retrieval(self, query: List[str], k: int):
         # embed the query
-        Qs = self.inference.query_from_text(query) # (B, L_q, D)
+        Qs = self.inference.query_from_text(query)  # (B, L_q, D)
         if Qs.dim() == 2:
             Qs = Qs[None]
 
-        # for each query embedding vector, search for the best k_hat index vectors in the passages embedding matrix   
-        k_hat = math.ceil(k/2)
+        # for each query embedding vector, search for the best k_hat index vectors in the passages embedding matrix
+        k_hat = math.ceil(k / 2)  # math.ceil(k/10)
         batch_sim, batch_iids = self.indexer.search(Qs, k=k_hat)  # both: (B, L_q, k_hat)
 
         # for each query get the PIDs containing the best index vectors
@@ -87,7 +94,7 @@ class ColBERTRetriever:
         # batch_embs: List[Tensor(N_pids, L_d, D)]
         #   contains for each query the embeddings for all passages which were in the top-k_hat
         #   for at least one query embedding
-        # 
+        #
         # batch_masks: List[Tensor(N_pids, L_d)]
         #   boolean mask, which is needed since the embedding tensors are padded
         #   (because the number of embedding vectors for each PID is variable),
@@ -96,6 +103,7 @@ class ColBERTRetriever:
         reranked_pids = []
         for Q, pids, embs, mask in zip(Qs, batch_pids, batch_embs, batch_masks):
             sms = self.inference.colbert.similarity(Q[None], embs, mask)
+            # print(sms.shape)
             # sms shape: (k,)
 
             # select the top-k PIDs and their similarity score wrt. query
@@ -103,9 +111,9 @@ class ColBERTRetriever:
             topk_sims, topk_indices = torch.topk(sms, k=k_)
             topk_pids = pids[topk_indices]
             reranked_pids.append([topk_sims, topk_pids])
-        
+
         return reranked_pids
-    
+
     def to(self, device: Union[str, torch.device]) -> None:
         if isinstance(device, str):
             device = torch.device(device)
@@ -114,17 +122,20 @@ class ColBERTRetriever:
         self.indexer.to(self.device)
 
 
-
 if __name__ == "__main__":
-    from tqdm import tqdm
     import cProfile
     import pandas as pd
     import numpy as np
     import argparse
  
+    from tqdm import tqdm
+    from retrieval.configs import BaseConfig
+    from retrieval.data import TripleDataset
+    from retrieval.models import load_colbert_and_tokenizer
+
     # enable TensorFloat32 tensor cores for float32 matrix multiplication if available
     torch.set_float32_matmul_precision("high")
-        
+    
     parser = argparse.ArgumentParser(description="ColBERT Retrieving")
     # Dataset arguments
     dataset_args = parser.add_argument_group("Dataset Arguments")
@@ -139,30 +150,24 @@ if __name__ == "__main__":
     model_args.add_argument("--backbone", type=str, help="Name of the backbone model")
     model_args.add_argument("--indexer", type=str, help="Path of the indexer which should be loaded")
     model_args.add_argument("--checkpoint", type=str, help="Path of the checkpoint which should be loaded")
-    
+
     args = parser.parse_args()
 
-    config = BaseConfig(
-        tok_name_or_path=args.backbone,
-        backbone_name_or_path=args.backbone,
-        similarity="cosine",
-        doc_maxlen=512,
-        passages_per_query=10,
-        checkpoint=args.checkpoint
+    dataset = TripleDataset(
+        BaseConfig(passages_per_query=10),
+        args.triples_path_val,
+        args.queries_path_val,
+        args.passages_path_val,
+        args.dataset_mode,
     )
 
-    dataset = TripleDataset(config, args.triples_path_val, args.queries_path_val, args.passages_path_val, mode=args.dataset_mode)
-    
-    # get passage list
-    passage_list = [p[1] for p in dataset.passages_items()]
-    
-    # colbert, tokenizer = load_colbert_and_tokenizer(CHECKPOINT, device="cuda:0", config=config)
+    # colbert, tokenizer = load_colbert_and_tokenizer(args.checkpoint, device="cuda:0", config=config)
     colbert, tokenizer = load_colbert_and_tokenizer(args.checkpoint, device="cuda:0")
     inference = ColBERTInference(colbert, tokenizer)
-    retriever = ColBERTRetriever(inference, device="cuda:0", passages=passage_list)
+    retriever = ColBERTRetriever(inference, device="cuda:0", passages=dataset.passages)
     retriever.indexer.load(args.indexer)
 
-    BSIZE = 8 #8 #16 #8 #16
+    BSIZE = 8  # 8 #16 #8 #16
     K = 100
     top1, top3, top5, top10, top25, top100 = 0, 0, 0, 0, 0, 0
     mrr_10, mrr_100, recall_50 = 0, 0, 0
@@ -239,7 +244,6 @@ if __name__ == "__main__":
                 target_batch = []
             
         # pr.print_stats()
-
 
     print("Top-1-Acc:", round((100 * top1) / len(dataset), 3))
     print("Top-3-Acc:", round((100 * top3) / len(dataset), 3))

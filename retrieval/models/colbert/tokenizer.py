@@ -11,9 +11,13 @@ from retrieval.models.colbert.utils import _split_into_batches
 
 
 class ColBERTTokenizer:
-    def __init__(self, config: BaseConfig):
+    def __init__(self, config: BaseConfig, tok=None):
         self.config = config
-        self.tok = AutoTokenizer.from_pretrained(config.tok_name_or_path)
+
+        if tok is not None:
+            self.tok = tok
+        else:
+            self.tok = AutoTokenizer.from_pretrained(config.tok_name_or_path)
 
         self.query_maxlen = self.config.query_maxlen
         self.doc_maxlen = self.config.doc_maxlen
@@ -227,9 +231,9 @@ class ColBERTTokenizer:
             logging.warning("colbert_config.json does not exist, loading default config.")
             config = BaseConfig()
 
-        tokenizer = cls(config)
         # load the tokenizers's parameters if available
-        tokenizer.tok = AutoTokenizer.from_pretrained(directory, use_auth_token=False)
+        tok = AutoTokenizer.from_pretrained(directory, use_auth_token=False)
+        tokenizer = cls(config, tok=tok)
         tokenizer._init_special_tokens()
 
         return tokenizer

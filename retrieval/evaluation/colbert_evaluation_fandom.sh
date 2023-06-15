@@ -9,7 +9,6 @@ QUERIES_PATH_VAL="../../data/fandoms_qa/harry_potter/val/queries.tsv"
 TRIPLES_PATH_VAL="../../data/fandoms_qa/harry_potter/val/triples.tsv"
 
 # model arguments
-BACKBONE="bert-base-uncased" # "bert-base-uncased" or "../data/colbertv2.0/" or "roberta-base"
 INDEXER="../../data/fandoms_qa/harry_potter/val/passages.indices.pt"
 CHECKPOINT="../../data/colbertv2.0"
 
@@ -18,7 +17,6 @@ CHECKPOINT="../../data/colbertv2.0"
 python colbert_evaluation.py \
     --dataset_name "$DATASET_NAME" \
     --dataset_mode "$DATASET_MODE" \
-    --backbone "$BACKBONE" \
     --indexer  "$INDEXER"\
     --checkpoint "$CHECKPOINT" \
     --passages_path_val "$PASSAGES_PATH_VAL" \
