@@ -7,10 +7,6 @@ from scipy.stats import gaussian_kde
 from retrieval.models import ColBERTInference, load_colbert_and_tokenizer
 
 
-
-MODEL_PATH = "../../data/colbertv2.0/"  # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
-
-
 def rgbk_to_hex(r, g, b,k):
     return '#{:02x}{:02x}{:02x}{:02x}'.format(int(r*255), int(g*255), int(b*255), int(k*255))
 
@@ -44,7 +40,11 @@ def html_heatmap(tokens, topk_indices, topk_values, prefix='##', plot=False, sto
     kde_topk_indices = [i for i in topk_indices if i > 1 and i < (len(tokens)-1)]
 
     # calculate kernel density
-    kernel = gaussian_kde(kde_topk_indices, bw_method="scott")
+    if np.unique(kde_topk_indices).size <= 1:
+        kernel = lambda x : np.zeros_like(x) if isinstance(x, np.ndarray) else np.zeros((1,))
+        print("Only one relevant token! Skipping KDE calculation!")
+    else:
+        kernel = gaussian_kde(kde_topk_indices, bw_method="scott")
     xgrid = np.arange(len(tokens))
     density = kernel(xgrid)
     ymin, ymax = min(density), max(density)
@@ -90,10 +90,12 @@ def html_heatmap(tokens, topk_indices, topk_values, prefix='##', plot=False, sto
 def get_topk_token(colbert_inf: ColBERTInference, query: str, passage: str, k=1, similarity="cosine"):
     Q = inference.query_from_text(query) # shape: (L_q, D)
     P = inference.doc_from_text(passage) # shape: (L_d, D)
-    if similarity == "cosine":
+    if similarity.lower() == "cosine":
         sim = Q @ P.T
-    elif similarity == "l2":
+    elif similarity.lower() == "l2":
         sim = (Q.unsqueeze(-2) - P.unsqueeze(-3)).pow(2).sum(dim=-1).sqrt()
+    else:
+        raise ValueError()
     
     topk_sim = sim.topk(k=k, dim=-1)
     values, indicies = topk_sim
@@ -109,13 +111,6 @@ def visualize(colbert_inf: ColBERTInference, query: str, passage: str, k=1, simi
     # get tokens
     tokens = np.array(inference.tokenizer.tokenize(passage, "doc", add_special_tokens=True))
     print(tokens.shape, topk_token_idx.shape, k)
-
-    #check whether there are atleast two different tokens in the topk_indices
-    if np.all(topk_token_idx == topk_token_idx.flat[0]):
-        print("All elements in list are equal.")
-        print("The only relevant Token is:", tokens[topk_token_idx.flat[0]])
-        return
-
     print(k,"* 32 = ", topk_token_idx.size, "datapoints used")
     print("Max topk index:", topk_token_idx.max())
     print("len(tokens):", topk_token_idx.shape)
@@ -156,7 +151,8 @@ if __name__ == "__main__":
 
     
 
-    colbert, tokenizer = load_colbert_and_tokenizer(MODEL_PATH)
+    CHECKPOINT_PATH = "../../data/colbertv2.0/"
+    colbert, tokenizer = load_colbert_and_tokenizer(CHECKPOINT_PATH)
     inference = ColBERTInference(colbert, tokenizer)
 
     K = 2
