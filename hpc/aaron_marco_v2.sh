@@ -5,12 +5,12 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --partition=alpha
 #SBATCH --gres=gpu:1            # number of GPUs
-#SBATCH --mem=48G
+#SBATCH --mem=32G
 #SBATCH -A p_sp_bigdata         # name of the associated project
-#SBATCH -J "training_ms_marco_v2_bert_dim-8.job"  # name of the job
-#SBATCH --output="training_ms_marco_v2_bert_dim-8.job-%j.out"    # output file name (std out)
-#SBATCH --error="training_ms_marco_v2_bert_dim-8.job-%j.err"     # error file name (std err)
-#SBATCH --mail-user="tommy.nguyen@mailbox.tu-dresden.de" # will be used to used to update you about the state of your$
+#SBATCH -J "aaron_marco_v2_small_lr"  # name of the job
+#SBATCH --output="aaron_marco_v2_small_lr_job-%j.out"    # output file name (std out)
+#SBATCH --error="aaron_marco_v2_small_lr_job-%j.err"     # error file name (std err)
+#SBATCH --mail-user="aaron.kutzer@mailbox.tu-dresden.de" # will be used to used to update you about the state of your$
 #SBATCH --mail-type ALL
 
 # clean current modules
@@ -24,7 +24,7 @@ source /scratch/ws/0/tong623c-tommy-workspace/env/bin/activate
 
 # Set the arguments for the Python script:
 # dataset arguments
-DATASET_NAME="ms_marco"
+DATASET_NAME="ms_marco_v2"
 DATASET_MODE="QPP"
 PASSAGES_PATH_TRAIN="../data/ms_marco/ms_marco_v2_1/train/passages.tsv"
 QUERIES_PATH_TRAIN="../data/ms_marco/ms_marco_v2_1/train/queries.tsv"
@@ -38,20 +38,20 @@ TRIPLES_PATH_VAL="../data/ms_marco/ms_marco_v2_1/val/triples.tsv"
 DOC_MAXLEN="320"
 QUERY_MAXLEN="32"
 PASSAGES_PER_QUERY="10"
-TRAIN_WORKERS="4"
-VAL_WORKERS="2"
+TRAIN_WORKERS="5"
+VAL_WORKERS="3"
 
 # model arguments
 BACKBONE="bert-base-uncased" # "bert-base-uncased" or "../data/colbertv2.0/" or "roberta-base"
-DIM="8"
+DIM="128"
 DROPOUT="0.1"
 SIMILARITY="cosine" # "cosine" or "L2"
 
 # training arguments
 EPOCHS="6"
-BATCH_SIZE="14"
-ACCUM_STEPS="1"
-LEARNING_RATE="5e-6"
+BATCH_SIZE="28"
+ACCUM_STEPS="2"
+LEARNING_RATE="1e-6"
 WARMUP_EPOCHS="1"
 WARMUP_START_FACTOR="0.1"
 SEED="125"
