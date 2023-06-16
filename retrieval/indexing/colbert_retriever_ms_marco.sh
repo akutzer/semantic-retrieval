@@ -9,9 +9,9 @@ QUERIES_PATH_VAL="../../data/ms_marco/ms_marco_v1_1/val/queries.tsv"
 TRIPLES_PATH_VAL="../../data/ms_marco/ms_marco_v1_1/val/triples.tsv"
 
 # model arguments
-INDEXER="../../data/ms_marco/ms_marco_v1_1/val/passages.indices.pt"
+INDEXER="../../data/ms_marco/ms_marco_v1_1/val/passages.colbert/indices.pt"
 CHECKPOINT="../../data/colbertv2.0"
-
+# CHECKPOINT="../../data/epoch5_2_loss0.1540_mrr0.9719_acc94.431"
 
 # Execute the Python script with the provided arguments
 python colbert_retriever.py \
