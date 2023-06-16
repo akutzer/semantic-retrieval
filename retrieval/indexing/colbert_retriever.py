@@ -208,8 +208,8 @@ if __name__ == "__main__":
             if len(query_batch) == BSIZE or i + 1 == len(dataset):
                 with torch.autocast(retriever.device.type):
                     # pids = retriever.tf_idf_rank(query_batch, K)
-                    # pids = retriever.rerank(query_batch, K)
-                    pids = retriever.full_retrieval(query_batch, K)
+                    pids = retriever.rerank(query_batch, K)
+                    # pids = retriever.full_retrieval(query_batch, K)
                 
                 for j, ((sims, pred_pids), qid, target_pid) in enumerate(zip(pids, qids_batch, target_batch)):
                     idx = torch.where(pred_pids == target_pid)[0]
@@ -221,12 +221,12 @@ if __name__ == "__main__":
                     if idx < 100:
                         top100 += 1
                         mrr_100 += 1 / (idx + 1)
-                        if idx < 50 and qids_visit[qid]==False:
+                        if idx < 50 and qids_visit[qid-535060]==False:
                             qrel = qrels.iloc[list(qrels.iloc[:,0]).index(qid)][1]
                             # print(qid, target_pid, qrel, pred_pids[:50])
                             common = qrel & set(pred_pids[:50].cpu().numpy())
                             recall_50 += (len(common) / max(1.0, len(qrel)))
-                            qids_visit[qid] = True
+                            qids_visit[qid-535060] = True
                             if idx < 25:
                                 top25 += 1
                                 if idx < 10:

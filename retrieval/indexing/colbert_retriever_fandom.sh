@@ -9,9 +9,9 @@ QUERIES_PATH_VAL="../../data/fandoms_qa/harry_potter/all/queries.tsv"
 TRIPLES_PATH_VAL="../../data/fandoms_qa/harry_potter/val/triples.tsv"
 
 # model arguments
-INDEXER="../../data/fandoms_qa/harry_potter/all/passages.colbert.indices.pt"
-CHECKPOINT="../../data/colbertv2.0"
-# CHECKPOINT="../../data/checkpoint/ms_marco/epoch4_2_loss1.8155_mrr0.5834_acc41.501"
+INDEXER="../../data/fandoms_qa/harry_potter/all/passages.checkpoint.indices.pt"
+# CHECKPOINT="../../data/colbertv2.0"
+CHECKPOINT="../../data/checkpoint/harry_potter/epoch8_1_loss0.1437_mrr0.9791_acc95.819"
 
 # Execute the Python script with the provided arguments
 python colbert_retriever.py \
