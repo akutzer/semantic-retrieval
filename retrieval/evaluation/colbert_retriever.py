@@ -48,8 +48,8 @@ if __name__ == "__main__":
 
     BSIZE = 8  # 8 #16 #8 #16
     K = 100
-    top1, top3, top5, top10, top25, top100 = 0, 0, 0, 0, 0, 0
-    mrr_10, mrr_100, recall_50 = 0, 0, 0
+    recall_1, recall_3, recall_5, recall_10, recall_25, recall_50, recall_100, recall_200, recall_1000 = 0, 0, 0, 0, 0, 0, 0, 0, 0
+    mrr_5, mrr_10, mrr_100 = 0, 0, 0
 
     # df = dataset.triples.data
     df = pd.read_csv(dataset.triples.path, sep='\t', index_col=False)
@@ -68,7 +68,15 @@ if __name__ == "__main__":
         qids_batch = []
         query_batch = []
         target_batch = []
-        qids_visit = np.zeros(2*len(dataset), dtype=bool)
+        qids_visit_1 = np.zeros(2*len(dataset), dtype=bool)
+        qids_visit_3 = np.zeros(2*len(dataset), dtype=bool)
+        qids_visit_5 = np.zeros(2*len(dataset), dtype=bool)
+        qids_visit_10 = np.zeros(2*len(dataset), dtype=bool)
+        qids_visit_25 = np.zeros(2*len(dataset), dtype=bool)
+        qids_visit_50 = np.zeros(2*len(dataset), dtype=bool)
+        qids_visit_100 = np.zeros(2*len(dataset), dtype=bool)
+        qids_visit_200 = np.zeros(2*len(dataset), dtype=bool)
+        qids_visit_1000 = np.zeros(2*len(dataset), dtype=bool)
 
         for i, triple in enumerate(tqdm(dataset)):
 
@@ -95,30 +103,58 @@ if __name__ == "__main__":
                 for j, ((sims, pred_pids), qid, target_pid) in enumerate(zip(pids, qids_batch, target_batch)):
                     idx = torch.where(pred_pids == target_pid)[0]
                     # idx = torch.tensor([idx for idx, pred_pid in enumerate(pred_pids) if pred_pid == target_pid])
-                    # print(idx, torch.where(pred_pids == target_pid))
+                    qrel = qrels.iloc[list(qrels.iloc[:,0]).index(qid)][1]
+                    # print(qid, target_pid, qrel, pred_pids[:10])
                     if idx.numel() == 0:
                         continue
-                    # print(target_pid, pred_pids[:10])
-                    if idx < 100:
-                        top100 += 1
-                        mrr_100 += 1 / (idx + 1)
-                        if idx < 50 and qids_visit[qid-qid_0]==False:
-                            qrel = qrels.iloc[list(qrels.iloc[:,0]).index(qid)][1]
-                            # print(qid, target_pid, qrel, pred_pids[:50])
-                            common = qrel & set(pred_pids[:50].cpu().numpy())
-                            recall_50 += (len(common) / max(1.0, len(qrel)))
-                            qids_visit[qid-qid_0] = True
-                            if idx < 25:
-                                top25 += 1
-                                if idx < 10:
-                                    top10 += 1
-                                    mrr_10 += 1 / (idx + 1)
-                                    if idx < 5:
-                                        top5 += 1
-                                        if idx < 3:
-                                            top3 += 1
-                                            if idx < 1:
-                                                top1 += 1
+                    
+                    if idx < 1000 and qids_visit_1000[qid-qid_0]==False:
+                        common = qrel & set(pred_pids[:1000].cpu().numpy())
+                        recall_1000 += (len(common) / max(1.0, len(qrel)))
+                        qids_visit_1000[qid-qid_0] = True
+
+                        if idx < 200 and qids_visit_200[qid-qid_0]==False:
+                            common = qrel & set(pred_pids[:200].cpu().numpy())
+                            recall_200 += (len(common) / max(1.0, len(qrel)))
+                            qids_visit_200[qid-qid_0] = True
+
+                            if idx < 100 and qids_visit_100[qid-qid_0]==False:
+                                mrr_100 += 1 / (idx + 1)
+                                common = qrel & set(pred_pids[:100].cpu().numpy())
+                                recall_100 += (len(common) / max(1.0, len(qrel)))
+                                qids_visit_100[qid-qid_0] = True
+
+                                if idx < 50 and qids_visit_50[qid-qid_0]==False:
+                                    common = qrel & set(pred_pids[:50].cpu().numpy())
+                                    recall_50 += (len(common) / max(1.0, len(qrel)))
+                                    qids_visit_50[qid-qid_0] = True
+
+                                    if idx < 25 and qids_visit_25[qid-qid_0]==False:
+                                        common = qrel & set(pred_pids[:25].cpu().numpy())
+                                        recall_25 += (len(common) / max(1.0, len(qrel)))
+                                        qids_visit_25[qid-qid_0] = True
+
+                                        if idx < 10 and qids_visit_10[qid-qid_0]==False:
+                                            mrr_10 += 1 / (idx + 1)
+                                            common = qrel & set(pred_pids[:10].cpu().numpy())
+                                            recall_10 += (len(common) / max(1.0, len(qrel)))
+                                            qids_visit_10[qid-qid_0] = True
+
+                                            if idx < 5 and qids_visit_5[qid-qid_0]==False:
+                                                mrr_5 += 1 / (idx + 1)
+                                                common = qrel & set(pred_pids[:5].cpu().numpy())
+                                                recall_5 += (len(common) / max(1.0, len(qrel)))
+                                                qids_visit_5[qid-qid_0] = True
+
+                                                if idx < 3 and qids_visit_3[qid-qid_0]==False:
+                                                    common = qrel & set(pred_pids[:3].cpu().numpy())
+                                                    recall_3 += (len(common) / max(1.0, len(qrel)))
+                                                    qids_visit_3[qid-qid_0] = True
+                                
+                                                    if idx < 1 and qids_visit_1[qid-qid_0]==False:
+                                                        common = qrel & set(pred_pids[:1].cpu().numpy())
+                                                        recall_1 += (len(common) / max(1.0, len(qrel)))
+                                                        qids_visit_1[qid-qid_0] = True
 
                 qids_batch = []
                 query_batch = []
@@ -126,14 +162,17 @@ if __name__ == "__main__":
 
         # pr.print_stats()
 
-    print("Top-1-Acc:", round((100 * top1) / len(dataset), 3))
-    print("Top-3-Acc:", round((100 * top3) / len(dataset), 3))
-    print("Top-5-Acc:", round((100 * top5) / len(dataset), 3))
-    print("Top-10-Acc:", round((100 * top10) / len(dataset), 3))
-    print("Top-25-Acc:", round((100 * top25) / len(dataset), 3))
-    print("Top-100-Acc:", round((100 * top100) / len(dataset), 3))
+    print("Recall@1:", round((100 * recall_1) / len(dataset), 3))
+    print("Recall@3:", round((100 * recall_3) / len(dataset), 3))
+    print("Recall@5:", round((100 * recall_5) / len(dataset), 3))
+    print("Recall@10:", round((100 * recall_10) / len(dataset), 3))
+    print("Recall@25:", round((100 * recall_25) / len(dataset), 3))
+    print("Recall@50:", round((100 * recall_50) / len(dataset), 3))
+    print("Recall@100:", round((100 * recall_100) / len(dataset), 3))
+    print("Recall@200:", round((100 * recall_200) / len(dataset), 3))
+    print("Recall@1000:", round((100 * recall_1000) / len(dataset), 3))
 
+    print("MRR@5:", round((100 * mrr_5.item()) / len(dataset), 3))
     print("MRR@10:", round((100 * mrr_10.item()) / len(dataset), 3))
     print("MRR@100:", round((100 * mrr_100.item()) / len(dataset), 3))
-    print("Recall@50:", round((100 * recall_50) / len(dataset), 3))
 
