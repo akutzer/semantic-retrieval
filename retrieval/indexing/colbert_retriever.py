@@ -174,6 +174,7 @@ if __name__ == "__main__":
     
     # df = dataset.triples.data
     df = pd.read_csv(dataset.triples.path, sep='\t', index_col=False)
+    qid_0 = df['QID+'][0]
 
     if args.dataset_mode=="QPP":
         df.drop(df.columns[2:], axis=1, inplace=True)
@@ -221,12 +222,12 @@ if __name__ == "__main__":
                     if idx < 100:
                         top100 += 1
                         mrr_100 += 1 / (idx + 1)
-                        if idx < 50 and qids_visit[qid-535060]==False:
+                        if idx < 50 and qids_visit[qid-qid_0]==False:
                             qrel = qrels.iloc[list(qrels.iloc[:,0]).index(qid)][1]
                             # print(qid, target_pid, qrel, pred_pids[:50])
                             common = qrel & set(pred_pids[:50].cpu().numpy())
                             recall_50 += (len(common) / max(1.0, len(qrel)))
-                            qids_visit[qid-535060] = True
+                            qids_visit[qid-qid_0] = True
                             if idx < 25:
                                 top25 += 1
                                 if idx < 10:

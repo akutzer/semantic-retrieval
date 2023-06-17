@@ -2,19 +2,19 @@
 
 # Set the arguments for the Python script:
 # dataset arguments
-DATASET_NAME="harry_potter"
-DATASET_MODE="QQP"
-PASSAGES_PATH_VAL="../../data/fandoms_qa/harry_potter/val/passages.tsv"
-QUERIES_PATH_VAL="../../data/fandoms_qa/harry_potter/val/queries.tsv"
-TRIPLES_PATH_VAL="../../data/fandoms_qa/harry_potter/val/triples.tsv"
+DATASET_NAME="ms_marco"
+DATASET_MODE="QPP"
+PASSAGES_PATH_VAL="../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
+QUERIES_PATH_VAL="../../data/ms_marco/ms_marco_v1_1/val/queries.tsv"
+TRIPLES_PATH_VAL="../../data/ms_marco/ms_marco_v1_1/val/triples.tsv"
 
 # model arguments
-INDEXER="../../data/fandoms_qa/harry_potter/val/passages.colbert.indices.pt"
+INDEXER="../../data/ms_marco/ms_marco_v1_1/val/passages.colbert.indices.pt"
 CHECKPOINT="../../data/colbertv2.0"
-# CHECKPOINT="../../data/checkpoint/harry_potter/epoch8_1_loss0.1437_mrr0.9791_acc95.819"
+# CHECKPOINT="../../data/checkpoint/ms_marco/epoch4_2_loss1.8155_mrr0.5834_acc41.501"
 
 # Execute the Python script with the provided arguments
-python colbert_evaluation.py \
+python colbert_retriever.py \
     --dataset_name "$DATASET_NAME" \
     --dataset_mode "$DATASET_MODE" \
     --indexer  "$INDEXER"\
