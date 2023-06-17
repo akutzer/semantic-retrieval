@@ -218,7 +218,6 @@ class ColBERTIndexer(IndexerInterface):
 if __name__ == "__main__":
     import random
     import numpy as np
-    import argparse
 
     from retrieval.data import Passages
     from retrieval.models import load_colbert_and_tokenizer
@@ -233,26 +232,16 @@ if __name__ == "__main__":
     torch.set_float32_matmul_precision("high")
 
     DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
-    
-    parser = argparse.ArgumentParser(description="ColBERT Retrieving")
-    # Dataset arguments
-    dataset_args = parser.add_argument_group("Dataset Arguments")
-    dataset_args.add_argument("--dataset_name", type=str, required=True, help="Name of the dataset")
-    dataset_args.add_argument("--passages_path_val", type=str, help="Path to the validation passages.tsv file")
+    PASSAGES_PATH = "../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"  # "../../data/fandoms_qa/harry_potter/val/passages.tsv" # "../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
+    INDEX_PATH = "../../data/ms_marco/ms_marco_v1_1/val/passages.indices.pt"  # "../../data/fandoms_qa/harry_potter/val/passages.indices.pt" # "../../data/ms_marco/ms_marco_v1_1/val/passages.indices.pt"
+    CHECKPOINT_PATH = "../../data/colbertv2.0/"  # "../../saves/colbert_ms_marco_v1_1/checkpoints/epoch3_2_loss1.7869_mrr0.5846_acc41.473/" # "../../data/colbertv2.0/"
 
-    # Model arguments
-    model_args = parser.add_argument_group("Model Arguments")
-    model_args.add_argument("--indexer", type=str, help="Path of the indexer which should be saved")
-    model_args.add_argument("--checkpoint", type=str, help="Path of the checkpoint which should be loaded")
-
-    args = parser.parse_args()
-
-    colbert, tokenizer = load_colbert_and_tokenizer(args.checkpoint, device=DEVICE)
+    colbert, tokenizer = load_colbert_and_tokenizer(CHECKPOINT_PATH, device=DEVICE)
     inference = ColBERTInference(colbert, tokenizer, device=DEVICE)
     indexer = ColBERTIndexer(inference, device=DEVICE, dtype=torch.float16)
     print(colbert.config)
     
-    passages = Passages(args.passages_path_val)
+    passages = Passages(PASSAGES_PATH)
     data = passages.values().tolist()
     pids = passages.keys().tolist()
 
@@ -272,23 +261,18 @@ if __name__ == "__main__":
 
     # index the entire data
     indexer.index(data, pids, bsize=8)
-    indexer.save(args.indexer)
-    indexer.load(args.indexer)
+    indexer.save(INDEX_PATH)
+    indexer.load(INDEX_PATH)
     print(indexer.embeddings.shape)
     print(indexer.iid2pid.shape)
     print(indexer.pid2iid.shape)
     print((indexer.pid2iid.sum(dim=-1) == -32).sum())
 
     # test retrieval
-    # queries = [
-    #    "Who is the author of 'The Witcher'?",
-    #    "How does an NPC behave when it starts raining?",
-    #    "Who the hell is Cynthia?",
-    # ]
     queries = [
-        "Who was Olympe Maxime, and what were her characteristics?",
-        "What recognition did Fleur Delacour receive after the Battle of Hogwarts?",
-        "What happened when Angus Buchanan put on the Sorting Hat?",
+        "Who is the author of 'The Witcher'?",
+        "How does an NPC behave when it starts raining?",
+        "Who the hell is Cynthia?",
     ]
 
     Qs = indexer.inference.query_from_text(queries)
