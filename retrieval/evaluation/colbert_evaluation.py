@@ -1,4 +1,5 @@
 import torch
+from tqdm import tqdm
 from retrieval.configs import BaseConfig
 from retrieval.data import Passages, Queries, TripleDataset, BucketIterator
 from retrieval.models import ColBERTTokenizer, ColBERTInference, get_colbert_and_tokenizer, load_colbert_and_tokenizer
@@ -6,7 +7,6 @@ from retrieval.indexing.colbert_indexer import ColBERTIndexer
 from retrieval.indexing.colbert_retriever import ColBERTRetriever
 
 if __name__ == "__main__":
-    from tqdm import tqdm
     import cProfile
     import pandas as pd
     import numpy as np
@@ -32,27 +32,21 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    config = BaseConfig(
-        tok_name_or_path=args.backbone,
-        backbone_name_or_path=args.backbone,
-        similarity="cosine",
-        doc_maxlen=512,
-        passages_per_query=10,
-        checkpoint=args.checkpoint
+    dataset = TripleDataset(
+        BaseConfig(passages_per_query=10),
+        args.triples_path_val,
+        args.queries_path_val,
+        args.passages_path_val,
+        args.dataset_mode,
     )
 
-    dataset = TripleDataset(config, args.triples_path_val, args.queries_path_val, args.passages_path_val, mode=args.dataset_mode)
-
-    # get passage list
-    passage_list = [p[1] for p in dataset.passages_items()]
-
-    # colbert, tokenizer = load_colbert_and_tokenizer(CHECKPOINT, device="cuda:0", config=config)
+    # colbert, tokenizer = load_colbert_and_tokenizer(args.checkpoint, device="cuda:0", config=config)
     colbert, tokenizer = load_colbert_and_tokenizer(args.checkpoint, device="cuda:0")
     inference = ColBERTInference(colbert, tokenizer)
-    retriever = ColBERTRetriever(inference, device="cuda:0", passages=passage_list)
+    retriever = ColBERTRetriever(inference, device="cuda:0", passages=dataset.passages)
     retriever.indexer.load(args.indexer)
 
-    BSIZE = 8 #8 #16 #8 #16
+    BSIZE = 8  # 8 #16 #8 #16
     K = 100
     top1, top3, top5, top10, top25, top100 = 0, 0, 0, 0, 0, 0
     mrr_10, mrr_100, recall_50 = 0, 0, 0
@@ -93,8 +87,8 @@ if __name__ == "__main__":
             if len(query_batch) == BSIZE or i + 1 == len(dataset):
                 with torch.autocast(retriever.device.type):
                     # pids = retriever.tf_idf_rank(query_batch, K)
-                    # pids = retriever.rerank(query_batch, K)
-                    pids = retriever.full_retrieval(query_batch, K)
+                    pids = retriever.rerank(query_batch, K)
+                    # pids = retriever.full_retrieval(query_batch, K)
 
                 for j, ((sims, pred_pids), qid, target_pid) in enumerate(zip(pids, qids_batch, target_batch)):
                     idx = torch.where(pred_pids == target_pid)[0]
@@ -106,12 +100,12 @@ if __name__ == "__main__":
                     if idx < 100:
                         top100 += 1
                         mrr_100 += 1 / (idx + 1)
-                        if idx < 50 and qids_visit[qid]==False:
+                        if idx < 50 and qids_visit[qid-535060]==False:
                             qrel = qrels.iloc[list(qrels.iloc[:,0]).index(qid)][1]
                             # print(qid, target_pid, qrel, pred_pids[:50])
                             common = qrel & set(pred_pids[:50].cpu().numpy())
                             recall_50 += (len(common) / max(1.0, len(qrel)))
-                            qids_visit[qid] = True
+                            qids_visit[qid-535060] = True
                             if idx < 25:
                                 top25 += 1
                                 if idx < 10:
@@ -129,7 +123,6 @@ if __name__ == "__main__":
                 target_batch = []
 
         # pr.print_stats()
-
 
     print("Top-1-Acc:", round((100 * top1) / len(dataset), 3))
     print("Top-3-Acc:", round((100 * top3) / len(dataset), 3))
