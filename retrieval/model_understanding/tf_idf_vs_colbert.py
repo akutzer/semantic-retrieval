@@ -45,7 +45,6 @@ def colbert_vs_tf_idf(testing_max_count = 100, size_datasets_good = 100, size_da
     retriever.indexer.index(data, pids, bsize=8)
     retriever.indexer.save(INDEX_PATH)
     # retriever.indexer.load(INDEX_PATH)
-    print("gsgdghrheh")
 
     #print([x for x in dataset.passages_items()])
     tf_idf = TfIdf(

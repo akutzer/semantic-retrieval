@@ -35,17 +35,17 @@ if __name__ == "__main__":
                 sum_heatmaps.append(sum_heatmap)
 
             if j == 0:
-                f.write('<h1> tf_good_cb_good ' + str(dict[(query, passage)]) + ' </h1>')
+                f.write('<h1> tf_good_cb_good </h1>')
             elif j == 1:
-                f.write('<h1> tf_good_cb_bad ' + str(dict[(query, passage)]) + ' </h1>')
+                f.write('<h1> tf_good_cb_bad  </h1>')
             elif j == 2:
-                f.write('<h1> tf_bad_cb_good ' + str(dict[(query, passage)]) + ' </h1>')
+                f.write('<h1> tf_bad_cb_good </h1>')
             else:
-                f.write('<h1> tf_bad_cb_bad ' + str(dict[(query, passage)]) + ' </h1>')
+                f.write('<h1> tf_bad_cb_bad  </h1>')
 
             for i in range(len(dict.keys())):
                 print("agwgwerghe", queries[j][i])
-                f.write('<h2>' + str(queries[j][i]) + '</h2>')
+                f.write('<h2>' + str(queries[j][i]) + str(dict[(queries[j][i], passages[j][i])]) + '</h2>')
                 f.write('<h3> kde </h3>')
                 f.write(kde_heatmaps[i])
                 f.write('<h3> absolute count </h3>')
