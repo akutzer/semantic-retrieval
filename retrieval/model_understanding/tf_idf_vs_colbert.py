@@ -33,7 +33,7 @@ def colbert_vs_tf_idf(testing_max_count = 100, size_datasets_good = 100, size_da
                             passages_path="../../data/fandoms_qa/witcher/all/passages.tsv",
                             mode="QQP")
 
-    
+
     colbert, tokenizer = load_colbert_and_tokenizer(CHECKPOINT_PATH)
     inference = ColBERTInference(colbert, tokenizer)
     retriever = ColBERTRetriever(inference, device=DEVICE, passages=dataset.passages)
@@ -45,7 +45,7 @@ def colbert_vs_tf_idf(testing_max_count = 100, size_datasets_good = 100, size_da
     retriever.indexer.index(data, pids, bsize=8)
     retriever.indexer.save(INDEX_PATH)
     # retriever.indexer.load(INDEX_PATH)
-
+    print("gsgdghrheh")
 
     #print([x for x in dataset.passages_items()])
     tf_idf = TfIdf(
@@ -64,6 +64,7 @@ def colbert_vs_tf_idf(testing_max_count = 100, size_datasets_good = 100, size_da
     print(num_passages)
     for i, triple in enumerate(tqdm(dataset)):
         testing_count += 1
+        print(testing_count)
         if testing_count >= testing_max_count:
             break
 

@@ -87,7 +87,7 @@ def html_heatmap(tokens, topk_indices, topk_values, prefix='##', plot=False, sto
     return html_heatmap_kde, html_heatmap_count, html_heatmap_sum
 
 
-def get_topk_token(colbert_inf: ColBERTInference, query: str, passage: str, k=1, similarity="cosine"):
+def get_topk_token(inference: ColBERTInference, query: str, passage: str, k=1, similarity="cosine"):
     Q = inference.query_from_text(query) # shape: (L_q, D)
     P = inference.doc_from_text(passage) # shape: (L_d, D)
     if similarity.lower() == "cosine":
@@ -104,7 +104,7 @@ def get_topk_token(colbert_inf: ColBERTInference, query: str, passage: str, k=1,
     return values, indicies
 
 
-def visualize(colbert_inf: ColBERTInference, query: str, passage: str, k=1, similarity="cosine"):
+def visualize(inference: ColBERTInference, query: str, passage: str, k=1, similarity="cosine"):
     topk_token_sim, topk_token_idx = get_topk_token(inference, query, passage, k)
     topk_token_idx, topk_token_sim = topk_token_idx.flatten(), topk_token_sim.flatten()
 
