@@ -37,80 +37,82 @@ class ColBERTRetriever:
         return zip(batch_sims, batch_pids)
 
     def rerank(self, query: List[str], k: int):
-        # embed the query
-        Qs = self.inference.query_from_text(query)  # (B, L_q, D)
-        if Qs.dim() == 2:
-            Qs = Qs[None]
+        with torch.inference_mode():
+            # embed the query
+            Qs = self.inference.query_from_text(query)  # (B, L_q, D)
+            if Qs.dim() == 2:
+                Qs = Qs[None]
 
-        # for each query search for the best k PIDs using TF-IDF
-        batch_sim, batch_pids = self.tfidf.batchBestKPIDs(query, k)  # shape: (B, k)
+            # for each query search for the best k PIDs using TF-IDF
+            batch_sim, batch_pids = self.tfidf.batchBestKPIDs(query, k)  # shape: (B, k)
 
-        # since self.indexer.get_pid_embedding expects a torch.Tensor, we
-        # need to convert batch_pids to a torch Tensor of shape (B, k)
-        batch_pids = torch.tensor(batch_pids, dtype=torch.int32, device=self.device)
+            # since self.indexer.get_pid_embedding expects a torch.Tensor, we
+            # need to convert batch_pids to a torch Tensor of shape (B, k)
+            batch_pids = torch.tensor(batch_pids, dtype=torch.int32, device=self.device)
 
-        # get the pre-computed embeddings for the PIDs
-        batch_embs, batch_masks = self.indexer.get_pid_embedding(batch_pids)
-        batch_embs = torch.stack(batch_embs, dim=0)
-        batch_masks = torch.stack(batch_masks, dim=0)
-        # batch_embs: Tensor(B, k, L_d, D)
-        #   contains for each query the embeddings of the topk documents/passages
-        #
-        # batch_masks: Tensor(B, k, L_d)
-        #   boolean mask, which is needed since the embedding tensors are padded
-        #   (because the number of embedding vectors for each PID is variable),
-        #   so we can later ignore the similarity scores for those padding vectors
+            # get the pre-computed embeddings for the PIDs
+            batch_embs, batch_masks = self.indexer.get_pid_embedding(batch_pids)
+            batch_embs = torch.stack(batch_embs, dim=0)
+            batch_masks = torch.stack(batch_masks, dim=0)
+            # batch_embs: Tensor(B, k, L_d, D)
+            #   contains for each query the embeddings of the topk documents/passages
+            #
+            # batch_masks: Tensor(B, k, L_d)
+            #   boolean mask, which is needed since the embedding tensors are padded
+            #   (because the number of embedding vectors for each PID is variable),
+            #   so we can later ignore the similarity scores for those padding vectors
 
-        sms = self.inference.colbert.similarity(
-            Qs.unsqueeze(1), batch_embs, batch_masks
-        )
-        # sms shape: (B, k)
+            sms = self.inference.colbert.similarity(
+                Qs.unsqueeze(1), batch_embs, batch_masks
+            )
+            # sms shape: (B, k)
 
-        # select the top-k PIDs and their similarity score wrt. query
-        topk_sims, topk_indices = torch.sort(sms, descending=True)
-        topk_pids = batch_pids.gather(dim=1, index=topk_indices)
+            # select the top-k PIDs and their similarity score wrt. query
+            topk_sims, topk_indices = torch.sort(sms, descending=True)
+            topk_pids = batch_pids.gather(dim=1, index=topk_indices)
 
-        reranked_pids = zip(topk_sims, topk_pids)
+            reranked_pids = zip(topk_sims, topk_pids)
 
         return reranked_pids
 
     def full_retrieval(self, query: List[str], k: int):
-        # embed the query
-        Qs = self.inference.query_from_text(query)  # (B, L_q, D)
-        if Qs.dim() == 2:
-            Qs = Qs[None]
+        with torch.inference_mode():
+            # embed the query
+            Qs = self.inference.query_from_text(query)  # (B, L_q, D)
+            if Qs.dim() == 2:
+                Qs = Qs[None]
 
-        # for each query embedding vector, search for the best k_hat index vectors in the passages embedding matrix
-        k_hat = math.ceil(k / 2)  # math.ceil(k/10)
-        batch_sim, batch_iids = self.indexer.search(Qs, k=k_hat)  # both: (B, L_q, k_hat)
+            # for each query embedding vector, search for the best k_hat index vectors in the passages embedding matrix
+            k_hat = math.ceil(k / 2)  # math.ceil(k/10)
+            batch_sim, batch_iids = self.indexer.search(Qs, k=k_hat)  # both: (B, L_q, k_hat)
 
-        # for each query get the PIDs containing the best index vectors
-        B, L_q = batch_iids.shape[:2]
-        batch_pids = self.indexer.iids_to_pids(batch_iids.reshape(B, L_q * k_hat))
+            # for each query get the PIDs containing the best index vectors
+            B, L_q = batch_iids.shape[:2]
+            batch_pids = self.indexer.iids_to_pids(batch_iids.reshape(B, L_q * k_hat))
 
-        # get the pre-computed embeddings for the PIDs
-        batch_embs, batch_masks = self.indexer.get_pid_embedding(batch_pids)
+            # get the pre-computed embeddings for the PIDs
+            batch_embs, batch_masks = self.indexer.get_pid_embedding(batch_pids)
 
-        # batch_embs: List[Tensor(N_pids, L_d, D)]
-        #   contains for each query the embeddings for all passages which were in the top-k_hat
-        #   for at least one query embedding
-        #
-        # batch_masks: List[Tensor(N_pids, L_d)]
-        #   boolean mask, which is needed since the embedding tensors are padded
-        #   (because the number of embedding vectors for each PID is variable),
-        #   so we can later ignore the similarity scores for those padding vectors
+            # batch_embs: List[Tensor(N_pids, L_d, D)]
+            #   contains for each query the embeddings for all passages which were in the top-k_hat
+            #   for at least one query embedding
+            #
+            # batch_masks: List[Tensor(N_pids, L_d)]
+            #   boolean mask, which is needed since the embedding tensors are padded
+            #   (because the number of embedding vectors for each PID is variable),
+            #   so we can later ignore the similarity scores for those padding vectors
 
-        reranked_pids = []
-        for Q, pids, embs, mask in zip(Qs, batch_pids, batch_embs, batch_masks):
-            sms = self.inference.colbert.similarity(Q[None], embs, mask)
-            # print(sms.shape)
-            # sms shape: (k,)
+            reranked_pids = []
+            for Q, pids, embs, mask in zip(Qs, batch_pids, batch_embs, batch_masks):
+                sms = self.inference.colbert.similarity(Q[None], embs, mask)
+                # print(sms.shape)
+                # sms shape: (k,)
 
-            # select the top-k PIDs and their similarity score wrt. query
-            k_ = min(sms.shape[0], k)
-            topk_sims, topk_indices = torch.topk(sms, k=k_)
-            topk_pids = pids[topk_indices]
-            reranked_pids.append([topk_sims, topk_pids])
+                # select the top-k PIDs and their similarity score wrt. query
+                k_ = min(sms.shape[0], k)
+                topk_sims, topk_indices = torch.topk(sms, k=k_)
+                topk_pids = pids[topk_indices]
+                reranked_pids.append([topk_sims, topk_pids])
 
         return reranked_pids
 

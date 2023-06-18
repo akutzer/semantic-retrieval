@@ -110,10 +110,10 @@ def visualize(inference: ColBERTInference, query: str, passage: str, k=1, simila
 
     # get tokens
     tokens = np.array(inference.tokenizer.tokenize(passage, "doc", add_special_tokens=True))
-    print(tokens.shape, topk_token_idx.shape, k)
-    print(k,"* 32 = ", topk_token_idx.size, "datapoints used")
-    print("Max topk index:", topk_token_idx.max())
-    print("len(tokens):", topk_token_idx.shape)
+    # print(tokens.shape, topk_token_idx.shape, k)
+    # print(k,"* 32 = ", topk_token_idx.size, "datapoints used")
+    # print("Max topk index:", topk_token_idx.max())
+    # print("len(tokens):", topk_token_idx.shape)
 
     #create heatmaps
     kde_heatmap, count_heatmap, sum_heatmap = html_heatmap(tokens, topk_token_idx, topk_token_sim, plot=False, store=True)
@@ -122,6 +122,7 @@ def visualize(inference: ColBERTInference, query: str, passage: str, k=1, simila
 
 
 if __name__ == "__main__":
+    import torch
 
     queries = [
         "How did Moody feel about the insanity of Alice and Frank Longbottom?",
@@ -137,40 +138,42 @@ if __name__ == "__main__":
     ]
 
 
-    passages = ["[Personality and traits] At the same time, he was far from being devoid of attachment towards his allies and comrades: He was visibly saddened by the insanity of Alice and Frank Longbottom, noting how being dead would have be better than having to live the rest of their lives insane, and openly acknowledged he was never able to find it easy to get over the loss of a comrade and only by turning the sadness he felt into motivation to get justice was he able to move on, as seen by his expressing sympathy towards Jacob's sibling after they lost Rowan Khanna and even acknowledging he should have trained them well enough.",
-                """"The Witcher" (Polish: "Wiedźmin") is a short story written by Andrzej Sapkowski, having first been published in the "Fantastyka" magazine and later in the now obsolete book, "Wiedźmin" before being re-published in . It introduces the witcher Geralt and his famous fight with a striga. 21.335 2492 The Witcher (Polish: "Cykl wiedźmiński") by Andrzej Sapkowski is a series of fantasy short stories (collected in two books, except for two stories) and five novels about the witcher Geralt of Rivia. The books have been adapted into a movie and two television series ("The Hexer" and ), a video game series (), a comic book and others. The novel series (excluding the short stories) is also called the Witcher Saga (Polish: "saga o wiedźminie") or the Blood of the Elves saga.""",
-                 """The Witcher" follows the story of Geralt of Rivia, a witcher: a traveling monster hunter for hire, gifted with unnatural powers. Taking place in a fictional medieval world, the game implements detailed visuals. The natural light during various phases of the day is realistically altered, and the day and night transitions serve to enrich the game's ambiance. The weather can dynamically change from a light drizzle to a dark, stormy downpour accompanied by thunder and lightning, and the NPCs react to the rain by hiding under roofs trying to get out of the rain.""",
-                 """The Witcher" follows the story of Geralt of Rivia, a witcher: a traveling monster hunter for hire, gifted with unnatural powers. Taking place in a fictional medieval world, the game implements detailed visuals. The natural light during various phases of the day is realistically altered, and the day and night transitions serve to enrich the game's ambiance. The weather can dynamically change from a light drizzle to a dark, stormy downpour accompanied by thunder and lightning, and the NPCs react to the rain by hiding under roofs trying to get out of the rain.""",
-                "The name of the red car is Gerald and it is very fast.",
-                "[Interwar Period] In , he recruited Dandelion as his informant and asked Yennefer to protect the bard when he was captured by Rience in a town near Bleobheris. The sorceress saved Dandelion and ordered him to hide under Dijkstra's wing. Later, Sigismund managed to calm the tension when Geralt and Olsen killed Temerian agents who, while they were legit agents, had at the time been acting on their own in pursuit of Geralt and Ciri to try and claim Rience's reward for the pair. Together with Philippa, the spymaster asked Dandelion about Geralt's current whereabouts; Dijkstra was surprised when Philippa mentioned Ciri as well, perceiving it as a hasty move.",
-                "[Interwar Period] In , he recruited Dandelion as his informant and asked Yennefer to protect the bard when he was captured by Rience in a town near Bleobheris. The sorceress saved Dandelion and ordered him to hide under Dijkstra's wing. Later, Sigismund managed to calm the tension when Geralt and Olsen killed Temerian agents who, while they were legit agents, had at the time been acting on their own in pursuit of Geralt and Ciri to try and claim Rience's reward for the pair. Together with Philippa, the spymaster asked Dandelion about Geralt's current whereabouts; Dijkstra was surprised when Philippa mentioned Ciri as well, perceiving it as a hasty move.",
-                "[Interwar Period] In , he recruited Dandelion as his informant and asked Yennefer to protect the bard when he was captured by Rience in a town near Bleobheris. The sorceress saved Dandelion and ordered him to hide under Dijkstra's wing. Later, Sigismund managed to calm the tension when Geralt and Olsen killed Temerian agents who, while they were legit agents, had at the time been acting on their own in pursuit of Geralt and Ciri to try and claim Rience's reward for the pair. Together with Philippa, the spymaster asked Dandelion about Geralt's current whereabouts; Dijkstra was surprised when Philippa mentioned Ciri as well, perceiving it as a hasty move.",
-                "start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start end",
-                "The football championship in the year 2006 was a great sports event that was won by Italy."
-                ]
+    passages = [
+        "[Personality and traits] At the same time, he was far from being devoid of attachment towards his allies and comrades: He was visibly saddened by the insanity of Alice and Frank Longbottom, noting how being dead would have be better than having to live the rest of their lives insane, and openly acknowledged he was never able to find it easy to get over the loss of a comrade and only by turning the sadness he felt into motivation to get justice was he able to move on, as seen by his expressing sympathy towards Jacob's sibling after they lost Rowan Khanna and even acknowledging he should have trained them well enough.",
+        """"The Witcher" (Polish: "Wiedźmin") is a short story written by Andrzej Sapkowski, having first been published in the "Fantastyka" magazine and later in the now obsolete book, "Wiedźmin" before being re-published in . It introduces the witcher Geralt and his famous fight with a striga. 21.335 2492 The Witcher (Polish: "Cykl wiedźmiński") by Andrzej Sapkowski is a series of fantasy short stories (collected in two books, except for two stories) and five novels about the witcher Geralt of Rivia. The books have been adapted into a movie and two television series ("The Hexer" and ), a video game series (), a comic book and others. The novel series (excluding the short stories) is also called the Witcher Saga (Polish: "saga o wiedźminie") or the Blood of the Elves saga.""",
+        """The Witcher" follows the story of Geralt of Rivia, a witcher: a traveling monster hunter for hire, gifted with unnatural powers. Taking place in a fictional medieval world, the game implements detailed visuals. The natural light during various phases of the day is realistically altered, and the day and night transitions serve to enrich the game's ambiance. The weather can dynamically change from a light drizzle to a dark, stormy downpour accompanied by thunder and lightning, and the NPCs react to the rain by hiding under roofs trying to get out of the rain.""",
+        """The Witcher" follows the story of Geralt of Rivia, a witcher: a traveling monster hunter for hire, gifted with unnatural powers. Taking place in a fictional medieval world, the game implements detailed visuals. The natural light during various phases of the day is realistically altered, and the day and night transitions serve to enrich the game's ambiance. The weather can dynamically change from a light drizzle to a dark, stormy downpour accompanied by thunder and lightning, and the NPCs react to the rain by hiding under roofs trying to get out of the rain.""",
+        "The name of the red car is Gerald and it is very fast.",
+        "[Interwar Period] In , he recruited Dandelion as his informant and asked Yennefer to protect the bard when he was captured by Rience in a town near Bleobheris. The sorceress saved Dandelion and ordered him to hide under Dijkstra's wing. Later, Sigismund managed to calm the tension when Geralt and Olsen killed Temerian agents who, while they were legit agents, had at the time been acting on their own in pursuit of Geralt and Ciri to try and claim Rience's reward for the pair. Together with Philippa, the spymaster asked Dandelion about Geralt's current whereabouts; Dijkstra was surprised when Philippa mentioned Ciri as well, perceiving it as a hasty move.",
+        "[Interwar Period] In , he recruited Dandelion as his informant and asked Yennefer to protect the bard when he was captured by Rience in a town near Bleobheris. The sorceress saved Dandelion and ordered him to hide under Dijkstra's wing. Later, Sigismund managed to calm the tension when Geralt and Olsen killed Temerian agents who, while they were legit agents, had at the time been acting on their own in pursuit of Geralt and Ciri to try and claim Rience's reward for the pair. Together with Philippa, the spymaster asked Dandelion about Geralt's current whereabouts; Dijkstra was surprised when Philippa mentioned Ciri as well, perceiving it as a hasty move.",
+        "[Interwar Period] In , he recruited Dandelion as his informant and asked Yennefer to protect the bard when he was captured by Rience in a town near Bleobheris. The sorceress saved Dandelion and ordered him to hide under Dijkstra's wing. Later, Sigismund managed to calm the tension when Geralt and Olsen killed Temerian agents who, while they were legit agents, had at the time been acting on their own in pursuit of Geralt and Ciri to try and claim Rience's reward for the pair. Together with Philippa, the spymaster asked Dandelion about Geralt's current whereabouts; Dijkstra was surprised when Philippa mentioned Ciri as well, perceiving it as a hasty move.",
+        "start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start start end",
+        "The football championship in the year 2006 was a great sports event that was won by Italy."
+    ]
 
     
 
     CHECKPOINT_PATH = "../../data/colbertv2.0/"
+    DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     colbert, tokenizer = load_colbert_and_tokenizer(CHECKPOINT_PATH)
-    inference = ColBERTInference(colbert, tokenizer)
+    tokenizer.doc_maxlen = 512
+    colbert.config.skip_punctuation = False
+    colbert.skiplist = None
+    inference = ColBERTInference(colbert, tokenizer, device=DEVICE)
 
-    K = 2
+    Ks = [2] #[1, 2, 3]
     kde_heatmaps, count_heatmaps, sum_heatmaps = [], [], []
 
-    for query, passage in zip(queries, passages):
-        kde_heatmap, count_heatmap, sum_heatmap = visualize(inference, query, passage, k=K, similarity="cosine")
+    with open("combined_heatmaps.html", "w", encoding="utf-8") as f:
+        for query, passage in zip(queries, passages):        
+            f.write(f"<h2>Query: {query}</h2>")
 
-        kde_heatmaps.append(kde_heatmap)
-        count_heatmaps.append(count_heatmap)
-        sum_heatmaps.append(sum_heatmap)
+            for K in Ks:
+                kde_heatmap, count_heatmap, sum_heatmap = visualize(inference, query, passage, k=K, similarity="cosine")
 
-    with open('combined_heatmaps.html', 'w') as f:
-        for i in range(len(queries)):
-            f.write('<h2>'+ queries[i] +'</h2>')
-            f.write('<h3> kde </h3>')
-            f.write(kde_heatmaps[i])
-            f.write('<h3> absolute count </h3>')
-            f.write(count_heatmaps[i])
-            f.write('<h3> added values </h3>')
-            f.write(sum_heatmaps[i])          
+                f.write(f"<h3> Kernel Density Estimation (top-{K}): </h3>")
+                f.write(kde_heatmap)
+                f.write(f"<h3> Absolute count (top-{K}): </h3>")
+                f.write(count_heatmap)
+                f.write(f"<h3> Accumulated Similarities (top-{K}): </h3>")
+                f.write(sum_heatmap)
