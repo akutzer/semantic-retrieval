@@ -110,10 +110,10 @@ def visualize(inference: ColBERTInference, query: str, passage: str, k=1, simila
 
     # get tokens
     tokens = np.array(inference.tokenizer.tokenize(passage, "doc", add_special_tokens=True))
-    print(tokens.shape, topk_token_idx.shape, k)
-    print(k,"* 32 = ", topk_token_idx.size, "datapoints used")
-    print("Max topk index:", topk_token_idx.max())
-    print("len(tokens):", topk_token_idx.shape)
+    #print(tokens.shape, topk_token_idx.shape, k)
+    #print(k,"* 32 = ", topk_token_idx.size, "datapoints used")
+    #print("Max topk index:", topk_token_idx.max())
+    #print("len(tokens):", topk_token_idx.shape)
 
     #create heatmaps
     kde_heatmap, count_heatmap, sum_heatmap = html_heatmap(tokens, topk_token_idx, topk_token_sim, plot=False, store=True)

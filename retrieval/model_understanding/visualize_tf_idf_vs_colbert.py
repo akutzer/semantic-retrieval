@@ -44,7 +44,7 @@ if __name__ == "__main__":
                 f.write('<h1> tf_bad_cb_bad  </h1>')
 
             for i in range(len(dict.keys())):
-                print("agwgwerghe", queries[j][i])
+                #print("agwgwerghe", queries[j][i])
                 f.write('<h2>' + str(queries[j][i]) + str(dict[(queries[j][i], passages[j][i])]) + '</h2>')
                 f.write('<h3> kde </h3>')
                 f.write(kde_heatmaps[i])

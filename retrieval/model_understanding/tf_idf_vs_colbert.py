@@ -42,9 +42,9 @@ def colbert_vs_tf_idf(testing_max_count = 100, size_datasets_good = 100, size_da
     # retriever.indexer.dtype = torch.float16
     data = dataset.passages.values().tolist()
     pids = dataset.passages.keys().tolist()
-    retriever.indexer.index(data, pids, bsize=8)
-    retriever.indexer.save(INDEX_PATH)
-    # retriever.indexer.load(INDEX_PATH)
+    #retriever.indexer.index(data, pids, bsize=8)
+    #retriever.indexer.save(INDEX_PATH)
+    retriever.indexer.load(INDEX_PATH)
 
     #print([x for x in dataset.passages_items()])
     tf_idf = TfIdf(
@@ -87,6 +87,7 @@ def colbert_vs_tf_idf(testing_max_count = 100, size_datasets_good = 100, size_da
 
             # COLBERT
             for i, (pred_pids, target_pit, query) in enumerate(zip(pids, target_batch, query_batch)):
+
                 pred_pids = pred_pids.tolist()
                 if target_pit in pred_pids:
                     if len(good_pairs_cb.keys()) < size_datasets_good:
@@ -147,9 +148,9 @@ def colbert_vs_tf_idf(testing_max_count = 100, size_datasets_good = 100, size_da
             query_batch = []
             target_batch = []
 
-    print(bad_pairs_cb.keys())
-    print(good_pairs_tf_idf.keys())
-    print(bad_pairs_tf_idf.keys())
+    #print(bad_pairs_cb.keys())
+    #print(good_pairs_tf_idf.keys())
+    #print(bad_pairs_tf_idf.keys())
     keys_tf_good_cb_good = set(list(set(good_pairs_cb.keys()).intersection(good_pairs_tf_idf.keys()))[:return_size])
     keys_tf_good_cb_bad = set(list(set(bad_pairs_cb.keys()).intersection(good_pairs_tf_idf.keys()))[:return_size])
     keys_tf_bad_cb_good = set(list(set(good_pairs_cb.keys()).intersection(bad_pairs_tf_idf.keys()))[:return_size])
@@ -163,7 +164,7 @@ def colbert_vs_tf_idf(testing_max_count = 100, size_datasets_good = 100, size_da
 
 
 if __name__ == "__main__":
-    sets = colbert_vs_tf_idf(size_datasets_good = 200, size_datasets_bad = 200, testing_max_count=100_000_000, K_good=50_000, return_size=10)
+    sets = colbert_vs_tf_idf(size_datasets_good = 200, size_datasets_bad = 200, testing_max_count=100, K_good=5000, return_size=10)
     print("tf_good_cb_good, size:", len(sets[0].keys()), sets[0])
     print("tf_good_cb_bad, size:", len(sets[1].keys()), sets[1])
     print("tf_bad_cb_good, size:", len(sets[2].keys()), sets[2])
