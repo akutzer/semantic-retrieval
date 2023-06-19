@@ -88,9 +88,9 @@ if __name__ == "__main__":
 
             if len(query_batch) == BSIZE or i + 1 == len(dataset):
                 with torch.autocast(retriever.device.type):
-                    pids = retriever.tf_idf_rank(query_batch, K)
+                    # pids = retriever.tf_idf_rank(query_batch, K)
                     # pids = retriever.rerank(query_batch, K)
-                    # pids = retriever.full_retrieval(query_batch, K)
+                    pids = retriever.full_retrieval(query_batch, K)
 
                 for j, ((sims, pred_pids), qid, target_pid) in enumerate(zip(pids, qids_batch, target_batch)):
                     qrel = qrels.iloc[list(qrels.iloc[:,0]).index(qid)][1]
@@ -113,7 +113,8 @@ if __name__ == "__main__":
                                 common = qrel & set(pred_pids[:100].cpu().numpy())
                                 recall_100 += (len(common) / max(1.0, len(qrel)))
                                 for idx in idxs:
-                                    mrr_100 += 1 / (idx + 1)
+                                    if idx < 100:
+                                        mrr_100 += 1 / (idx + 1)
 
                                 if idxs[0] < 50:
                                     common = qrel & set(pred_pids[:50].cpu().numpy())
@@ -127,13 +128,15 @@ if __name__ == "__main__":
                                             common = qrel & set(pred_pids[:10].cpu().numpy())
                                             recall_10 += (len(common) / max(1.0, len(qrel)))
                                             for idx in idxs:
-                                                mrr_10 += 1 / (idx + 1)
+                                                if idx < 10:
+                                                    mrr_10 += 1 / (idx + 1)
 
                                             if idxs[0] < 5:
                                                 common = qrel & set(pred_pids[:5].cpu().numpy())
                                                 recall_5 += (len(common) / max(1.0, len(qrel)))
                                                 for idx in idxs:
-                                                    mrr_5 += 1 / (idx + 1)
+                                                    if idx < 5:
+                                                        mrr_5 += 1 / (idx + 1)
 
                                                 if idxs[0] < 3:
                                                     common = qrel & set(pred_pids[:3].cpu().numpy())
