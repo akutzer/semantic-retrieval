@@ -99,7 +99,9 @@ if __name__ == "__main__":
                     # print(qid, target_pid, qrel, pred_pids[:10], idxs)
                     if idxs.numel() == 0:
                         continue
-                    
+                    if idxs.numel() > 1:
+                        idxs, indices = torch.sort(idxs, dim=0)
+
                     if qids_visit[qid-qid_0]==False:
                         if idxs[0] < 1000:
                             common = qrel & set(pred_pids[:1000].cpu().numpy())

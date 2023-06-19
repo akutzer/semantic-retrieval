@@ -15,15 +15,15 @@
 #SBATCH --mail-type ALL
 
 # clean current modules
-module purge
+# module purge
 
 # HPC-Cluster doesn't have newer Python Version
-module load Python/3.10.4
+# module load Python/3.10.4
 
 # switch to virtualenv to setup our environment, modules we need
 # if needed change to your own workspace
-virtualenv --system-site-packages /scratch/ws/0/zhzh622c-test-workspace/env
-source /scratch/ws/0/zhzh622c-test-workspace/env/bin/activate
+# virtualenv --system-site-packages /scratch/ws/0/zhzh622c-test-workspace/env
+# source /scratch/ws/0/zhzh622c-test-workspace/env/bin/activate
 
 # Set the arguments for the Python script:
 # dataset arguments
@@ -48,4 +48,4 @@ python colbert_retriever.py \
     --queries_path_val "$QUERIES_PATH_VAL" \
     --triples_path_val "$TRIPLES_PATH_VAL" \
 
-deactivate
+# deactivate
