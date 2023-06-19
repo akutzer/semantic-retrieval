@@ -88,8 +88,8 @@ if __name__ == "__main__":
 
             if len(query_batch) == BSIZE or i + 1 == len(dataset):
                 with torch.autocast(retriever.device.type):
-                    # pids = retriever.tf_idf_rank(query_batch, K)
-                    pids = retriever.rerank(query_batch, K)
+                    pids = retriever.tf_idf_rank(query_batch, K)
+                    # pids = retriever.rerank(query_batch, K)
                     # pids = retriever.full_retrieval(query_batch, K)
 
                 for j, ((sims, pred_pids), qid, target_pid) in enumerate(zip(pids, qids_batch, target_batch)):
