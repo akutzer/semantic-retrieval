@@ -47,7 +47,7 @@ if __name__ == "__main__":
     retriever.indexer.load(args.indexer)
 
     BSIZE = 8  # 8 #16 #8 #16
-    K = 100
+    K = 1000
     recall_1, recall_3, recall_5, recall_10, recall_25, recall_50, recall_100, recall_200, recall_1000 = 0, 0, 0, 0, 0, 0, 0, 0, 0
     mrr_5, mrr_10, mrr_100 = 0, 0, 0
 
@@ -68,16 +68,8 @@ if __name__ == "__main__":
         qids_batch = []
         query_batch = []
         target_batch = []
-        qids_visit_1 = np.zeros(2*len(dataset), dtype=bool)
-        qids_visit_3 = np.zeros(2*len(dataset), dtype=bool)
-        qids_visit_5 = np.zeros(2*len(dataset), dtype=bool)
-        qids_visit_10 = np.zeros(2*len(dataset), dtype=bool)
-        qids_visit_25 = np.zeros(2*len(dataset), dtype=bool)
-        qids_visit_50 = np.zeros(2*len(dataset), dtype=bool)
-        qids_visit_100 = np.zeros(2*len(dataset), dtype=bool)
-        qids_visit_200 = np.zeros(2*len(dataset), dtype=bool)
-        qids_visit_1000 = np.zeros(2*len(dataset), dtype=bool)
-
+        qids_visit = np.zeros(2*len(dataset), dtype=bool)
+        
         for i, triple in enumerate(tqdm(dataset)):
 
             if args.dataset_mode=="QPP":
@@ -101,60 +93,56 @@ if __name__ == "__main__":
                     # pids = retriever.full_retrieval(query_batch, K)
 
                 for j, ((sims, pred_pids), qid, target_pid) in enumerate(zip(pids, qids_batch, target_batch)):
-                    idx = torch.where(pred_pids == target_pid)[0]
-                    # idx = torch.tensor([idx for idx, pred_pid in enumerate(pred_pids) if pred_pid == target_pid])
                     qrel = qrels.iloc[list(qrels.iloc[:,0]).index(qid)][1]
-                    # print(qid, target_pid, qrel, pred_pids[:10])
-                    if idx.numel() == 0:
+                    # idxs = torch.where(pred_pids == torch.tensor(list(qrel)).to("cuda:0"))[0]
+                    idxs = torch.tensor([idx for idx, pred_pid in enumerate(pred_pids) if pred_pid in list(qrel)])
+                    # print(qid, target_pid, qrel, pred_pids[:10], idxs)
+                    if idxs.numel() == 0:
                         continue
                     
-                    if idx < 1000 and qids_visit_1000[qid-qid_0]==False:
-                        common = qrel & set(pred_pids[:1000].cpu().numpy())
-                        recall_1000 += (len(common) / max(1.0, len(qrel)))
-                        qids_visit_1000[qid-qid_0] = True
-
-                        if idx < 200 and qids_visit_200[qid-qid_0]==False:
+                    if qids_visit[qid-qid_0]==False:
+                        if idxs[0] < 1000:
+                            common = qrel & set(pred_pids[:1000].cpu().numpy())
+                            recall_1000 += (len(common) / max(1.0, len(qrel)))
+                
+                        if idxs[0] < 200:
                             common = qrel & set(pred_pids[:200].cpu().numpy())
                             recall_200 += (len(common) / max(1.0, len(qrel)))
-                            qids_visit_200[qid-qid_0] = True
 
-                            if idx < 100 and qids_visit_100[qid-qid_0]==False:
-                                mrr_100 += 1 / (idx + 1)
+                            if idxs[0] < 100:
                                 common = qrel & set(pred_pids[:100].cpu().numpy())
                                 recall_100 += (len(common) / max(1.0, len(qrel)))
-                                qids_visit_100[qid-qid_0] = True
+                                for idx in idxs:
+                                    mrr_100 += 1 / (idx + 1)
 
-                                if idx < 50 and qids_visit_50[qid-qid_0]==False:
+                                if idxs[0] < 50:
                                     common = qrel & set(pred_pids[:50].cpu().numpy())
                                     recall_50 += (len(common) / max(1.0, len(qrel)))
-                                    qids_visit_50[qid-qid_0] = True
 
-                                    if idx < 25 and qids_visit_25[qid-qid_0]==False:
+                                    if idxs[0] < 25:
                                         common = qrel & set(pred_pids[:25].cpu().numpy())
                                         recall_25 += (len(common) / max(1.0, len(qrel)))
-                                        qids_visit_25[qid-qid_0] = True
 
-                                        if idx < 10 and qids_visit_10[qid-qid_0]==False:
-                                            mrr_10 += 1 / (idx + 1)
+                                        if idxs[0] < 10:
                                             common = qrel & set(pred_pids[:10].cpu().numpy())
                                             recall_10 += (len(common) / max(1.0, len(qrel)))
-                                            qids_visit_10[qid-qid_0] = True
+                                            for idx in idxs:
+                                                mrr_10 += 1 / (idx + 1)
 
-                                            if idx < 5 and qids_visit_5[qid-qid_0]==False:
-                                                mrr_5 += 1 / (idx + 1)
+                                            if idxs[0] < 5:
                                                 common = qrel & set(pred_pids[:5].cpu().numpy())
                                                 recall_5 += (len(common) / max(1.0, len(qrel)))
-                                                qids_visit_5[qid-qid_0] = True
+                                                for idx in idxs:
+                                                    mrr_5 += 1 / (idx + 1)
 
-                                                if idx < 3 and qids_visit_3[qid-qid_0]==False:
+                                                if idxs[0] < 3:
                                                     common = qrel & set(pred_pids[:3].cpu().numpy())
                                                     recall_3 += (len(common) / max(1.0, len(qrel)))
-                                                    qids_visit_3[qid-qid_0] = True
-                                
-                                                    if idx < 1 and qids_visit_1[qid-qid_0]==False:
+
+                                                    if idxs[0] < 1:
                                                         common = qrel & set(pred_pids[:1].cpu().numpy())
                                                         recall_1 += (len(common) / max(1.0, len(qrel)))
-                                                        qids_visit_1[qid-qid_0] = True
+                    qids_visit[qid-qid_0] = True                    
 
                 qids_batch = []
                 query_batch = []
