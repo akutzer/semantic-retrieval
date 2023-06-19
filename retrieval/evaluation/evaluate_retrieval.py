@@ -1,16 +1,14 @@
 from dataclasses import dataclass
+
 import torch
-from tqdm import tqdm
-import pandas as pd
 import numpy as np
+import pandas as pd
+from tqdm import tqdm
+
 from retrieval.configs import BaseConfig
-from retrieval.data import Passages, Queries, TripleDataset, BucketIterator
-from retrieval.models import ColBERTTokenizer, ColBERTInference, get_colbert_and_tokenizer, load_colbert_and_tokenizer
-from retrieval.indexing.colbert_indexer import ColBERTIndexer
-from retrieval.indexing.colbert_retriever import ColBERTRetriever
-
-from retrieval.indexing import index
-
+from retrieval.data import TripleDataset
+from retrieval.models import ColBERTInference, load_colbert_and_tokenizer
+from retrieval.indexing import ColBERTRetriever, index
 
 
 
@@ -58,9 +56,10 @@ def argparser2retrieval_config(args):
     return config
 
 
-
+# TODO: clean code
+# TODO: evaluate tf_idf, rerank and full_retrieval at the same time!!!
 def evaluate_colbert(retriever: ColBERTRetriever, dataset: TripleDataset, config: RetrievalConfig):
-
+    
     recall_1, recall_3, recall_5, recall_10, recall_25, recall_50, recall_100, recall_200, recall_1000 = 0, 0, 0, 0, 0, 0, 0, 0, 0
     mrr_5, mrr_10, mrr_100 = 0, 0, 0
 
@@ -185,29 +184,24 @@ def evaluate_colbert(retriever: ColBERTRetriever, dataset: TripleDataset, config
 if __name__ == "__main__":
     import argparse
 
+    # enable TensorFloat32 tensor cores for float32 matrix multiplication if available
+    torch.set_float32_matmul_precision("high")
+
     parser = argparse.ArgumentParser(description="Evaluate Retrieval")
     parser.add_argument("--dataset-mode", type=str, required=True, choices=["QQP", "QPP"], help="Mode of the dataset")
     parser.add_argument("--passages-path", type=str, required=True, help="Path to the passages.tsv file")
     parser.add_argument("--queries-path", type=str, required=True, help="Path to the queries.tsv file")
     parser.add_argument("--triples-path", type=str, required=True, help="Path to the triples.tsv file")
-
     parser.add_argument("--checkpoint-path", type=str, required=True, help="Path to ColBERT Checkpoint (should be the same checkpoint which was used for the indexation)")
     parser.add_argument("--index-path", type=str, help="Path of the indexer which should be loaded")
-
     parser.add_argument("--use-gpu", action="store_true", help="Use GPU for indexing (recommended)")
     parser.add_argument("--batch-size", type=int, default=8, help="Batch size for used during the retrieval process")
     parser.add_argument("--dtype", type=str, default="FP16", choices=["FP16", "FP32", "FP64"], help="Floating-point precision of the indices")
-
     parser.add_argument("--k", type=int, default=100, help="Number of top-k passages that should be retrieved")
 
-    
     args = parser.parse_args()
     config = argparser2retrieval_config(args)
     print(config)
-
-
-    # enable TensorFloat32 tensor cores for float32 matrix multiplication if available
-    torch.set_float32_matmul_precision("high")
 
     dataset = TripleDataset(
         BaseConfig(),

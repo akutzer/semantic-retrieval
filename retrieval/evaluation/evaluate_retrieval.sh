@@ -3,18 +3,25 @@
 # Set the arguments for the Python script:
 
 # Example for FANDOM QA:
-# DATASET_MODE="QQP" # QQP or QPP
-# PASSAGES_PATH="../../data/fandoms_qa/harry_potter/all/passages.tsv"
-# QUERIES_PATH="../../data/fandoms_qa/harry_potter/all/queries.tsv"
-# TRIPLES_PATH="../../data/fandoms_qa/harry_potter/val/triples.tsv"
+DATASET_MODE="QQP" # QQP or QPP
+PASSAGES_PATH="../../data/fandoms_qa/harry_potter/all/passages.tsv"
+QUERIES_PATH="../../data/fandoms_qa/harry_potter/all/queries.tsv"
+TRIPLES_PATH="../../data/fandoms_qa/harry_potter/val/triples.tsv"
 # INDEX_PATH="../../data/fandoms_qa/harry_potter/all/passages.index.pt"
 
 # Example for MS MARCO:
-DATASET_MODE="QPP" # QQP or QPP
-PASSAGES_PATH="../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
-QUERIES_PATH="../../data/ms_marco/ms_marco_v1_1/val/queries.tsv"
-TRIPLES_PATH="../../data/ms_marco/ms_marco_v1_1/val/triples.tsv"
+# DATASET_MODE="QPP" # QQP or QPP
+# PASSAGES_PATH="../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
+# QUERIES_PATH="../../data/ms_marco/ms_marco_v1_1/val/queries.tsv"
+# TRIPLES_PATH="../../data/ms_marco/ms_marco_v1_1/val/triples.tsv"
 # INDEX_PATH="../../data/ms_marco/ms_marco_v1_1/val/passages.index.pt"
+
+# Example for FANDOM QA:
+# DATASET_MODE="QQP" # QQP or QPP
+# PASSAGES_PATH="../../data/fandoms_qa/fandoms_all/all/passages.tsv"
+# QUERIES_PATH="../../data/fandoms_qa/fandoms_all/all/queries.tsv"
+# TRIPLES_PATH="../../data/fandoms_qa/fandoms_all/val/triples.tsv"
+# INDEX_PATH="../../data/fandoms_qa/harry_potter/all/passages.index.pt"
 
 
 CHECKPOINT_PATH="../../data/colbertv2.0"

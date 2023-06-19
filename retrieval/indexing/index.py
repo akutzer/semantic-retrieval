@@ -66,6 +66,10 @@ def index(inference: ColBERTInference, config: IndexConfig, store: bool = False)
 if __name__ == "__main__":
     import argparse
 
+    # enable TensorFloat32 tensor cores for float32 matrix multiplication if available
+    torch.set_float32_matmul_precision("high")
+
+
     parser = argparse.ArgumentParser(description="ColBERT Indexing")
     parser.add_argument("--passages-path", type=str, required=True, help="Path to the TSV-file containing the passages")
     parser.add_argument("--checkpoint-path", type=str, required=True, help="Path to ColBERT Checkpoint which should be used for indexing")
@@ -77,10 +81,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     config = argparser2index_config(args)
     print(config)
-
-    # enable TensorFloat32 tensor cores for float32 matrix multiplication if available
-    torch.set_float32_matmul_precision("high")
-
+ 
     # instantiate model
     colbert, tokenizer = load_colbert_and_tokenizer(config.checkpoint_path)
     inference = ColBERTInference(colbert, tokenizer)
