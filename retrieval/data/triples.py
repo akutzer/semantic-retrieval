@@ -83,11 +83,11 @@ class Triples:
 
 
 if __name__ == "__main__":
-    path = "../../data/ms_marco/ms_marco_v1_1/train/triples.tsv"
+    path = "../../data/ms_marco/ms_marco_v2_1/train/triples.tsv"
     triples = Triples(path=path, mode="QPP", psgs_per_qry=None)
     print(triples.data, end="\n\n")
 
-    path = "../../data/fandoms_qa/harry_potter/train/triples.tsv"
+    path = "../../data/fandoms_qa/fandoms_all/all/triples.tsv"
     triples = Triples(path=path, mode="QQP", psgs_per_qry=None)
     print(triples.data, end="\n\n")
 
