@@ -213,7 +213,8 @@ Maybe we should have a hpc directory in the repository where all the scripts for
     - backbone: bert, roberta
     - loss functions: cross-entropy, MSE
     - query embs: 32, 64
-2. Train ColBERT models with the best set of hyperparameters (determined in step 3) on (use the checkpoint of an on MS MARCO v2 trained model):
+2. Train ColBERT models with the best hyperparameter configuration on MS MARCO v2
+3. Train ColBERT models with the best set of hyperparameters (determined in step 3) on (use the checkpoint of an on MS MARCO v2 trained model form step 2):
     - `harry_potter` (and maybe fine-tune on `harry_potter/human_verified`?)
     - `fandoms_all`
     - `fandoms_all` and fine-tune on `human_verified` dataset
@@ -227,7 +228,7 @@ The metrics should use a fairly universal interface, so the outputs of the model
 Count the parameters in a model, meassure the FLOPs and ms per answer-retrieval.
 (Parameters & FLOPs only necessary for neural IR approaches)
 
-### :bangbang: :hourglass_flowing_sand: Meassuring (assigned: Zhiwei, ??)
+### :bangbang: :hourglass_flowing_sand: Meassuring (assigned: Till, Zhiwei)
 Run the baseline and neural models on the **test dataset** and log their performance for later use in the paper. This script will probably look fairly similar to the training scripts.
 
 - Evaluate TF-IDF on MS MARCO and our Fandom datasets
@@ -241,7 +242,7 @@ Run the baseline and neural models on the **test dataset** and log their perform
 - Evaluate our trained models on MS MARCO and our Fandom datasets
 
 
-### :hourglass_flowing_sand: Model understanding (assigned: Florian)
+### :hourglass_flowing_sand: Model understanding (assigned: Florian, Aaron)
 1. :white_check_mark: **Test if it's possible to extract roughly position of the answer.**
     - for example: query is encoded as 32 vectors. For each vector find the most similar passage vectors and visualize those 32 token in the passage string, does it correlate with the answer?
     - visualize the unsmoothed and smoothed (KDE or whatever) results 
