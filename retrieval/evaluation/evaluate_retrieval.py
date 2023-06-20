@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from retrieval.configs import BaseConfig
 from retrieval.data import TripleDataset
-from retrieval.models import ColBERTInference, load_colbert_and_tokenizer
+from retrieval.models import ColBERTInference, load_colbert_and_tokenizer, inference_to_embedding
 from retrieval.indexing import ColBERTRetriever, index
 
 
@@ -198,6 +198,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch-size", type=int, default=8, help="Batch size for used during the retrieval process")
     parser.add_argument("--dtype", type=str, default="FP16", choices=["FP16", "FP32", "FP64"], help="Floating-point precision of the indices")
     parser.add_argument("--k", type=int, default=100, help="Number of top-k passages that should be retrieved")
+    parser.add_argument("--embedding-only", action="store_true", help="This used only the word embedding layer of the ColBERT model")
 
     args = parser.parse_args()
     config = argparser2retrieval_config(args)
@@ -213,6 +214,8 @@ if __name__ == "__main__":
 
     colbert, tokenizer = load_colbert_and_tokenizer(config.checkpoint_path)
     inference = ColBERTInference(colbert, tokenizer)
+    if args.embedding_only:
+        inference = inference_to_embedding(inference)
     retriever = ColBERTRetriever(inference, device=config.device, passages=dataset.passages)
 
     if config.index_path is not None:

@@ -161,6 +161,25 @@ class ColBERTInference:
         self.colbert.to(device=device)
 
 
+def inference_to_embedding(inference: ColBERTInference):
+    """Replaces the backbone of an ColBERT model with just the word embedding."""
+
+    class EmbeddingWrapper(torch.nn.Module):
+        def __init__(self, emb):
+            super().__init__()
+            self.emb = emb
+
+        def forward(self, x, attention_mask):
+            return [self.emb(x)]
+
+    inference.colbert.out_features = inference.colbert.backbone.embeddings.word_embeddings.embedding_dim
+    inference.colbert.backbone = EmbeddingWrapper(inference.colbert.backbone.embeddings.word_embeddings)
+    inference.colbert.linear = torch.nn.Identity()
+
+    return inference
+
+
+
 if __name__ == "__main__":
     from tqdm import tqdm
 

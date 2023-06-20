@@ -41,4 +41,5 @@ python evaluate_retrieval.py \
     --batch-size "$BATCH_SIZE" \
     --k "$K" \
     --use-gpu \
+    # --embedding-only \
     # --index-path "$INDEX_PATH" \

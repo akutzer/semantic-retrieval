@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import torch
 
 from retrieval.data import Passages
-from retrieval.models import ColBERTInference, load_colbert_and_tokenizer
+from retrieval.models import ColBERTInference, load_colbert_and_tokenizer, inference_to_embedding
 from retrieval.indexing.colbert_indexer import ColBERTIndexer
 
 
@@ -77,6 +77,7 @@ if __name__ == "__main__":
     parser.add_argument("--use-gpu", action="store_true", help="Use GPU for indexing (recommended)")
     parser.add_argument("--dtype", type=str, default="FP16", choices=["FP16", "FP32", "FP64"], help="Floating-point precision of the indices")
     parser.add_argument("--batch-size", type=int, default=8, help="Batch size for used during tee indexation")
+    parser.add_argument("--embedding-only", action="store_true", help="This used only the word embedding layer of the ColBERT model")
 
     args = parser.parse_args()
     config = argparser2index_config(args)
@@ -85,6 +86,9 @@ if __name__ == "__main__":
     # instantiate model
     colbert, tokenizer = load_colbert_and_tokenizer(config.checkpoint_path)
     inference = ColBERTInference(colbert, tokenizer)
+
+    if args.embedding_only:
+        inference = inference_to_embedding(inference)
     
     # run the indexation
     index(inference, config, store=True)

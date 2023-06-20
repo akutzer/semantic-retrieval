@@ -17,4 +17,5 @@ python index.py \
     --index-path "$INDEX_PATH" \
     --dtype "$DTYPE" \
     --batch-size "$BATCH_SIZE" \
-    --use-gpu
+    --use-gpu \
+    # --embedding-only
