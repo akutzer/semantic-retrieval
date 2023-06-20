@@ -88,7 +88,7 @@ if __name__ == "__main__":
     inference = ColBERTInference(colbert, tokenizer)
 
     if args.embedding_only:
-        inference = inference_to_embedding(inference)
+        inference = inference_to_embedding(inference, just_word_emb=False, layer_norm=True)
     
     # run the indexation
     index(inference, config, store=True)
