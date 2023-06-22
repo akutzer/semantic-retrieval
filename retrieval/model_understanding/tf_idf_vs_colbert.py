@@ -17,7 +17,8 @@ torch.manual_seed(SEED)
 torch.cuda.manual_seed_all(SEED)
 
 CHECKPOINT_PATH = "../../data/colbertv2.0/"  # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
-INDEX_PATH = "../../data/fandoms_qa/witcher/all/passages.indices.pt"
+INDEX_PATH = "../../data/fandoms_qa/fandoms_all/human_verified/final/el/all/passages.index.pt"
+
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 
@@ -28,9 +29,9 @@ def colbert_vs_tf_idf(testing_max_count = 100, size_datasets_good = 100, size_da
     '''
 
     dataset = TripleDataset(BaseConfig(passages_per_query=10),
-                            triples_path="../../data/fandoms_qa/witcher/all/triples.tsv",
-                            queries_path="../../data/fandoms_qa/witcher/all/queries.tsv",
-                            passages_path="../../data/fandoms_qa/witcher/all/passages.tsv",
+                            triples_path="../../data/fandoms_qa/fandoms_all/human_verified/final/el/all/triples.tsv",
+                            queries_path="../../data/fandoms_qa/fandoms_all/human_verified/final/el/all/queries.tsv",
+                            passages_path="../../data/fandoms_qa/fandoms_all/human_verified/final/el/all/passages.tsv",
                             mode="QQP")
 
 
@@ -38,12 +39,12 @@ def colbert_vs_tf_idf(testing_max_count = 100, size_datasets_good = 100, size_da
     inference = ColBERTInference(colbert, tokenizer)
     retriever = ColBERTRetriever(inference, device=DEVICE, passages=dataset.passages)
 
-    # precompute indicies
+    #precompute indicies
     # retriever.indexer.dtype = torch.float16
-    data = dataset.passages.values().tolist()
-    pids = dataset.passages.keys().tolist()
-    #retriever.indexer.index(data, pids, bsize=8)
-    #retriever.indexer.save(INDEX_PATH)
+    # data = dataset.passages.values().tolist()
+    # pids = dataset.passages.keys().tolist()
+    # retriever.indexer.index(data, pids, bsize=8)
+    # retriever.indexer.save(INDEX_PATH)
     retriever.indexer.load(INDEX_PATH)
 
     #print([x for x in dataset.passages_items()])
@@ -81,6 +82,7 @@ def colbert_vs_tf_idf(testing_max_count = 100, size_datasets_good = 100, size_da
 
         if len(query_batch) == BSIZE or i + 1 == len(dataset):
             #pids, worst_pids = retriever.best_and_worst_pid_retrieval(query_batch, K_good)
+            print(query_batch)
             pids = [x for (y,x) in retriever.full_retrieval(query_batch, K_good)]
             #pids_tf_idf, worst_pids_tft_idf = list(tf_idf.best_and_worst_pids(query_batch, K_good, K_bad))
             pids_tf_idf = list(tf_idf.answerQuestion(query_batch, K_good))
