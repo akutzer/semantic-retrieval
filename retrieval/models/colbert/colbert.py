@@ -200,6 +200,7 @@ class ColBERT(nn.Module):
         L_d - number of embeddings per document
         F   - dimension of an embedding vector (number of features)
         """
+        Q = Q.to(dtype=D.dtype)
         if not intra_batch:
             if self.config.similarity.lower() == "l2":
                 # calculate squared l2 norm

@@ -34,7 +34,7 @@ class ColBERTRetriever:
         batch_sims, batch_pids = self.tfidf.batchBestKPIDs(query, k)  # shape: (B, k)
         batch_pids = torch.tensor(batch_pids, dtype=torch.int32)
         batch_sims = torch.tensor(batch_sims)
-        return zip(batch_sims, batch_pids)
+        return list(zip(batch_sims, batch_pids))
 
     def rerank(self, query: List[str], k: int):
         with torch.inference_mode():
@@ -73,7 +73,7 @@ class ColBERTRetriever:
 
             reranked_pids = zip(topk_sims, topk_pids)
 
-        return reranked_pids
+        return list(reranked_pids)
 
     def full_retrieval(self, query: List[str], k: int):
         with torch.inference_mode():
@@ -112,7 +112,7 @@ class ColBERTRetriever:
                 k_ = min(sms.shape[0], k)
                 topk_sims, topk_indices = torch.topk(sms, k=k_)
                 topk_pids = pids[topk_indices]
-                reranked_pids.append([topk_sims, topk_pids])
+                reranked_pids.append((topk_sims, topk_pids))
 
         return reranked_pids
 
