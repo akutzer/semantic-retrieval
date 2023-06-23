@@ -86,11 +86,11 @@ class Passages:
 
 
 if __name__ == "__main__":
-    path = "../../data/ms_marco/ms_marco_v1_1/train/passages.tsv"
+    path = "../../data/ms_marco/ms_marco_v2_1/train/passages.tsv"
     passages = Passages(path=path)
     print(passages.data, end="\n\n")
 
-    path = "../../data/fandoms_qa/harry_potter/train/passages.tsv"
+    path = "../../data/fandoms_qa/fandoms_all/all/passages.tsv"
     passages = Passages(path=path)
     print(passages.data, end="\n\n")
     

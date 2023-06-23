@@ -28,7 +28,7 @@ def validation(model, criterion, dataloader):
 
         for Q, P in tqdm(dataloader):
             with torch.autocast(model.device.type, enabled=model.config.use_amp):
-                out = model(Q, P) * 32
+                out = model(Q, P) * model.config.query_maxlen
                 target = torch.zeros(out.shape[0], device=out.device, dtype=torch.long)
                 loss += criterion(out, target)
                 acc += torch.sum(out.max(dim=-1).indices == target)
@@ -219,7 +219,7 @@ def train(args):
         colbert.train()
         for i, (Q, P) in enumerate(tqdm(train_dataloader)):
             with torch.autocast(device.type, enabled=config.use_amp):
-                out = colbert(Q, P) * 32
+                out = colbert(Q, P) * colbert.config.query_maxlen
                 target = torch.zeros(out.shape[0], device=out.device, dtype=torch.long)
                 loss = criterion(out, target)
                 loss *= 1 / config.batch_size
