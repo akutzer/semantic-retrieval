@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=01:00:00         # walltime
+#SBATCH --time=05:00:00         # walltime
 #SBATCH --nodes=1               # number of nodes
 #SBATCH --ntasks=1	            # limit to one node
 #SBATCH --cpus-per-task=4
@@ -25,7 +25,7 @@ source /scratch/ws/0/tong623c-tommy-workspace/env/bin/activate
 # Set the arguments for the Python script:
 # dataset arguments
 DATASET_NAME="fandoms_all"
-DATASET_MODE="QPP"
+DATASET_MODE="QQP"
 PASSAGES_PATH_TRAIN="../data/fandoms_qa/fandoms_all/train/passages.tsv"
 QUERIES_PATH_TRAIN="../data/fandoms_qa/fandoms_all/train/queries.tsv"
 TRIPLES_PATH_TRAIN="../data/fandoms_qa/fandoms_all/train/triples.tsv"

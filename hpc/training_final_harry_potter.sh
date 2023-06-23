@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=00:45:00         # walltime
+#SBATCH --time=03:00:00         # walltime
 #SBATCH --nodes=1               # number of nodes
 #SBATCH --ntasks=1	            # limit to one node
 #SBATCH --cpus-per-task=4
@@ -25,7 +25,7 @@ source /scratch/ws/0/tong623c-tommy-workspace/env/bin/activate
 # Set the arguments for the Python script:
 # dataset arguments
 DATASET_NAME="harry_potter"
-DATASET_MODE="QPP"
+DATASET_MODE="QQP"
 PASSAGES_PATH_TRAIN="../data/fandoms_qa/harry_potter/train/passages.tsv"
 QUERIES_PATH_TRAIN="../data/fandoms_qa/harry_potter/train/queries.tsv"
 TRIPLES_PATH_TRAIN="../data/fandoms_qa/harry_potter/train/triples.tsv"
