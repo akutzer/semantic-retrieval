@@ -124,8 +124,6 @@ class ColBERTIndexer(IndexerInterface):
             # sim shape: (B * L_q, N_embs)            
 
         elif self.similarity == "cosine":
-            print(query)
-            print(self.embeddings.mT)
             sim = query @ self.embeddings.mT  # shape: (B, L_q, N_embs)
         else:
             raise ValueError()

@@ -40,7 +40,7 @@ def colbert_vs_tf_idf(testing_max_count = 100, size_datasets_good = 100, size_da
     retriever = ColBERTRetriever(inference, device=DEVICE, passages=dataset.passages)
 
     #precompute indicies
-    # retriever.indexer.dtype = torch.float16
+    retriever.indexer.dtype = torch.float32
     # data = dataset.passages.values().tolist()
     # pids = dataset.passages.keys().tolist()
     # retriever.indexer.index(data, pids, bsize=8)
