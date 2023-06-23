@@ -36,6 +36,7 @@ class ColBERTIndexer(IndexerInterface):
         self.next_iid = 0
         self.offset = None
 
+    # TODO: try to make iterative
     def index(self, passages: List[str], pids: List[str], bsize: int = 16) -> None:
         batch_passages, batch_pids = self._new_passages(passages, pids)
         # if there are no passages which haven't been indexed yet, return

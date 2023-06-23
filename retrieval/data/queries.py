@@ -81,13 +81,16 @@ class Queries:
 
 
 if __name__ == "__main__":
-    path = "../../data/ms_marco/ms_marco_v1_1/train/queries.tsv"
+    # path = "../../data/ms_marco/ms_marco_v2_1/train/queries.tsv"
+    # queries = Queries(path=path)
+    # print(queries.data, end="\n\n")
+
+    path = "../../data/fandoms_qa/fandoms_all/all/queries.tsv"
     queries = Queries(path=path)
     print(queries.data, end="\n\n")
 
-    # path = "../../data/fandoms_qa/harry_potter/train/queries.tsv"
-    # queries = Queries(path=path)
-    # print(queries.data, end="\n\n")
+    print(queries[623686])
+    print(queries[271434])
 
     print(len(queries))
     print(queries[0])
