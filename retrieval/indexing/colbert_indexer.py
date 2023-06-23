@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import logging
-from typing import Union, List, Tuple
+from typing import Optional, Union, List, Tuple
 import torch
 
 from retrieval.models import ColBERTInference
@@ -171,14 +171,14 @@ class ColBERTIndexer(IndexerInterface):
         torch.save(parameters, path)
 
     def load(self, path: str):
-        parameters = torch.load(path)
+        parameters = torch.load(path, map_location=self.device)
         self.iid2pid = parameters["iid2pid"].to(self.device)
         self.pid2iid = parameters["pid2iid"].to(self.device)
         self.embeddings = parameters["embeddings"].to(self.device)
         self.offset = parameters["offset"]
         self.dtype = self.embeddings.dtype
         logging.info(
-            f"Successfully loaded the precomputed indices. Changed dtype to {self.dtype}!"
+            f"Successfully loaded the precomputed indices. Set dtype to {self.dtype}!"
         )
 
     def _new_passages(
@@ -205,15 +205,16 @@ class ColBERTIndexer(IndexerInterface):
 
         return passages_, pids_
 
-    def to(self, device: Union[str, torch.device]) -> None:
+    def to(self, device: Optional[Union[str, torch.device]] = None, dtype: Optional[torch.dtype] = None) -> None:
         if isinstance(device, str):
             device = torch.device(device)
         self.device = device
+        self.dtype = dtype
 
-        self.inference.to(self.device)
-        self.embeddings = self.embeddings.to(self.device)
-        self.iid2pid = self.iid2pid.to(self.device)
-        self.pid2iid = self.pid2iid.to(self.device)
+        self.inference.to(device=self.device, dtype=dtype)
+        self.embeddings = self.embeddings.to(device=self.device, dtype=dtype)
+        self.iid2pid = self.iid2pid.to(device=self.device)
+        self.pid2iid = self.pid2iid.to(device=self.device)
 
 
 if __name__ == "__main__":
