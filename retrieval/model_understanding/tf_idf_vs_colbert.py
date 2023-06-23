@@ -157,7 +157,8 @@ def colbert_vs_tf_idf(testing_max_count = 100, size_datasets_good = 100, size_da
     keys_tf_good_cb_bad = set(list(set(bad_pairs_cb.keys()).intersection(good_pairs_tf_idf.keys()))[:return_size])
     keys_tf_bad_cb_good = set(list(set(good_pairs_cb.keys()).intersection(bad_pairs_tf_idf.keys()))[:return_size])
     keys_tf_bad_cb_bad = set(list(set(bad_pairs_cb.keys()).intersection(bad_pairs_tf_idf.keys()))[:return_size])
-
+    print("tf idf", set(good_pairs_tf_idf.keys()).intersection(bad_pairs_tf_idf.keys()))
+    print("cb", set(good_pairs_cb.keys()).intersection(bad_pairs_cb.keys()))
 
     return dict(((k[0], dataset.passages[k[1]]), (good_pairs_cb[k], good_pairs_tf_idf[k])) for k in keys_tf_good_cb_good), \
         dict(((k[0], dataset.passages[k[1]]), (bad_pairs_cb[k], good_pairs_tf_idf[k])) for k in keys_tf_good_cb_bad),\
