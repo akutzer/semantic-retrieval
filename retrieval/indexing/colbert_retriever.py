@@ -116,12 +116,12 @@ class ColBERTRetriever:
 
         return reranked_pids
 
-    def to(self, device: Union[str, torch.device]) -> None:
+    def to(self, device: Optional[Union[str, torch.device]] = None, dtype: Optional[torch.dtype] = None) -> None:
         if isinstance(device, str):
             device = torch.device(device)
         self.device = device
-        self.inference.to(self.device)
-        self.indexer.to(self.device)
+        self.inference.to(self.device, dtype=dtype)
+        self.indexer.to(self.device, dtype=dtype)
 
 
 if __name__ == "__main__":

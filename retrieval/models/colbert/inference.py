@@ -155,11 +155,11 @@ class ColBERTInference:
         model.to(device)
         return model
 
-    def to(self, device: Union[str, torch.device]) -> None:
+    def to(self, device: Optional[Union[str, torch.device]] = None, dtype: Optional[torch.dtype] = None) -> None:
         if isinstance(device, str):
             device = torch.device(device)
         self.device = device
-        self.colbert.to(device=device)
+        self.colbert.to(device=device, dtype=dtype)
 
 
 def inference_to_embedding(inference: ColBERTInference, just_word_emb: bool = False, layer_norm: bool = True):

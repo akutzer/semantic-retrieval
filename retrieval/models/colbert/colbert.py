@@ -290,13 +290,13 @@ class ColBERT(nn.Module):
                 mask = ~is_pad_token
         return mask
     
-    def to(self, device: Union[str, torch.device]) -> None:
+    def to(self, device: Optional[Union[str, torch.device]] = None, dtype: Optional[torch.dtype] = None) -> None:
         if isinstance(device, str):
             device = torch.device(device)
         self.device = device
         if self.skiplist is not None:
             self.skiplist = self.skiplist.to(device=device)
-        super().to(device=device)
+        super().to(device=device, dtype=dtype)
 
     def register_tokenizer(self, tokenizer: ColBERTTokenizer) -> None:
         """
