@@ -421,7 +421,7 @@ class ColBERT(nn.Module):
             if "pytorch_model" in file or ".pt" in file or ".pth" in file:
                 try:
                     with open(path_to_weights, mode="br") as f:
-                        parameters = torch.load(f)
+                        parameters = torch.load(f, map_location=self.device)
 
                     if "linear.weight" in parameters.keys():
                         weights = parameters["linear.weight"]
