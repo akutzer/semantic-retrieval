@@ -178,7 +178,7 @@ class ColBERTIndexer(IndexerInterface):
         self.offset = parameters["offset"]
         self.dtype = self.embeddings.dtype
         logging.info(
-            f"Successfully loaded the precomputed indices. Changed dtype to {self.dtype}!"
+            f"Successfully loaded the precomputed indices. Set dtype to {self.dtype}!"
         )
 
     def _new_passages(
