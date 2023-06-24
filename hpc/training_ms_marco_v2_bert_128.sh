@@ -7,9 +7,9 @@
 #SBATCH --gres=gpu:1            # number of GPUs
 #SBATCH --mem=32G
 #SBATCH -A p_sp_bigdata         # name of the associated project
-#SBATCH -J "training_ms_marco_v2_bert_dim_128_default_job"  # name of the job
-#SBATCH --output="logs/training_ms_marco_v2_bert_dim-128_job-%j.out"    # output file name (std out)
-#SBATCH --error="logs/training_ms_marco_v2_bert_dim-128_job-%j.err"     # error file name (std err)
+#SBATCH -J "training_ms_marco_v2_bert_128_job"  # name of the job
+#SBATCH --output="logs/training_ms_marco_v2_bert_128_job-%j.out"    # output file name (std out)
+#SBATCH --error="logs/training_ms_marco_v2_bert_128_job-%j.err"     # error file name (std err)
 #SBATCH --mail-user="tommy.nguyen@mailbox.tu-dresden.de" # will be used to used to update you about the state of your$
 #SBATCH --mail-type ALL
 

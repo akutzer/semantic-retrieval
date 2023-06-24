@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=15:59:00         # walltime
+#SBATCH --time=27:59:00         # walltime
 #SBATCH --nodes=1               # number of nodes
 #SBATCH --ntasks=1	            # limit to one node
 #SBATCH --cpus-per-task=4
@@ -7,10 +7,10 @@
 #SBATCH --gres=gpu:1            # number of GPUs
 #SBATCH --mem=32G
 #SBATCH -A p_sp_bigdata         # name of the associated project
-#SBATCH -J "training_ms_marco_v2_bert_dim_128_default_job"  # name of the job
-#SBATCH --output="logs/training_ms_marco_v2_bert_dim-128_job-%j.out"    # output file name (std out)
-#SBATCH --error="logs/training_ms_marco_v2_bert_dim-128_job-%j.err"     # error file name (std err)
-#SBATCH --mail-user="tommy.nguyen@mailbox.tu-dresden.de" # will be used to used to update you about the state of your$
+#SBATCH -J "training_ms_marco_v2_final_128_L2_job"  # name of the job
+#SBATCH --output="logs/training_ms_marco_v2_final_128_L2_job-%j.out"    # output file name (std out)
+#SBATCH --error="logs/training_ms_marco_v2_final_128_L2_job-%j.err"     # error file name (std err)
+#SBATCH --mail-user="aaron.kutzer@mailbox.tu-dresden.de" # will be used to used to update you about the state of your$
 #SBATCH --mail-type ALL
 
 # clean current modules
@@ -24,7 +24,7 @@ source /scratch/ws/0/tong623c-tommy-workspace/env/bin/activate
 
 # Set the arguments for the Python script:
 # dataset arguments
-DATASET_NAME="ms_marco_v2"
+DATASET_NAME="final_ms_marco_v2"
 DATASET_MODE="QPP"
 PASSAGES_PATH_TRAIN="../data/ms_marco/ms_marco_v2_1/train/passages.tsv"
 QUERIES_PATH_TRAIN="../data/ms_marco/ms_marco_v2_1/train/queries.tsv"
@@ -36,7 +36,7 @@ TRIPLES_PATH_VAL="../data/ms_marco/ms_marco_v2_1/val/triples.tsv"
 
 # dataloader arguments
 DOC_MAXLEN="320"
-QUERY_MAXLEN="32"
+QUERY_MAXLEN="48"
 PASSAGES_PER_QUERY="10"
 TRAIN_WORKERS="4"
 VAL_WORKERS="4"
@@ -45,18 +45,18 @@ VAL_WORKERS="4"
 BACKBONE="bert-base-uncased" # "bert-base-uncased" or "../data/colbertv2.0/" or "roberta-base"
 DIM="128"
 DROPOUT="0.1"
-SIMILARITY="cosine" # "cosine" or "L2"
+SIMILARITY="L2" # "cosine" or "L2"
 
 # training arguments
-EPOCHS="5"
-BATCH_SIZE="28"
-ACCUM_STEPS="2"
-LEARNING_RATE="5e-6"
+EPOCHS="9"
+BATCH_SIZE="39"
+ACCUM_STEPS="3"
+LEARNING_RATE="3e-6"
 WARMUP_EPOCHS="1"
 WARMUP_START_FACTOR="0.05"
 SEED="125"
 NUM_EVAL_PER_EPOCH="6"
-CHECKPOINTS_PER_EPOCH="2"
+CHECKPOINTS_PER_EPOCH="6"
 NUM_GPUS="1"
 CHECKPOINTS_PATH="../checkpoints"
 TENSORBOARD_PATH="../runs"
@@ -91,7 +91,6 @@ python3 ../retrieval/training/train.py \
   --dim "$DIM" \
   --dropout "$DROPOUT" \
   --similarity "$SIMILARITY" \
-  --normalize \
   --epochs "$EPOCHS" \
   --batch-size "$BATCH_SIZE" \
   --accum-steps "$ACCUM_STEPS" \
