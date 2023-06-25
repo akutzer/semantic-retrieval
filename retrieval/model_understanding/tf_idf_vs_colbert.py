@@ -187,7 +187,7 @@ def colbert_vs_tf_idf2(dataset, cb_retriever, tf_idf, testing_max_count, K):
             index_tf_idf = K
 
         difference = index_tf_idf - index_cb
-        entry = (query_pos, pid_pos, index_cb, index_tf_idf, difference)
+        entry = (query_pos, pid_pos, pred_pids[0], pred_pids_tf_idf[0], index_cb, index_tf_idf, difference)
         cb_tf_idf_list.append(entry)
 
 
