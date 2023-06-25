@@ -50,7 +50,8 @@ if __name__ == "__main__":
     cb_tf_idf_list = colbert_vs_tf_idf2(dataset, retriever, tf_idf, testing_max_count=100_000, K=1000)
     # print(cb_tf_idf_list[:10])
     # print(len(cb_tf_idf_list))
-
+    #print(cb_tf_idf_list)
+    #print(len(cb_tf_idf_list))
 
     with open('combined_heatmaps.html', 'w', encoding="utf-8") as f:
         cb_sorted = sorted(cb_tf_idf_list, reverse=False, key=itemgetter(-3))
