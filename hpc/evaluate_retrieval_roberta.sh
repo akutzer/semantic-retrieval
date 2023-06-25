@@ -1,12 +1,12 @@
 #!/bin/bash
 
-#SBATCH --time=6:00:00         # walltime
+#SBATCH --time=12:00:00         # walltime
 #SBATCH --nodes=1               # number of nodes
 #SBATCH --ntasks=1	            # limit to one node
 #SBATCH --cpus-per-task=4
 #SBATCH --partition=alpha
 #SBATCH --gres=gpu:1            # number of GPUs
-#SBATCH --mem=60G
+#SBATCH --mem=200G
 #SiBATCH -A p_sp_bigdata         # name of the associated project
 #SBATCH -J "ms_marco_v2_roberta"  # name of the job
 #SBATCH --output="retriever_ms_marco_v2_roberta_%j.out"    # output file name (std out)

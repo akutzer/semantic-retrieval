@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --time=6:00:00         # walltime
+#SBATCH --time=12:00:00         # walltime
 #SBATCH --nodes=1               # number of nodes
 #SBATCH --ntasks=1	            # limit to one node
 #SBATCH --cpus-per-task=4

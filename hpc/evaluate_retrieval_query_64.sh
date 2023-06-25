@@ -6,11 +6,11 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --partition=alpha
 #SBATCH --gres=gpu:1            # number of GPUs
-#SBATCH --mem=100G
+#SBATCH --mem=200G
 #SiBATCH -A p_sp_bigdata         # name of the associated project
 #SBATCH -J "ms_marco_v2_query_64"  # name of the job
-#SBATCH --output="retriever_ms_marco_v2_8_%j.out"    # output file name (std out)
-#SBATCH --error="retriever_ms_marco_v2_8_%j.err"     # error file name (std err)
+#SBATCH --output="retriever_ms_marco_v2_query64_%j.out"    # output file name (std out)
+#SBATCH --error="retriever_ms_marco_v2_query_64_%j.err"     # error file name (std err)
 #SBATCH --mail-user="zhiwei.zhan@mailbox.tu-dresden.de" # will be used to used to update you about the state of your$
 #SBATCH --mail-type ALL
 

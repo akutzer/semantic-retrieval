@@ -6,7 +6,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --partition=alpha
 #SBATCH --gres=gpu:1            # number of GPUs
-#SBATCH --mem=100G
+#SBATCH --mem=200G
 #SiBATCH -A p_sp_bigdata         # name of the associated project
 #SBATCH -J "ms_marco_v2_8"  # name of the job
 #SBATCH --output="retriever_ms_marco_v2_8_%j.out"    # output file name (std out)
@@ -43,7 +43,7 @@ TRIPLES_PATH="../../data/ms_marco/ms_marco_v2_1/val/triples.tsv"
 
 CHECKPOINT_PATH="../../data/checkpoint/ms_marco_v2_8/epoch4_2_loss1.3650_mrr0.6765_acc50.232"
 
-BATCH_SIZE="8"
+BATCH_SIZE="1"
 DTYPE="FP16"  # FP16, FP32, FP64
 K="1000"
 
