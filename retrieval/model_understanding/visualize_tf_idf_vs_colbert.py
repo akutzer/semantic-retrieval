@@ -12,10 +12,10 @@ from retrieval.model_understanding.tf_idf_vs_colbert import colbert_vs_tf_idf2
 import torch
 
 CHECKPOINT_PATH = "../../data/colbertv2.0/"  # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
-INDEX_PATH = "../../data/fandoms_qa/fandoms_all/human_verified/final/el/all/passages.index.pt"
+INDEX_PATH = "../../data/fandoms_qa/fandoms_all/human_verified/final/witc/all/passages_all.index.pt"
 
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
-OUTPUT_COUNT = 10
+OUTPUT_COUNT = 20
 K = 2
 
 if __name__ == "__main__":
@@ -28,9 +28,9 @@ if __name__ == "__main__":
     inference = ColBERTInference(colbert, tokenizer, device=DEVICE)
 
     dataset = TripleDataset(BaseConfig(passages_per_query=10),
-                            triples_path="../../data/fandoms_qa/fandoms_all/human_verified/final/el/all/triples.tsv",
-                            queries_path="../../data/fandoms_qa/fandoms_all/human_verified/final/el/all/queries.tsv",
-                            passages_path="../../data/fandoms_qa/fandoms_all/human_verified/final/el/all/passages.tsv",
+                            triples_path="../../data/fandoms_qa/fandoms_all/human_verified/final/witc/all/triples.tsv",
+                            queries_path="../../data/fandoms_qa/fandoms_all/human_verified/final/witc/all/queries.tsv",
+                            passages_path="../../data/fandoms_qa/fandoms_all/human_verified/final/witc/all/passages_all.tsv",
                             mode="QQP")
 
     retriever = ColBERTRetriever(inference, device=DEVICE, passages=dataset.passages)
@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
         f.write('<h1> cb_bad </h1>')
         cb_bad = cb_sorted[-OUTPUT_COUNT:]
-        for tuple in cb_bad:
+        for tuple in reversed(cb_bad):
             query = tuple[0]
             passage = dataset.passages[tuple[1]]
             kde_heatmap, count_heatmap, sum_heatmap = visualize(inference, query, passage, k=K, similarity="cosine")
@@ -100,7 +100,7 @@ if __name__ == "__main__":
 
         f.write('<h1> tf_idf_bad </h1>')
         tf_idf_bad = tf_idf_sorted[-OUTPUT_COUNT:]
-        for tuple in tf_idf_bad:
+        for tuple in reversed(tf_idf_bad):
             query = tuple[0]
             passage = dataset.passages[tuple[1]]
             kde_heatmap, count_heatmap, sum_heatmap = visualize(inference, query, passage, k=K, similarity="cosine")
@@ -115,7 +115,7 @@ if __name__ == "__main__":
         difference_sorted = sorted(cb_tf_idf_list, reverse=False, key=itemgetter(-1))
         f.write('<h1> cb_good_tf_idf_bad </h1>')
         cb_good_tf_idf_bad = difference_sorted[-OUTPUT_COUNT:]
-        for tuple in cb_good_tf_idf_bad:
+        for tuple in reversed(cb_good_tf_idf_bad):
             query = tuple[0]
             passage = dataset.passages[tuple[1]]
             kde_heatmap, count_heatmap, sum_heatmap = visualize(inference, query, passage, k=K, similarity="cosine")

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Set the arguments for the Python script:
-PASSAGES_PATH="../../data\fandoms_qa\fandoms_all\human_verified\final\witc\all\passages_all.tsv"
-INDEX_PATH="../../data\fandoms_qa\fandoms_all\human_verified\final\witc\all/passages_all.index.pt"
+PASSAGES_PATH="../../data/fandoms_qa/fandoms_all/human_verified/final/witc/all/passages_all.tsv"
+INDEX_PATH="../../data/fandoms_qa/fandoms_all/human_verified/final/witc/all/passages_all.index.pt"
 # PASSAGES_PATH="../../data/fandoms_qa/fandoms_all/val/passages.tsv"
 # INDEX_PATH="../../data/fandoms_qa/fandoms_all/val/passages.index.pt"
 CHECKPOINT_PATH="../../data/colbertv2.0"
@@ -17,5 +17,5 @@ python index.py \
     --index-path "$INDEX_PATH" \
     --dtype "$DTYPE" \
     --batch-size "$BATCH_SIZE" \
-    --use-gpu \
+    #--use-gpu \
     # --embedding-only

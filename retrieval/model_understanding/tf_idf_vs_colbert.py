@@ -176,9 +176,16 @@ def colbert_vs_tf_idf2(dataset, cb_retriever, tf_idf, testing_max_count, K):
         pred_pids = [x for (y,x) in cb_retriever.full_retrieval([query_pos], K)][0].tolist()
         pred_pids_tf_idf = list(tf_idf.answerQuestion([query_pos], K))[0].tolist()
 
+        if pid_pos in pred_pids:
+            index_cb = pred_pids.index(pid_pos)
+        else:
+            index_cb = K
 
-        index_cb = pred_pids.index(pid_pos)
-        index_tf_idf = pred_pids_tf_idf.index(pid_pos)
+        if pid_pos in pred_pids_tf_idf:
+            index_tf_idf = pred_pids_tf_idf.index(pid_pos)
+        else:
+            index_tf_idf = K
+
         difference = index_tf_idf - index_cb
         entry = (query_pos, pid_pos, index_cb, index_tf_idf, difference)
         cb_tf_idf_list.append(entry)
