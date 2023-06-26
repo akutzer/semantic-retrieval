@@ -147,9 +147,9 @@ def evaluate_colbert(retriever: ColBERTRetriever, dataset: TripleDataset, config
 
     qids_batch = []
     query_batch = []
-    tf_idf_qids_visit = np.zeros(2*len(dataset), dtype=bool)
-    rerank_qids_visit = np.zeros(2*len(dataset), dtype=bool)
-    full_qids_visit = np.zeros(2*len(dataset), dtype=bool)
+    tf_idf_qids_visit = np.zeros(3*len(dataset), dtype=bool)
+    rerank_qids_visit = np.zeros(3*len(dataset), dtype=bool)
+    full_qids_visit = np.zeros(3*len(dataset), dtype=bool)
     
     for i, triple in enumerate(tqdm(dataset)):
 

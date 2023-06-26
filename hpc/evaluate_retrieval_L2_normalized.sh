@@ -10,7 +10,7 @@
 #SiBATCH -A p_sp_bigdata         # name of the associated project
 #SBATCH -J "ms_marco_v2_L2_normalized"  # name of the job
 #SBATCH --output="retriever_ms_marco_v2_L2_normalized_%j.out"    # output file name (std out)
-#SBATCH --error="retriever_ms_marco_v2_normalized_%j.err"     # error file name (std err)
+#SBATCH --error="retriever_ms_marco_v2_L2_normalized_%j.err"     # error file name (std err)
 #SBATCH --mail-user="zhiwei.zhan@mailbox.tu-dresden.de" # will be used to used to update you about the state of your$
 #SBATCH --mail-type ALL
 
