@@ -9,6 +9,7 @@
 \usepackage{caption} % Customizing captions
 \usepackage{lineno} % Line numbers
 \usepackage{lipsum} % For generating dummy text (remove this line)
+\usepackage{booktabs} % For professional-looking tables
 
 % Title and authors
 \title{Title of Your Paper}
@@ -40,8 +41,9 @@ This is the abstract of your paper.
 
 For our neural retrieval approach we chose the ColBERT model. This model uses Transformer models to embed each word tokens from a given sentence as a vector. Since the embedding is done using a transformer, those tokens are content aware of the other tokens in the sentence.
 
+\subsubsection{ColBERT Model}
 The ColBERT model gets as an input a query and a document passage. These strings are then tokenized using the associated tokenizer for the Transformer model into a sequence of query tokens $q = q_0q_1\dots q_m$ and a sequence of document tokens $d = d_0d_1\dots d_n$.  In the next step we append a \texttt{[CLS]} token at the beginning and a \texttt{[SEP]} token at the end of the sequences, as well as a \texttt{[Q]} or \texttt{[D]} token after the \texttt{[CLS]} token to encode wether the input sequence is a query or a passage. Like in the original ColBERT paper we limit the query length to a fixed number $N_q$ and the documents are also fixed to a maximal length of $N_d$. If the query is acutally shorter than $N_q$ tokens, we pad the sequence using \texttt{[MASK]} tokens up to length $N_q$. So the input for the ColBERT model would look like: $q = \texttt{[CLS]}\texttt{[Q]}q_0q_1 \dots q_m\texttt{[MASK]}\dots\texttt{[MASK]}\texttt{[SEP]}$ and $q = \texttt{[CLS]}\texttt{[D]}d_0d_1 \dots d_n\texttt{[SEP]}$ respectivly. Those tokens are then feed thorough a Transformer model, more precissly through the Encoder of a Transformer model. The original ColBERT paper used a BERT model, while we also conducted tests using a RoBERTa model for this task. The resulting output of the transformer model is a sequence $E = E_1E_2 \dots E_k$ of high-dimensional vectors, where $k$ is either $N_q$ or $N_d$ respectivly. In the lasst step those vectors are then mapped to a lower dimensionality $d$ using a linear transformation. To calculate the similarity between both sequences we use the same late interaction method called "sum of maximum similarity" as in the ColBERT paper, however instead of using the sum, we used the mean. The functions is calculated by:
-$$ S_{q,d} := \frac{1}{N_q} \sum_{i=1}^{N_q} \max_{j = 1, \dots, N_d} sim(E_{q_i}, E_{q_j})
+$$ S(q,d) := \frac{1}{N_q} \sum_{i=1}^{N_q} \max_{j = 1, \dots, N_d} sim(E_{q_i}, E_{q_j})
 $$
 Similar to the ColBERT paper we used both cosine similarity and negated squared $L_2$-norm as a similarity meassure. 
 $$
@@ -52,25 +54,55 @@ sim_{L2}(E_{q_i}, E_{d_j}) := -{\| E_{q_i} -E_{d_j} \|}^2
 $$
 
 $$
-sim_{L2,normed}(E_{q_i}, E_{d_j}) := -{\| \frac{E_{q_i}}{\| E_{q_i} \|}  - \frac{E_{d_j}}{\| E_{d_j} \|} \|}^2
+sim_{L2,norm}(E_{q_i}, E_{d_j}) := -{\| \frac{E_{q_i}}{\| E_{q_i} \|}  - \frac{E_{d_j}}{\| E_{d_j} \|} \|}^2
 $$
 In the ColBERT paper, for both similarities the vectors where normed, however we also tested $sim_{L2}$ without beforehand normalization of the embedding vectors.
 
+\subsubsection{ColBERT Training}
+
+During the training the BERT/RoBERTa encoder as well as the last linear projection and the additional \texttt{[Q]}/\texttt{[D]} tokens are learned. During the training on MS MARCO the model is given a batch of tuples in the shape $\langle q^+, d^+, d_1^-, \dots, d_{9}^-\rangle$, with $d^+$ being the answering passage for the query $q^+$ and the $d_l^-$ passages do not contain the answer. When training on our FANDOM QA dataset the model is given a batch of tuples in the shape $\langle q^+, q^-, d^+\rangle$, where $q^+$ is answered by $d^+$, while $q^-$ isn't. The training task however is still the same, we want to maximize the similarity between the answering query/passage pair. 
+
+$$
+\ell_i = -\log \frac{e^{S(q_i^+, d_i^+)}}{e^{S(q_i^+, d_i^+)} + \sum_{j=1}^{9}{e^{S(q_i^+, d_{i, j}^-)}}}
+$$
+
+$$
+\ell_i = -\log \frac{e^{S(q_i^+, d_i^+)}}{e^{S(q_i^+, d_i^+)} + e^{S(q_i^-, d_i^+)}}
+$$
+
+\subsubsection{Retrieval with ColBERT}
+Since the calculation of the similarity between a given query and all passages can be computationally expensive, we will use greedy methods like in the original ColBERT paper for finding the best passage for a query. Those two ways are "reranking" and "full-retrieval". "Reranking" means that a classical retrieval algorithm, in our case TF-IDF, will give the top-$k$ passages for a query, and then ColBERT is used to re-rank those $k$ documents using its similarity score. "Full-retrieval" utilizes only ColBERT, where for a given query for each of its $N_q$ embedding vectors we are searching for the best top-$\hat{k}$ document embedding vectors. We look up the document for each of those vectors and then calculate the similarity for the query and those documents. Finally we return the top-$k$ documents. Similar to the original paper we choose $\hat{k} = k / 2$, but values like $\hat{k} = k / 10$ performed similarly good, while resulting in less passages to rank later on and saving inference time.
 
 
 \section{Results}
 % Your results here
 
-\section{Discussion}
+
+Example table:
+\begin{table}[htbp]
+    \centering
+    \label{tab:hyperparameters}
+    \begin{tabular}{ccccccc}
+      \toprule
+      \textbf{Method} & \textbf{MRR@10}  & \textbf{RECALL@1} & \textbf{RECALL@10} & \textbf{RECALL@50} \\
+      \midrule
+      TF-IDF & Value 1.1 & Value 1.2 & Result 1  & Result 1 \\
+      $\text{ColBERT}_\text{rerank}$ & Value 2.1 & Value 2.2 & Result 2 & Result 1 \\
+      $\text{ColBERT}_\text{full}$ & Value 3.1 & Value 3.2 & Result 3 & Result 1 \\
+      % Add more rows as needed
+      \bottomrule
+    \end{tabular}
+    \caption{Hyperparameters and Results}
+\end{table}
+
+\section{Interpretability}
 % Your discussion here
 
 \section{Conclusion}
 % Your conclusion here
 
 % Uncomment the following lines for including references
-%\bibliographystyle{plain}
-%\bibliography{references}
+% \bibliographystyle{plain}
+% \bibliography{references}
 
 \end{document}
-
-
