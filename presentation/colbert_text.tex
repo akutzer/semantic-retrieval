@@ -1,0 +1,76 @@
+\documentclass{article}
+
+% Packages for various functionalities
+\usepackage[utf8]{inputenc} % Encoding of the document
+\usepackage[T1]{fontenc} % Font encoding
+\usepackage{amsmath,amssymb} % Mathematical symbols and environments
+\usepackage{graphicx} % For including images
+\usepackage{cite} % For managing citations
+\usepackage{caption} % Customizing captions
+\usepackage{lineno} % Line numbers
+\usepackage{lipsum} % For generating dummy text (remove this line)
+
+% Title and authors
+\title{Title of Your Paper}
+\author{Author1\thanks{Corresponding author: email@example.com} \and Author2 \and Author3}
+\date{} % Remove this line to include the date
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+% Your abstract here
+This is the abstract of your paper.
+\end{abstract}
+
+% Uncomment the following line to include line numbers
+%\linenumbers
+
+\section{Introduction}
+% Your introduction here
+
+\section{Data}
+% Your introduction here
+
+\section{Methods}
+\subsection{Classical Retrieval Methods}
+
+\subsection{Neural Retrieval Methods}
+
+For our neural retrieval approach we chose the ColBERT model. This model uses Transformer models to embed each word tokens from a given sentence as a vector. Since the embedding is done using a transformer, those tokens are content aware of the other tokens in the sentence.
+
+The ColBERT model gets as an input a query and a document passage. These strings are then tokenized using the associated tokenizer for the Transformer model into a sequence of query tokens $q = q_0q_1\dots q_m$ and a sequence of document tokens $d = d_0d_1\dots d_n$.  In the next step we append a \texttt{[CLS]} token at the beginning and a \texttt{[SEP]} token at the end of the sequences, as well as a \texttt{[Q]} or \texttt{[D]} token after the \texttt{[CLS]} token to encode wether the input sequence is a query or a passage. Like in the original ColBERT paper we limit the query length to a fixed number $N_q$ and the documents are also fixed to a maximal length of $N_d$. If the query is acutally shorter than $N_q$ tokens, we pad the sequence using \texttt{[MASK]} tokens up to length $N_q$. So the input for the ColBERT model would look like: $q = \texttt{[CLS]}\texttt{[Q]}q_0q_1 \dots q_m\texttt{[MASK]}\dots\texttt{[MASK]}\texttt{[SEP]}$ and $q = \texttt{[CLS]}\texttt{[D]}d_0d_1 \dots d_n\texttt{[SEP]}$ respectivly. Those tokens are then feed thorough a Transformer model, more precissly through the Encoder of a Transformer model. The original ColBERT paper used a BERT model, while we also conducted tests using a RoBERTa model for this task. The resulting output of the transformer model is a sequence $E = E_1E_2 \dots E_k$ of high-dimensional vectors, where $k$ is either $N_q$ or $N_d$ respectivly. In the lasst step those vectors are then mapped to a lower dimensionality $d$ using a linear transformation. To calculate the similarity between both sequences we use the same late interaction method called "sum of maximum similarity" as in the ColBERT paper, however instead of using the sum, we used the mean. The functions is calculated by:
+$$ S_{q,d} := \frac{1}{N_q} \sum_{i=1}^{N_q} \max_{j = 1, \dots, N_d} sim(E_{q_i}, E_{q_j})
+$$
+Similar to the ColBERT paper we used both cosine similarity and negated squared $L_2$-norm as a similarity meassure. 
+$$
+sim_{cos}(E_{q_i}, E_{d_j}) := \frac{1}{\| E_{q_i} \|\| E_{d_j} \|} E_{q_i}E_{q_j}^T $$
+
+$$
+sim_{L2}(E_{q_i}, E_{d_j}) := -{\| E_{q_i} -E_{d_j} \|}^2
+$$
+
+$$
+sim_{L2,normed}(E_{q_i}, E_{d_j}) := -{\| \frac{E_{q_i}}{\| E_{q_i} \|}  - \frac{E_{d_j}}{\| E_{d_j} \|} \|}^2
+$$
+In the ColBERT paper, for both similarities the vectors where normed, however we also tested $sim_{L2}$ without beforehand normalization of the embedding vectors.
+
+
+
+\section{Results}
+% Your results here
+
+\section{Discussion}
+% Your discussion here
+
+\section{Conclusion}
+% Your conclusion here
+
+% Uncomment the following lines for including references
+%\bibliographystyle{plain}
+%\bibliography{references}
+
+\end{document}
+
+
