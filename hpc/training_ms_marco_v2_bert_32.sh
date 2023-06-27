@@ -1,15 +1,15 @@
 #!/bin/bash
-#SBATCH --time=20:00:00         # walltime
+#SBATCH --time=15:59:00         # walltime
 #SBATCH --nodes=1               # number of nodes
 #SBATCH --ntasks=1	            # limit to one node
 #SBATCH --cpus-per-task=4
 #SBATCH --partition=alpha
 #SBATCH --gres=gpu:1            # number of GPUs
-#SBATCH --mem=48G
+#SBATCH --mem=32G
 #SBATCH -A p_sp_bigdata         # name of the associated project
-#SBATCH -J "training_ms_marco_v2_bert_dim-64.job"  # name of the job
-#SBATCH --output="training_ms_marco_v2_bert_dim-64.job-%j.out"    # output file name (std out)
-#SBATCH --error="training_ms_marco_v2_bert_dim-64.job-%j.err"     # error file name (std err)
+#SBATCH -J "training_ms_marco_v2_bert_32_job"  # name of the job
+#SBATCH --output="logs/training_ms_marco_v2_bert_32_job-%j.out"    # output file name (std out)
+#SBATCH --error="logs/training_ms_marco_v2_bert_32_job-%j.err"     # error file name (std err)
 #SBATCH --mail-user="tommy.nguyen@mailbox.tu-dresden.de" # will be used to used to update you about the state of your$
 #SBATCH --mail-type ALL
 
@@ -24,7 +24,7 @@ source /scratch/ws/0/tong623c-tommy-workspace/env/bin/activate
 
 # Set the arguments for the Python script:
 # dataset arguments
-DATASET_NAME="ms_marco"
+DATASET_NAME="ms_marco_v2"
 DATASET_MODE="QPP"
 PASSAGES_PATH_TRAIN="../data/ms_marco/ms_marco_v2_1/train/passages.tsv"
 QUERIES_PATH_TRAIN="../data/ms_marco/ms_marco_v2_1/train/queries.tsv"
@@ -39,21 +39,21 @@ DOC_MAXLEN="320"
 QUERY_MAXLEN="32"
 PASSAGES_PER_QUERY="10"
 TRAIN_WORKERS="4"
-VAL_WORKERS="2"
+VAL_WORKERS="4"
 
 # model arguments
 BACKBONE="bert-base-uncased" # "bert-base-uncased" or "../data/colbertv2.0/" or "roberta-base"
-DIM="64"
+DIM="32"
 DROPOUT="0.1"
 SIMILARITY="cosine" # "cosine" or "L2"
 
 # training arguments
-EPOCHS="6"
-BATCH_SIZE="14"
-ACCUM_STEPS="1"
+EPOCHS="5"
+BATCH_SIZE="28"
+ACCUM_STEPS="2"
 LEARNING_RATE="5e-6"
 WARMUP_EPOCHS="1"
-WARMUP_START_FACTOR="0.1"
+WARMUP_START_FACTOR="0.05"
 SEED="125"
 NUM_EVAL_PER_EPOCH="6"
 CHECKPOINTS_PER_EPOCH="2"

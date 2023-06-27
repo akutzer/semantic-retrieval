@@ -9,7 +9,7 @@
 # TRIPLES_PATH="../../data/fandoms_qa/harry_potter/val/triples.tsv"
 
 # INDEX_PATH="../../data/fandoms_qa/harry_potter/all/passages.index.pt"
-CHECKPOINT_PATH="../../data/colbertv2.0"
+# CHECKPOINT_PATH="../../data/colbertv2.0"
 
 # Example for MS MARCO:
 DATASET_MODE="QPP" # QQP or QPP
@@ -21,7 +21,7 @@ TRIPLES_PATH="../../data/ms_marco/ms_marco_v1_1/val/triples.tsv"
 # CHECKPOINT_PATH="../../data/checkpoint/ms_marco/ms_marco_v2_8/epoch4_2_loss1.3650_mrr0.6765_acc50.232"
 
 # CHECKPOINT_PATH="../../data/checkpoint/ms_marco/ms_marco_v2_16/epoch4_2_loss1.3054_mrr0.6912_acc51.958"
-# CHECKPOINT_PATH="../../data/checkpoint/ms_marco/ms_marco_v2_24/epoch4_2_loss1.2986_mrr0.6948_acc52.451"
+CHECKPOINT_PATH="../../data/checkpoint/ms_marco/ms_marco_v2_24/epoch4_2_loss1.2986_mrr0.6948_acc52.451"
 # CHECKPOINT_PATH="../../data/checkpoint/ms_marco/ms_marco_v2_32/epoch3_2_loss1.2895_mrr0.6943_acc52.262"
 # CHECKPOINT_PATH="../../data/checkpoint/ms_marco/ms_marco_v2_64/epoch3_2_loss1.2838_mrr0.6973_acc52.680"
 # CHECKPOINT_PATH="../../data/checkpoint/ms_marco/ms_marco_v2_128/epoch3_2_loss1.2828_mrr0.6986_acc52.852"
@@ -47,4 +47,5 @@ python evaluate_retrieval.py \
     --batch-size "$BATCH_SIZE" \
     --k "$K" \
     --use-gpu \
+    # --embedding-only \  # enabling this option needs ~6x more memory compared to 128 dim embeddings
     # --index-path "$INDEX_PATH" \
