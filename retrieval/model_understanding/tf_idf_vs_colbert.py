@@ -40,15 +40,18 @@ def colbert_vs_tf_idf(testing_max_count = 100, size_datasets_good = 100, size_da
     inference = ColBERTInference(colbert, tokenizer)
     retriever = ColBERTRetriever(inference, device=DEVICE, passages=dataset.passages)
 
-    #precompute indicies
-    retriever.indexer.dtype = torch.float32
+    # precompute indicies
     # data = dataset.passages.values().tolist()
     # pids = dataset.passages.keys().tolist()
     # retriever.indexer.index(data, pids, bsize=8)
     # retriever.indexer.save(INDEX_PATH)
+
+    # load precomputed indicies
     retriever.indexer.load(INDEX_PATH)
 
-    #print([x for x in dataset.passages_items()])
+    if "cpu" in DEVICE:
+        retriever.to(dtype=torch.float32)
+
     tf_idf = TfIdf(
             passages=dataset.passages.values(),
             mapping_rowInd_pid=dict(enumerate(dataset.passages.keys())),

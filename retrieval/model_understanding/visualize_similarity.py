@@ -107,7 +107,7 @@ def get_topk_token(inference: ColBERTInference, query: str, passage: str, k=1, s
 
 
 def visualize(inference: ColBERTInference, query: str, passage: str, k=1, similarity="cosine"):
-    topk_token_sim, topk_token_idx = get_topk_token(inference, query, passage, k)#[:,2]
+    topk_token_sim, topk_token_idx = get_topk_token(inference, query, passage, k)
     topk_token_idx, topk_token_sim = topk_token_idx.flatten(), topk_token_sim.flatten()
 
     # get tokens
@@ -123,23 +123,20 @@ def visualize(inference: ColBERTInference, query: str, passage: str, k=1, simila
     return kde_heatmap, count_heatmap, sum_heatmap
 
 def visualize_for_specific_word_in_question(inference: ColBERTInference, query: str, passage: str, word_index=0):
-    tokens = np.array(inference.tokenizer.tokenize(passage, "doc", add_special_tokens=True))
-    topk_token_sim, topk_token_idx = get_topk_token(inference, query, passage, len(tokens))
-
-    # select the first word:
-    topk_token_sim, topk_token_idx = topk_token_sim[word_index+2], topk_token_idx[word_index+2]
-
-    # calculate sim (makes no sence when only the first word is selected)
-    sim = np.mean(topk_token_sim[..., 0])
-
-    topk_token_idx, topk_token_sim = topk_token_idx.flatten(), topk_token_sim.flatten()
-
     # get tokens
     tokens = np.array(inference.tokenizer.tokenize(passage, "doc", add_special_tokens=True))
     # print(tokens.shape, topk_token_idx.shape, k)
     # print(k,"* 32 = ", topk_token_idx.size, "datapoints used")
     # print("Max topk index:", topk_token_idx.max())
     # print("len(tokens):", topk_token_idx.shape)
+
+    topk_token_sim, topk_token_idx = get_topk_token(inference, query, passage, len(tokens))
+    # select the first word:
+    topk_token_sim, topk_token_idx = topk_token_sim[word_index+2], topk_token_idx[word_index+2]
+    # calculate sim (makes no sence when only the first word is selected)
+    sim = np.mean(topk_token_sim[..., 0])
+
+    topk_token_idx, topk_token_sim = topk_token_idx.flatten(), topk_token_sim.flatten()
 
     #create heatmaps
     kde_heatmap, count_heatmap, sum_heatmap = html_heatmap(tokens, topk_token_idx, topk_token_sim, plot=False, store=True)
