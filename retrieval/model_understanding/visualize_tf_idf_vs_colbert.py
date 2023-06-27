@@ -26,6 +26,7 @@ if __name__ == "__main__":
     colbert.config.skip_punctuation = False
     colbert.skiplist = None
     inference = ColBERTInference(colbert, tokenizer, device=DEVICE)
+    #retriever.to(device="cpu", dtype=torch.float32)
 
     dataset = TripleDataset(BaseConfig(passages_per_query=10),
                             triples_path="../../data/fandoms_qa/fandoms_all/human_verified/final/witc/all/triples.tsv",
@@ -35,13 +36,15 @@ if __name__ == "__main__":
 
     retriever = ColBERTRetriever(inference, device=DEVICE, passages=dataset.passages)
     # precompute indicies
-    retriever.indexer.dtype = torch.float32
+    #retriever.indexer.dtype = torch.float32
+
+    print(retriever.indexer.dtype)
     # data = dataset.passages.values().tolist()
     # pids = dataset.passages.keys().tolist()
     # retriever.indexer.index(data, pids, bsize=8)
     # retriever.indexer.save(INDEX_PATH)
     retriever.indexer.load(INDEX_PATH)
-
+    retriever.to(device="cpu", dtype=torch.float32)
     tf_idf = TfIdf(
         passages=dataset.passages.values(),
         mapping_rowInd_pid=dict(enumerate(dataset.passages.keys())),

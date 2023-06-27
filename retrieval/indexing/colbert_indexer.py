@@ -115,7 +115,9 @@ class ColBERTIndexer(IndexerInterface):
         # add batch dimension
         if query.dim() == 2:
             query = query[None]
+        print(query.dtype, self.embeddings.dtype)
         query = query.to(dtype=self.dtype)
+        print(query.dtype, self.embeddings.dtype)
         # query shape: (B, L_q, D)
 
         # TODO: use similarity from model config
@@ -125,6 +127,7 @@ class ColBERTIndexer(IndexerInterface):
             # sim shape: (B * L_q, N_embs)            
 
         elif self.similarity == "cosine":
+
             sim = query @ self.embeddings.mT  # shape: (B, L_q, N_embs)
         else:
             raise ValueError()
