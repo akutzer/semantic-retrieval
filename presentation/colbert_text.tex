@@ -36,18 +36,19 @@ This is the abstract of your paper.
 
 \section{Methods}
 \subsection{Classical Retrieval Methods}
+% We employed the TF-IDF method for classical retrieval. TF-IDF calculates the importance of a term in a document by considering its frequency in the document and its inverse frequency in the entire corpus.
 
 \subsection{Neural Retrieval Methods}
-
-For our neural retrieval approach we chose the ColBERT model. This model uses Transformer models to embed each word tokens from a given sentence as a vector. Since the embedding is done using a transformer, those tokens are content aware of the other tokens in the sentence.
+For our neural retrieval approach, we adopted the ColBERT model, which utilizes Transformer models to generate vector embeddings for word tokens in a text sequence. These embeddings capture the contextual information of the tokens within the sequence and are then used to calculate the similarity between two sequences.
 
 \subsubsection{ColBERT Model}
-The ColBERT model gets as an input a query and a document passage. These strings are then tokenized using the associated tokenizer for the Transformer model into a sequence of query tokens $q = q_0q_1\dots q_m$ and a sequence of document tokens $d = d_0d_1\dots d_n$.  In the next step we append a \texttt{[CLS]} token at the beginning and a \texttt{[SEP]} token at the end of the sequences, as well as a \texttt{[Q]} or \texttt{[D]} token after the \texttt{[CLS]} token to encode wether the input sequence is a query or a passage. Like in the original ColBERT paper we limit the query length to a fixed number $N_q$ and the documents are also fixed to a maximal length of $N_d$. If the query is acutally shorter than $N_q$ tokens, we pad the sequence using \texttt{[MASK]} tokens up to length $N_q$. So the input for the ColBERT model would look like: $q = \texttt{[CLS]}\texttt{[Q]}q_0q_1 \dots q_m\texttt{[MASK]}\dots\texttt{[MASK]}\texttt{[SEP]}$ and $q = \texttt{[CLS]}\texttt{[D]}d_0d_1 \dots d_n\texttt{[SEP]}$ respectivly. Those tokens are then feed thorough a Transformer model, more precissly through the Encoder of a Transformer model. The original ColBERT paper used a BERT model, while we also conducted tests using a RoBERTa model for this task. The resulting output of the transformer model is a sequence $E = E_1E_2 \dots E_k$ of high-dimensional vectors, where $k$ is either $N_q$ or $N_d$ respectivly. In the lasst step those vectors are then mapped to a lower dimensionality $d$ using a linear transformation. To calculate the similarity between both sequences we use the same late interaction method called "sum of maximum similarity" as in the ColBERT paper, however instead of using the sum, we used the mean. The functions is calculated by:
+The ColBERT model takes a query and a document passage as input. These strings are then tokenized using a Transformer model's associated tokenizer, resulting in sequences of query tokens ($q = q_0q_1\dots q_m$) and document tokens ($d = d_0d_1\dots d_n$). Next we prepend a \texttt{[CLS]} token at the beginning and append a \texttt{[SEP]} token at the end of both sequences and add either a \texttt{[Q]} or \texttt{[D]} token after the \texttt{[CLS]} token to encode the input sequence type (query or passage). The query and document sequences are constrained to maximum lengths of $N_q$ and $N_d$ tokens, respectively. If the query is shorter than $N_q$ tokens, we pad the sequence with \texttt{[MASK]} tokens until it reaches length $N_q$. Thus, the input sequences for the ColBERT model are as follows: $q = \texttt{[CLS]}\texttt{[Q]}q_0q_1 \dots q_m\texttt{[MASK]}\dots\texttt{[MASK]}\texttt{[SEP]}$ and $q = \texttt{[CLS]}\texttt{[D]}d_0d_1 \dots d_n\texttt{[SEP]}$, respectively. These tokenized sequences are then passed through a Transformer model's Encoder, with experiments conducted using both BERT and RoBERTa architectures. The resulting output is a sequence $E = E_1E_2 \dots E_k$ of high-dimensional vectors, where $k$ corresponds to $N_q$ or $N_d$, depending on the sequence being processed. These vectors are subsequently mapped to a lower dimensionality $d$ using a linear transformation. To calculate the similarity between the query and document sequences, we employ the "sum of maximum similarity" method, as presented in the ColBERT paper. However, instead of using the sum, we use the mean to obtain the similarity score. The function is computed as follows:
 $$ S(q,d) := \frac{1}{N_q} \sum_{i=1}^{N_q} \max_{j = 1, \dots, N_d} sim(E_{q_i}, E_{q_j})
 $$
-Similar to the ColBERT paper we used both cosine similarity and negated squared $L_2$-norm as a similarity meassure. 
+We evaluate similarity using both cosine similarity and negated squared $L_2$-norm. The formulas for the similarity measures are as follows:
 $$
-sim_{cos}(E_{q_i}, E_{d_j}) := \frac{1}{\| E_{q_i} \|\| E_{d_j} \|} E_{q_i}E_{q_j}^T $$
+sim_{cos}(E_{q_i}, E_{d_j}) := \frac{1}{\| E_{q_i} \|\| E_{d_j} \|} E_{q_i}E_{q_j}^T 
+$$
 
 $$
 sim_{L2}(E_{q_i}, E_{d_j}) := -{\| E_{q_i} -E_{d_j} \|}^2
@@ -56,23 +57,22 @@ $$
 $$
 sim_{L2,norm}(E_{q_i}, E_{d_j}) := -{\| \frac{E_{q_i}}{\| E_{q_i} \|}  - \frac{E_{d_j}}{\| E_{d_j} \|} \|}^2
 $$
-In the ColBERT paper, for both similarities the vectors where normed, however we also tested $sim_{L2}$ without beforehand normalization of the embedding vectors.
+In the ColBERT paper, the vectors were normalized before applying these similarity measures. However, we also experimented with $L_2$-norm without normalization of the embedding vectors.
 
 \subsubsection{ColBERT Training}
-
-During the training the BERT/RoBERTa encoder as well as the last linear projection and the additional \texttt{[Q]}/\texttt{[D]} tokens are learned. During the training on MS MARCO the model is given a batch of tuples in the shape $\langle q^+, d^+, d_1^-, \dots, d_{9}^-\rangle$, with $d^+$ being the answering passage for the query $q^+$ and the $d_l^-$ passages do not contain the answer. When training on our FANDOM QA dataset the model is given a batch of tuples in the shape $\langle q^+, q^-, d^+\rangle$, where $q^+$ is answered by $d^+$, while $q^-$ isn't. The training task however is still the same, we want to maximize the similarity between the answering query/passage pair. 
-
+During the training the BERT/RoBERTa encoder is fine-tuned and the last linear projection and the additional \texttt{[Q]}/\texttt{[D]} tokens are learned from scratch. For training on the MS MARCO dataset, the model receives batches of tuples in the form $\langle q^+, d^+, d_1^-, \dots, d_{9}^-\rangle$. Here, $d^+$ represents the answer passage for the query $q^+$, and the passages $d_l^-$ do not contain the answer. When training on our FANDOM QA dataset, the model receives batches of tuples in the form $\langle q^+, q^-, d^+\rangle$, where $q^+$ is answered by $d^+$ while $q^-$ is not. Despite the differences in data format, the training objective remains the same: maximizing the similarity between the answering query/passage pairs. The loss is calculated using the cross-entropy loss and is defined as follows for the MS MARCO dataset
 $$
 \ell_i = -\log \frac{e^{S(q_i^+, d_i^+)}}{e^{S(q_i^+, d_i^+)} + \sum_{j=1}^{9}{e^{S(q_i^+, d_{i, j}^-)}}}
 $$
-
+For the FANDOM QA dataset, the loss function becomes:
 $$
 \ell_i = -\log \frac{e^{S(q_i^+, d_i^+)}}{e^{S(q_i^+, d_i^+)} + e^{S(q_i^-, d_i^+)}}
 $$
+We also conducted experiments using Mean Squared Error (MSE) loss in combination with cosine similarity. In this setup, the target for the loss function was set to 1 for the pairs $\langle q, d^+\rangle$ representing answering passages. Conversely, for the pairs $\langle q, d^-\rangle$ representing not answering passages, we enforced orthogonality by aiming for a cosine similarity of 0. However, this approach yielded inferior performance, as demonstrated in the subsequent analysis.
+
 
 \subsubsection{Retrieval with ColBERT}
-Since the calculation of the similarity between a given query and all passages can be computationally expensive, we will use greedy methods like in the original ColBERT paper for finding the best passage for a query. Those two ways are "reranking" and "full-retrieval". "Reranking" means that a classical retrieval algorithm, in our case TF-IDF, will give the top-$k$ passages for a query, and then ColBERT is used to re-rank those $k$ documents using its similarity score. "Full-retrieval" utilizes only ColBERT, where for a given query for each of its $N_q$ embedding vectors we are searching for the best top-$\hat{k}$ document embedding vectors. We look up the document for each of those vectors and then calculate the similarity for the query and those documents. Finally we return the top-$k$ documents. Similar to the original paper we choose $\hat{k} = k / 2$, but values like $\hat{k} = k / 10$ performed similarly good, while resulting in less passages to rank later on and saving inference time.
-
+Due to the computational cost associated with calculating the similarity between a given query and all passages, we adopt the two greedy methods from the original ColBERT paper: "reranking" and "full-retrieval." In the "reranking" approach, we employ a classical retrieval algorithm (in our case, TF-IDF) to retrieve the top-$k$ passages for a query. Subsequently, ColBERT is used to re-rank these $k$ documents based on their similarity scores. On the other hand, "full-retrieval" exclusively utilizes ColBERT. For a given query, we search for the best top-$\hat{k}$ document embedding vectors corresponding to each of the $N_q$ query embedding vectors. We retrieve the associated documents and calculate the similarity between the query and these documents. Finally, we return the top-$k$ documents. Similar to the original paper, we set $\hat{k} = k / 2$, although values like $\hat{k} = k / 5$ seem to yield similar performance while reducing the number of passages to rank and saving inference time.
 
 \section{Results}
 % Your results here
