@@ -28,7 +28,7 @@ class ColBERTIndexer(IndexerInterface):
 
         self.inference = inference
         self.inference.to(device)
-        self.similarity = self.inference.colbert.config.similarity
+        self.similarity = self.inference.colbert.config.similarity.lower()
 
         self.embeddings = torch.tensor([], device=self.device, dtype=self.dtype)
         self.iid2pid = torch.empty(0, device=self.device, dtype=torch.int32)

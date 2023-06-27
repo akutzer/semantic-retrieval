@@ -181,9 +181,10 @@ def inference_to_embedding(inference: ColBERTInference, just_word_emb: bool = Fa
         inference_.colbert.backbone = EmbeddingWrapper(inference_.colbert.backbone.embeddings)
         if not layer_norm:
             inference_.colbert.backbone.embeddings.LayerNorm = torch.nn.Identity()
-    inference_.colbert.linear = torch.nn.Identity()
+        inference_.colbert.backbone.embeddings.dropout.p = 0.
 
-    inference_.colbert.backbone.embeddings.dropout.p = 0.
+    inference_.colbert.linear = torch.nn.Identity()    
+    inference_.colbert.eval()
 
     return inference_
 
