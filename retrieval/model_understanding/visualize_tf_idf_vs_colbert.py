@@ -12,11 +12,11 @@ from retrieval.model_understanding.tf_idf_vs_colbert import colbert_vs_tf_idf2
 import torch
 
 CHECKPOINT_PATH = "../../data/colbertv2.0/"  # "../../../data/colbertv2.0/" or "bert-base-uncased" or "roberta-base"
-INDEX_PATH = "../../data/fandoms_qa/fandoms_all/human_verified/final/witc/all/passages_all.indices.pt"
+INDEX_PATH = "../../data/fandoms_qa/fandoms_all/human_verified/final/witc/all/passages.idx"
 
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 OUTPUT_COUNT = 20
-K = 2
+K = 10
 
 if __name__ == "__main__":
     CHECKPOINT_PATH = "../../data/colbertv2.0/"
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     dataset = TripleDataset(BaseConfig(passages_per_query=10),
                             triples_path="../../data/fandoms_qa/fandoms_all/human_verified/final/witc/all/triples.tsv",
                             queries_path="../../data/fandoms_qa/fandoms_all/human_verified/final/witc/all/queries.tsv",
-                            passages_path="../../data/fandoms_qa/fandoms_all/human_verified/final/witc/all/passages_all.tsv",
+                            passages_path="../../data/fandoms_qa/fandoms_all/human_verified/final/witc/all/passages.tsv",
                             mode="QQP")
 
     retriever = ColBERTRetriever(inference, device=DEVICE, passages=dataset.passages)

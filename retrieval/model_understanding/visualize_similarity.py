@@ -105,7 +105,7 @@ def get_topk_token(inference: ColBERTInference, query: str, passage: str, k=1, s
 
 
 def visualize(inference: ColBERTInference, query: str, passage: str, k=1, similarity="cosine"):
-    topk_token_sim, topk_token_idx = get_topk_token(inference, query, passage, k)
+    topk_token_sim, topk_token_idx = get_topk_token(inference, query, passage, k)[:,2]
     topk_token_idx, topk_token_sim = topk_token_idx.flatten(), topk_token_sim.flatten()
 
     # get tokens
