@@ -55,7 +55,7 @@ def argparser2retrieval_config(args):
 
     return config
 
-def evaluate(pids, qids_visit, qids_batch, qrels, qid_0, 
+def evaluate(pids, qids_visit, qids_batch, qrels, 
              recall_1, recall_3, recall_5, recall_10, recall_25, recall_50, 
              recall_100, recall_200, recall_1000, mrr_5, mrr_10, mrr_100):
     for j, ((sims, pred_pids), qid) in enumerate(zip(pids, qids_batch)):
@@ -65,7 +65,7 @@ def evaluate(pids, qids_visit, qids_batch, qrels, qid_0,
         if idxs.numel() == 0:
             continue
 
-        if qids_visit[qid-qid_0]==False:
+        if qids_visit[qid]==False:
             if idxs[0] < 1000:
                 common = qrel & set(pred_pids[:1000].cpu().numpy())
                 recall_1000 += (len(common) / max(1.0, len(qrel)))
@@ -110,7 +110,7 @@ def evaluate(pids, qids_visit, qids_batch, qrels, qid_0,
                                             if idxs[0] < 1:
                                                 common = qrel & set(pred_pids[:1].cpu().numpy())
                                                 recall_1 += (len(common) / max(1.0, len(qrel)))
-            qids_visit[qid-qid_0] = True
+            qids_visit[qid] = True
         
     return qids_visit, recall_1, recall_3, recall_5, recall_10, recall_25, recall_50, recall_100, recall_200, recall_1000, mrr_5, mrr_10, mrr_100
 
@@ -136,18 +136,18 @@ def evaluate_colbert(retriever: ColBERTRetriever, dataset: TripleDataset, config
     if config.dataset_mode=="QPP":
         df.drop(df.columns[2:], axis=1, inplace=True)
         qrels = df.groupby('QID', as_index=False).agg(lambda x: set(x))
-        qid_0 = df['QID'][0]
+        datalen = df['QID'].max() + 1
 
     if config.dataset_mode=="QQP":
         df.drop(df.columns[1:2], axis=1, inplace=True)
         qrels = df.groupby('QID+', as_index=False).agg(lambda x: set(x))
-        qid_0 = df['QID+'][0]
+        datalen = df['QID+'].max() + 1
 
     qids_batch = []
     query_batch = []
-    # tf_idf_qids_visit = np.zeros(3*len(dataset), dtype=bool)
-    rerank_qids_visit = np.zeros(3*len(dataset), dtype=bool)
-    full_qids_visit = np.zeros(3*len(dataset), dtype=bool)
+    # tf_idf_qids_visit = np.zeros(datalen, dtype=bool)
+    rerank_qids_visit = np.zeros(datalen, dtype=bool)
+    full_qids_visit = np.zeros(datalen, dtype=bool)
     
     for i, triple in enumerate(tqdm(dataset)):
 
@@ -169,17 +169,17 @@ def evaluate_colbert(retriever: ColBERTRetriever, dataset: TripleDataset, config
                 rerank_pids = retriever.rerank(query_batch, config.k)
                 full_pids = retriever.full_retrieval(query_batch, config.k)
             
-            # tf_idf_qids_visit, tf_idf_recall_1, tf_idf_recall_3, tf_idf_recall_5, tf_idf_recall_10, tf_idf_recall_25, tf_idf_recall_50, tf_idf_recall_100, tf_idf_recall_200, tf_idf_recall_1000, tf_idf_mrr_5, tf_idf_mrr_10, tf_idf_mrr_100 = evaluate(tf_idf_pids, tf_idf_qids_visit, qids_batch, qrels, qid_0, 
-            #          tf_idf_recall_1, tf_idf_recall_3, tf_idf_recall_5, tf_idf_recall_10, 
+            # tf_idf_qids_visit, tf_idf_recall_1, tf_idf_recall_3, tf_idf_recall_5, tf_idf_recall_10, tf_idf_recall_25, tf_idf_recall_50, tf_idf_recall_100, tf_idf_recall_200, tf_idf_recall_1000, tf_idf_mrr_5, tf_idf_mrr_10, tf_idf_mrr_100 = evaluate(tf_idf_pids, tf_idf_qids_visit, qids_batch, qrels, 
+            #          tf_idf_recall_1, tf_idf_recall_3, tf_idf_recall_5, tf_idf_recall_10,
             #          tf_idf_recall_25, tf_idf_recall_50, tf_idf_recall_100, tf_idf_recall_200, 
             #          tf_idf_recall_1000, tf_idf_mrr_5, tf_idf_mrr_10, tf_idf_mrr_100)
             
-            rerank_qids_visit, rerank_recall_1, rerank_recall_3, rerank_recall_5, rerank_recall_10, rerank_recall_25, rerank_recall_50, rerank_recall_100, rerank_recall_200, rerank_recall_1000, rerank_mrr_5, rerank_mrr_10, rerank_mrr_100 = evaluate(rerank_pids, rerank_qids_visit, qids_batch, qrels, qid_0, 
-                     rerank_recall_1, rerank_recall_3, rerank_recall_5, rerank_recall_10, 
+            rerank_qids_visit, rerank_recall_1, rerank_recall_3, rerank_recall_5, rerank_recall_10, rerank_recall_25, rerank_recall_50, rerank_recall_100, rerank_recall_200, rerank_recall_1000, rerank_mrr_5, rerank_mrr_10, rerank_mrr_100 = evaluate(rerank_pids, rerank_qids_visit, qids_batch, qrels, 
+                     rerank_recall_1, rerank_recall_3, rerank_recall_5, rerank_recall_10,
                      rerank_recall_25, rerank_recall_50, rerank_recall_100, rerank_recall_200, 
                      rerank_recall_1000, rerank_mrr_5, rerank_mrr_10, rerank_mrr_100)    
                     
-            full_qids_visit, full_recall_1, full_recall_3, full_recall_5, full_recall_10, full_recall_25, full_recall_50, full_recall_100, full_recall_200, full_recall_1000, full_mrr_5, full_mrr_10, full_mrr_100 = evaluate(full_pids, full_qids_visit, qids_batch, qrels, qid_0, 
+            full_qids_visit, full_recall_1, full_recall_3, full_recall_5, full_recall_10, full_recall_25, full_recall_50, full_recall_100, full_recall_200, full_recall_1000, full_mrr_5, full_mrr_10, full_mrr_100 = evaluate(full_pids, full_qids_visit, qids_batch, qrels,
                      full_recall_1, full_recall_3, full_recall_5, full_recall_10, 
                      full_recall_25, full_recall_50, full_recall_100, full_recall_200, 
                      full_recall_1000, full_mrr_5, full_mrr_10, full_mrr_100)
