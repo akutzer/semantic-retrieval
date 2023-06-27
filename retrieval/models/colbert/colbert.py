@@ -200,6 +200,7 @@ class ColBERT(nn.Module):
         L_d - number of embeddings per document
         F   - dimension of an embedding vector (number of features)
         """
+        Q = Q.to(dtype=D.dtype)
         if not intra_batch:
             if self.config.similarity.lower() == "l2":
                 # calculate squared l2 norm
@@ -382,7 +383,7 @@ class ColBERT(nn.Module):
             logging.info("Detected regular ColBERT checkpoint. Loading the model!")
             model_path = os.path.join(directory, "model.pt")
             # Load the state dict, ignoring size mismatch errors
-            state_dict = torch.load(model_path, map_location=torch.device("cpu"))
+            state_dict = torch.load(model_path, map_location=model.device)
 
             # extend the embedding matrix in case the checkpoint had a larger embedding matrix
             # this is the case if we load a RoBERTa checkpoint, since we
@@ -420,7 +421,7 @@ class ColBERT(nn.Module):
             if "pytorch_model" in file or ".pt" in file or ".pth" in file:
                 try:
                     with open(path_to_weights, mode="br") as f:
-                        parameters = torch.load(f, map_location=torch.device("cpu"))
+                        parameters = torch.load(f)
 
                     if "linear.weight" in parameters.keys():
                         weights = parameters["linear.weight"]
