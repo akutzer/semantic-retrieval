@@ -12,37 +12,33 @@
 \usepackage{booktabs} % For professional-looking tables
 
 % Title and authors
-\title{Title of Your Paper}
+\title{Comparative Study of Neural and Classical Retrieval Methods for FANDOM Wikis}
 \author{Author1\thanks{Corresponding author: email@example.com} \and Author2 \and Author3}
-\date{} % Remove this line to include the date
+\date{\today}
 
 \begin{document}
 
 \maketitle
 
 \begin{abstract}
-% Your abstract here
 This is the abstract of your paper.
 \end{abstract}
-
-% Uncomment the following line to include line numbers
-%\linenumbers
 
 \section{Introduction}
 % Your introduction here
 
-\section{Data}
+\section{Datasets}
 % Your introduction here
 
-\section{Methods}
+\section{Retrieval Methods}
 \subsection{Classical Retrieval Methods}
 % We employed the TF-IDF method for classical retrieval. TF-IDF calculates the importance of a term in a document by considering its frequency in the document and its inverse frequency in the entire corpus.
 
 \subsection{Neural Retrieval Methods}
-For our neural retrieval approach, we adopted the ColBERT model, which utilizes Transformer models to generate vector embeddings for word tokens in a text sequence. These embeddings capture the contextual information of the tokens within the sequence and are then used to calculate the similarity between two sequences.
+For our neural retrieval approach, we adopted the ColBERT \cite{khattab2020colbert} model , which utilizes Transformer models to generate vector embeddings for word tokens in a text sequence. These embeddings capture the contextual information of the tokens within the sequence and are then used to calculate the similarity between two sequences.
 
 \subsubsection{ColBERT Model}
-The ColBERT model takes a query and a document passage as input. These strings are then tokenized using a Transformer model's associated tokenizer, resulting in sequences of query tokens ($q = q_0q_1\dots q_m$) and document tokens ($d = d_0d_1\dots d_n$). Next we prepend a \texttt{[CLS]} token at the beginning and append a \texttt{[SEP]} token at the end of both sequences and add either a \texttt{[Q]} or \texttt{[D]} token after the \texttt{[CLS]} token to encode the input sequence type (query or passage). The query and document sequences are constrained to maximum lengths of $N_q$ and $N_d$ tokens, respectively. If the query is shorter than $N_q$ tokens, we pad the sequence with \texttt{[MASK]} tokens until it reaches length $N_q$. Thus, the input sequences for the ColBERT model are as follows: $q = \texttt{[CLS]}\texttt{[Q]}q_0q_1 \dots q_m\texttt{[MASK]}\dots\texttt{[MASK]}\texttt{[SEP]}$ and $q = \texttt{[CLS]}\texttt{[D]}d_0d_1 \dots d_n\texttt{[SEP]}$, respectively. These tokenized sequences are then passed through a Transformer model's Encoder, with experiments conducted using both BERT and RoBERTa architectures. The resulting output is a sequence $E = E_1E_2 \dots E_k$ of high-dimensional vectors, where $k$ corresponds to $N_q$ or $N_d$, depending on the sequence being processed. These vectors are subsequently mapped to a lower dimensionality $d$ using a linear transformation. To calculate the similarity between the query and document sequences, we employ the "sum of maximum similarity" method, as presented in the ColBERT paper. However, instead of using the sum, we use the mean to obtain the similarity score. The function is computed as follows:
+The ColBERT model takes a query and a document passage as input. These strings are then tokenized using a Transformer model's associated tokenizer, resulting in sequences of query tokens ($q = q_0q_1\dots q_m$) and document tokens ($d = d_0d_1\dots d_n$). Next we prepend a \texttt{[CLS]} token at the beginning and append a \texttt{[SEP]} token at the end of both sequences and add either a \texttt{[Q]} or \texttt{[D]} token after the \texttt{[CLS]} token to encode the input sequence type (query or document/passage). The query and document sequences are constrained to maximum lengths of $N_q$ and $N_d$ tokens, respectively. If the query is shorter than $N_q$ tokens, we pad the sequence with \texttt{[MASK]} tokens until it reaches length $N_q$. Thus, the input sequences for the ColBERT model are as follows: $q = \texttt{[CLS]}\texttt{[Q]}q_0q_1 \dots q_m\texttt{[MASK]}\dots\texttt{[MASK]}\texttt{[SEP]}$ and $q = \texttt{[CLS]}\texttt{[D]}d_0d_1 \dots d_n\texttt{[SEP]}$, respectively. These tokenized sequences are then passed through a Transformer model's Encoder, with experiments conducted using both BERT \cite{devlin2019bert} and RoBERTa \cite{liu2019roberta} architectures. The resulting output is a sequence $E = E_1E_2 \dots E_k$ of high-dimensional vectors, where $k$ corresponds to $N_q$ or $N_d$, depending on the sequence being processed. These vectors are subsequently mapped to a lower dimensionality $d$ using a linear transformation. To calculate the similarity between the query and document sequences, we employ the "sum of maximum similarity" method, as presented in the ColBERT paper. However, instead of using the sum, we use the mean to obtain the similarity score. The function is computed as follows:
 $$ S(q,d) := \frac{1}{N_q} \sum_{i=1}^{N_q} \max_{j = 1, \dots, N_d} sim(E_{q_i}, E_{q_j})
 $$
 We evaluate similarity using both cosine similarity and negated squared $L_2$-norm. The formulas for the similarity measures are as follows:
@@ -60,7 +56,7 @@ $$
 In the ColBERT paper, the vectors were normalized before applying these similarity measures. However, we also experimented with $L_2$-norm without normalization of the embedding vectors.
 
 \subsubsection{ColBERT Training}
-During the training the BERT/RoBERTa encoder is fine-tuned and the last linear projection and the additional \texttt{[Q]}/\texttt{[D]} tokens are learned from scratch. For training on the MS MARCO dataset, the model receives batches of tuples in the form $\langle q^+, d^+, d_1^-, \dots, d_{9}^-\rangle$. Here, $d^+$ represents the answer passage for the query $q^+$, and the passages $d_l^-$ do not contain the answer. When training on our FANDOM QA dataset, the model receives batches of tuples in the form $\langle q^+, q^-, d^+\rangle$, where $q^+$ is answered by $d^+$ while $q^-$ is not. Despite the differences in data format, the training objective remains the same: maximizing the similarity between the answering query/passage pairs. The loss is calculated using the cross-entropy loss and is defined as follows for the MS MARCO dataset
+During the training the BERT/RoBERTa encoder is fine-tuned and the last linear projection and the additional \texttt{[Q]}/\texttt{[D]} tokens are learned from scratch. For training on the MS MARCO \cite{bajaj2018ms} dataset, the model receives batches of tuples in the form $\langle q^+, d^+, d_1^-, \dots, d_{9}^-\rangle$. Here, $d^+$ represents the answer passage for the query $q^+$, and the passages $d_l^-$ do not contain the answer. When training on our FANDOM QA dataset, the model receives batches of tuples in the form $\langle q^+, q^-, d^+\rangle$, where $q^+$ is answered by $d^+$ while $q^-$ is not. Despite the differences in data format, the training objective remains the same: maximizing the similarity between the answering query/passage pairs. The loss is calculated using the cross-entropy loss and is defined as follows for the MS MARCO dataset:
 $$
 \ell_i = -\log \frac{e^{S(q_i^+, d_i^+)}}{e^{S(q_i^+, d_i^+)} + \sum_{j=1}^{9}{e^{S(q_i^+, d_{i, j}^-)}}}
 $$
@@ -102,7 +98,7 @@ Example table:
 % Your conclusion here
 
 % Uncomment the following lines for including references
-% \bibliographystyle{plain}
-% \bibliography{references}
+\bibliographystyle{plain}
+\bibliography{references}
 
 \end{document}
