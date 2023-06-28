@@ -96,7 +96,9 @@ def get_topk_token(inference: ColBERTInference, query: str, passage: str, k=1, s
         sim = (Q.unsqueeze(-2) - P.unsqueeze(-3)).pow(2).sum(dim=-1).sqrt()
     else:
         raise ValueError()
-    
+
+    #print("sim",sim)
+    #print("k",k)
     topk_sim = sim.topk(k=k, dim=-1)
     values, indicies = topk_sim
     values, indicies  = values.cpu().numpy(), indicies.cpu().numpy()
@@ -120,11 +122,38 @@ def visualize(inference: ColBERTInference, query: str, passage: str, k=1, simila
     
     return kde_heatmap, count_heatmap, sum_heatmap
 
+def visualize_for_specific_word_in_question(inference: ColBERTInference, query: str, passage: str, word_index=0):
+    # get tokens
+    tokens = np.array(inference.tokenizer.tokenize(passage, "doc", add_special_tokens=True))
+    # print(tokens.shape, topk_token_idx.shape, k)
+    # print(k,"* 32 = ", topk_token_idx.size, "datapoints used")
+    # print("Max topk index:", topk_token_idx.max())
+    # print("len(tokens):", topk_token_idx.shape)
+
+    topk_token_sim, topk_token_idx = get_topk_token(inference, query, passage, len(tokens))
+    # select the first word:
+    topk_token_sim, topk_token_idx = topk_token_sim[word_index+2], topk_token_idx[word_index+2]
+    # calculate sim (makes no sence when only the first word is selected)
+    sim = np.mean(topk_token_sim[..., 0])
+
+    topk_token_idx, topk_token_sim = topk_token_idx.flatten(), topk_token_sim.flatten()
+
+    #create heatmaps
+    kde_heatmap, count_heatmap, sum_heatmap = html_heatmap(tokens, topk_token_idx, topk_token_sim, plot=False, store=True)
+
+    return kde_heatmap, count_heatmap, sum_heatmap
 
 if __name__ == "__main__":
     import torch
 
     queries = [
+        "Who is Geralt?",
+        "When is Geralt?",
+        "Where is Geralt?",
+        "What is Geralt?",
+        "Is Geralt?",
+        "Why is Geralt?",
+        "How is Geralt?",
         "How did Moody feel about the insanity of Alice and Frank Longbottom?",
         'Who is the author of ''The Witcher''?',
         'How does an NPC react if it starts raining?',
@@ -139,6 +168,13 @@ if __name__ == "__main__":
 
 
     passages = [
+        "A man named Geralt was a famous monster hunter who lived in the 5th century in a land called Disneyland. He is not feeling very well because he has eaten too many donuts",
+        "A man named Geralt was a famous monster hunter who lived in the 5th century in a land called Disneyland. He is not feeling very well because he has eaten too many donuts",
+        "A man named Geralt was a famous monster hunter who lived in the 5th century in a land called Disneyland. He is not feeling very well because he has eaten too many donuts",
+        "A man named Geralt was a famous monster hunter who lived in the 5th century in a land called Disneyland. He is not feeling very well because he has eaten too many donuts",
+        "A man named Geralt was a famous monster hunter who lived in the 5th century in a land called Disneyland. He is not feeling very well because he has eaten too many donuts",
+        "A man named Geralt was a famous monster hunter who lived in the 5th century in a land called Disneyland. He is not feeling very well because he has eaten too many donuts",
+        "A man named Geralt was a famous monster hunter who lived in the 5th century in a land called Disneyland. He is not feeling very well because he has eaten too many donuts",
         "[Personality and traits] At the same time, he was far from being devoid of attachment towards his allies and comrades: He was visibly saddened by the insanity of Alice and Frank Longbottom, noting how being dead would have be better than having to live the rest of their lives insane, and openly acknowledged he was never able to find it easy to get over the loss of a comrade and only by turning the sadness he felt into motivation to get justice was he able to move on, as seen by his expressing sympathy towards Jacob's sibling after they lost Rowan Khanna and even acknowledging he should have trained them well enough.",
         """"The Witcher" (Polish: "Wiedźmin") is a short story written by Andrzej Sapkowski, having first been published in the "Fantastyka" magazine and later in the now obsolete book, "Wiedźmin" before being re-published in . It introduces the witcher Geralt and his famous fight with a striga. 21.335 2492 The Witcher (Polish: "Cykl wiedźmiński") by Andrzej Sapkowski is a series of fantasy short stories (collected in two books, except for two stories) and five novels about the witcher Geralt of Rivia. The books have been adapted into a movie and two television series ("The Hexer" and ), a video game series (), a comic book and others. The novel series (excluding the short stories) is also called the Witcher Saga (Polish: "saga o wiedźminie") or the Blood of the Elves saga.""",
         """The Witcher" follows the story of Geralt of Rivia, a witcher: a traveling monster hunter for hire, gifted with unnatural powers. Taking place in a fictional medieval world, the game implements detailed visuals. The natural light during various phases of the day is realistically altered, and the day and night transitions serve to enrich the game's ambiance. The weather can dynamically change from a light drizzle to a dark, stormy downpour accompanied by thunder and lightning, and the NPCs react to the rain by hiding under roofs trying to get out of the rain.""",
@@ -164,7 +200,7 @@ if __name__ == "__main__":
     Ks = [2] #[1, 2, 3]
     kde_heatmaps, count_heatmaps, sum_heatmaps = [], [], []
 
-    with open("combined_heatmaps.html", "w", encoding="utf-8") as f:
+    with open("heatmap_specific_questions.html", "w", encoding="utf-8") as f:
         for query, passage in zip(queries, passages):        
             f.write(f"<h2>Query: {query}</h2>")
 

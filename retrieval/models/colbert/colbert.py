@@ -200,6 +200,7 @@ class ColBERT(nn.Module):
         L_d - number of embeddings per document
         F   - dimension of an embedding vector (number of features)
         """
+        Q = Q.to(dtype=D.dtype)
         if not intra_batch:
             if self.config.similarity.lower() == "l2":
                 # calculate squared l2 norm
@@ -289,13 +290,13 @@ class ColBERT(nn.Module):
                 mask = ~is_pad_token
         return mask
     
-    def to(self, device: Union[str, torch.device]) -> None:
+    def to(self, device: Optional[Union[str, torch.device]] = None, dtype: Optional[torch.dtype] = None) -> None:
         if isinstance(device, str):
             device = torch.device(device)
         self.device = device
         if self.skiplist is not None:
             self.skiplist = self.skiplist.to(device=device)
-        super().to(device=device)
+        super().to(device=device, dtype=dtype)
 
     def register_tokenizer(self, tokenizer: ColBERTTokenizer) -> None:
         """
@@ -420,7 +421,7 @@ class ColBERT(nn.Module):
             if "pytorch_model" in file or ".pt" in file or ".pth" in file:
                 try:
                     with open(path_to_weights, mode="br") as f:
-                        parameters = torch.load(f)
+                        parameters = torch.load(f, map_location=self.device)
 
                     if "linear.weight" in parameters.keys():
                         weights = parameters["linear.weight"]
