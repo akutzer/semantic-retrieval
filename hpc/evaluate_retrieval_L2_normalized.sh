@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --time=12:00:00         # walltime
+#SBATCH --time=70:00:00         # walltime
 #SBATCH --nodes=1               # number of nodes
 #SBATCH --ntasks=1	            # limit to one node
 #SBATCH --cpus-per-task=4
@@ -8,9 +8,9 @@
 #SBATCH --gres=gpu:1            # number of GPUs
 #SBATCH --mem=200G
 #SiBATCH -A p_sp_bigdata         # name of the associated project
-#SBATCH -J "ms_marco_v2_L2_normalized"  # name of the job
-#SBATCH --output="retriever_ms_marco_v2_L2_normalized_%j.out"    # output file name (std out)
-#SBATCH --error="retriever_ms_marco_v2_L2_normalized_%j.err"     # error file name (std err)
+#SBATCH -J "L2_normalized"  # name of the job
+#SBATCH --output="L2_normalized_%j.out"    # output file name (std out)
+#SBATCH --error="L2_normalized_%j.err"     # error file name (std err)
 #SBATCH --mail-user="zhiwei.zhan@mailbox.tu-dresden.de" # will be used to used to update you about the state of your$
 #SBATCH --mail-type ALL
 
@@ -43,7 +43,7 @@ TRIPLES_PATH="../../data/ms_marco/ms_marco_v2_1/val/triples.tsv"
 
 CHECKPOINT_PATH="../../data/checkpoint/ms_marco_v2_L2_normalized/epoch3_2_loss1.2830_mrr0.6993_acc52.660"
 
-BATCH_SIZE="1"
+BATCH_SIZE="2"
 DTYPE="FP16"  # FP16, FP32, FP64
 K="1000"
 
