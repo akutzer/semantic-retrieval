@@ -58,59 +58,55 @@ def argparser2retrieval_config(args):
 def evaluate(pids, qids_visit, qids_batch, qrels, 
              recall_1, recall_3, recall_5, recall_10, recall_25, recall_50, 
              recall_100, recall_200, recall_1000, mrr_5, mrr_10, mrr_100):
-    for j, ((sims, pred_pids), qid) in enumerate(zip(pids, qids_batch)):
-        qrel = qrels.iloc[list(qrels.iloc[:,0]).index(qid)][1]
-        idxs = torch.tensor([idx for idx, pred_pid in enumerate(pred_pids) if pred_pid in list(qrel)])
-        # print(qid, qrel, pred_pids[:10], idxs)
-        if idxs.numel() == 0:
+    for ((_, pred_pids), qid) in zip(pids, qids_batch):
+        pred_pids = pred_pids.cpu().numpy()
+        qrel = qrels[qrels['QID'] == qid]['PID+'].values[0]
+        idxs = np.where(np.isin(pred_pids, list(qrel)))[0]
+            
+        if idxs.size < 1 or len(qrel) < 1:
             continue
 
-        if qids_visit[qid]==False:
+        if not qids_visit[qid]:
+            qids_visit[qid] = True
             if idxs[0] < 1000:
-                common = qrel & set(pred_pids[:1000].cpu().numpy())
-                recall_1000 += (len(common) / max(1.0, len(qrel)))
+                common = qrel & set(pred_pids[:1000])
+                recall_1000 += len(common) / len(qrel)
     
                 if idxs[0] < 200:
-                    common = qrel & set(pred_pids[:200].cpu().numpy())
-                    recall_200 += (len(common) / max(1.0, len(qrel)))
+                    common = qrel & set(pred_pids[:200])
+                    recall_200 += len(common) / len(qrel)
 
                     if idxs[0] < 100:
-                        common = qrel & set(pred_pids[:100].cpu().numpy())
-                        recall_100 += (len(common) / max(1.0, len(qrel)))
-                        for idx in idxs:
-                            if idx < 100:
-                                mrr_100 += 1 / (idx + 1)
+                        common = qrel & set(pred_pids[:100])
+                        recall_100 += len(common) / len(qrel)
+                        mrr_100 += 1 / (idxs[0] + 1)
 
                         if idxs[0] < 50:
-                            common = qrel & set(pred_pids[:50].cpu().numpy())
-                            recall_50 += (len(common) / max(1.0, len(qrel)))
+                            common = qrel & set(pred_pids[:50])
+                            recall_50 += len(common) / len(qrel)
 
                             if idxs[0] < 25:
-                                common = qrel & set(pred_pids[:25].cpu().numpy())
-                                recall_25 += (len(common) / max(1.0, len(qrel)))
+                                common = qrel & set(pred_pids[:25])
+                                recall_25 += len(common) / len(qrel)
 
                                 if idxs[0] < 10:
-                                    common = qrel & set(pred_pids[:10].cpu().numpy())
-                                    recall_10 += (len(common) / max(1.0, len(qrel)))
-                                    for idx in idxs:
-                                        if idx < 10:
-                                            mrr_10 += 1 / (idx + 1)
+                                    common = qrel & set(pred_pids[:10])
+                                    recall_10 += len(common) / len(qrel)
+                                    mrr_10 += 1 / (idxs[0] + 1)
 
                                     if idxs[0] < 5:
-                                        common = qrel & set(pred_pids[:5].cpu().numpy())
-                                        recall_5 += (len(common) / max(1.0, len(qrel)))
-                                        for idx in idxs:
-                                            if idx < 5:
-                                                mrr_5 += 1 / (idx + 1)
+                                        common = qrel & set(pred_pids[:5])
+                                        recall_5 += len(common) / len(qrel)
+                                        mrr_5 += 1 / (idxs[0] + 1)
 
                                         if idxs[0] < 3:
-                                            common = qrel & set(pred_pids[:3].cpu().numpy())
-                                            recall_3 += (len(common) / max(1.0, len(qrel)))
+                                            common = qrel & set(pred_pids[:3])
+                                            recall_3 += len(common) / len(qrel)
 
                                             if idxs[0] < 1:
-                                                common = qrel & set(pred_pids[:1].cpu().numpy())
-                                                recall_1 += (len(common) / max(1.0, len(qrel)))
-            qids_visit[qid] = True
+                                                common = qrel & set(pred_pids[:1])
+                                                recall_1 += len(common) / len(qrel)
+            
         
     return qids_visit, recall_1, recall_3, recall_5, recall_10, recall_25, recall_50, recall_100, recall_200, recall_1000, mrr_5, mrr_10, mrr_100
 
@@ -148,6 +144,19 @@ def evaluate_colbert(retriever: ColBERTRetriever, dataset: TripleDataset, config
     # tf_idf_qids_visit = np.zeros(datalen, dtype=bool)
     rerank_qids_visit = np.zeros(datalen, dtype=bool)
     full_qids_visit = np.zeros(datalen, dtype=bool)
+    print(qrels)
+    dataset.triples.data = dataset.triples.data.iloc[::-1]
+
+    # min_index = qrels['QID'].min()
+    # max_index = qrels['QID'].max()
+    # all_indices = set(range(min_index, max_index + 1))
+    # existing_qids = set(qrels['QID'])
+    # missing_qids = all_indices - existing_qids
+
+    # print(missing_qids)
+
+
+
     
     for i, triple in enumerate(tqdm(dataset)):
 
@@ -204,35 +213,35 @@ def evaluate_colbert(retriever: ColBERTRetriever, dataset: TripleDataset, config
     # print("") 
 
     print("rerank_retrieval:")
-    print("Recall@1:", round((100 * rerank_recall_1) / len(dataset), 3))
-    print("Recall@3:", round((100 * rerank_recall_3) / len(dataset), 3))
-    print("Recall@5:", round((100 * rerank_recall_5) / len(dataset), 3))
-    print("Recall@10:", round((100 * rerank_recall_10) / len(dataset), 3))
-    print("Recall@25:", round((100 * rerank_recall_25) / len(dataset), 3))
-    print("Recall@50:", round((100 * rerank_recall_50) / len(dataset), 3))
-    print("Recall@100:", round((100 * rerank_recall_100) / len(dataset), 3))
-    print("Recall@200:", round((100 * rerank_recall_200) / len(dataset), 3))
-    print("Recall@1000:", round((100 * rerank_recall_1000) / len(dataset), 3))
+    print("Recall@1:", round((100 * rerank_recall_1) / len(qrels), 3))
+    print("Recall@3:", round((100 * rerank_recall_3) / len(qrels), 3))
+    print("Recall@5:", round((100 * rerank_recall_5) / len(qrels), 3))
+    print("Recall@10:", round((100 * rerank_recall_10) / len(qrels), 3))
+    print("Recall@25:", round((100 * rerank_recall_25) / len(qrels), 3))
+    print("Recall@50:", round((100 * rerank_recall_50) / len(qrels), 3))
+    print("Recall@100:", round((100 * rerank_recall_100) / len(qrels), 3))
+    print("Recall@200:", round((100 * rerank_recall_200) / len(qrels), 3))
+    print("Recall@1000:", round((100 * rerank_recall_1000) / len(qrels), 3))
 
-    print("MRR@5:", round((100 * rerank_mrr_5.item()) / len(dataset), 3))
-    print("MRR@10:", round((100 * rerank_mrr_10.item()) / len(dataset), 3))
-    print("MRR@100:", round((100 * rerank_mrr_100.item()) / len(dataset), 3))
+    print("MRR@5:", round((100 * rerank_mrr_5.item()) / len(qrels), 3))
+    print("MRR@10:", round((100 * rerank_mrr_10.item()) / len(qrels), 3))
+    print("MRR@100:", round((100 * rerank_mrr_100.item()) / len(qrels), 3))
     print("")
 
     print("full_retrieval:")
-    print("Recall@1:", round((100 * full_recall_1) / len(dataset), 3))
-    print("Recall@3:", round((100 * full_recall_3) / len(dataset), 3))
-    print("Recall@5:", round((100 * full_recall_5) / len(dataset), 3))
-    print("Recall@10:", round((100 * full_recall_10) / len(dataset), 3))
-    print("Recall@25:", round((100 * full_recall_25) / len(dataset), 3))
-    print("Recall@50:", round((100 * full_recall_50) / len(dataset), 3))
-    print("Recall@100:", round((100 * full_recall_100) / len(dataset), 3))
-    print("Recall@200:", round((100 * full_recall_200) / len(dataset), 3))
-    print("Recall@1000:", round((100 * full_recall_1000) / len(dataset), 3))
+    print("Recall@1:", round((100 * full_recall_1) / len(qrels), 3))
+    print("Recall@3:", round((100 * full_recall_3) / len(qrels), 3))
+    print("Recall@5:", round((100 * full_recall_5) / len(qrels), 3))
+    print("Recall@10:", round((100 * full_recall_10) / len(qrels), 3))
+    print("Recall@25:", round((100 * full_recall_25) / len(qrels), 3))
+    print("Recall@50:", round((100 * full_recall_50) / len(qrels), 3))
+    print("Recall@100:", round((100 * full_recall_100) / len(qrels), 3))
+    print("Recall@200:", round((100 * full_recall_200) / len(qrels), 3))
+    print("Recall@1000:", round((100 * full_recall_1000) / len(qrels), 3))
 
-    print("MRR@5:", round((100 * full_mrr_5.item()) / len(dataset), 3))
-    print("MRR@10:", round((100 * full_mrr_10.item()) / len(dataset), 3))
-    print("MRR@100:", round((100 * full_mrr_100.item()) / len(dataset), 3))
+    print("MRR@5:", round((100 * full_mrr_5.item()) / len(qrels), 3))
+    print("MRR@10:", round((100 * full_mrr_10.item()) / len(qrels), 3))
+    print("MRR@100:", round((100 * full_mrr_100.item()) / len(qrels), 3))
 
 if __name__ == "__main__":
     import argparse
@@ -265,6 +274,7 @@ if __name__ == "__main__":
     )
 
     colbert, tokenizer = load_colbert_and_tokenizer(config.checkpoint_path)
+    print(colbert.config)
     inference = ColBERTInference(colbert, tokenizer)
     retriever = ColBERTRetriever(inference, device=config.device, passages=dataset.passages)
 
