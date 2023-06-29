@@ -1,3 +1,4 @@
+
 from dataclasses import dataclass
 
 import torch
@@ -60,7 +61,12 @@ def evaluate(pids, qids_visit, qids_batch, qrels,
              recall_100, recall_200, recall_1000, mrr_5, mrr_10, mrr_100):
     for ((_, pred_pids), qid) in zip(pids, qids_batch):
         pred_pids = pred_pids.cpu().numpy()
-        qrel = qrels[qrels['QID'] == qid]['PID+'].values[0]
+
+        if config.dataset_mode=="QPP":
+            qrel = qrels[qrels['QID'] == qid]['PID+'].values[0]
+        if config.dataset_mode=="QQP":
+            qrel = qrels[qrels['QID+'] == qid]['PID'].values[0]
+            
         idxs = np.where(np.isin(pred_pids, list(qrel)))[0]
             
         if idxs.size < 1 or len(qrel) < 1:
