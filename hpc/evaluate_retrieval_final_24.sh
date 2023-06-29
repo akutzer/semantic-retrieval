@@ -8,9 +8,9 @@
 #SBATCH --gres=gpu:1            # number of GPUs
 #SBATCH --mem=200G
 #SiBATCH -A p_sp_bigdata         # name of the associated project
-#SBATCH -J "8"  # name of the job
-#SBATCH --output="8_%j.out"    # output file name (std out)
-#SBATCH --error="8_%j.err"     # error file name (std err)
+#SBATCH -J "final_24"  # name of the job
+#SBATCH --output="final_24_%j.out"    # output file name (std out)
+#SBATCH --error="final_24_%j.err"     # error file name (std err)
 #SBATCH --mail-user="zhiwei.zhan@mailbox.tu-dresden.de" # will be used to used to update you about the state of your$
 #SBATCH --mail-type ALL
 
@@ -41,9 +41,9 @@ QUERIES_PATH="../../data/ms_marco/ms_marco_v2_1/val/queries.tsv"
 TRIPLES_PATH="../../data/ms_marco/ms_marco_v2_1/val/triples.tsv"
 # INDEX_PATH="../../data/passages.colbert.indices.pt"
 
-CHECKPOINT_PATH="../../data/checkpoint/ms_marco_v2_8/epoch4_2_loss1.3650_mrr0.6765_acc50.232"
+CHECKPOINT_PATH="../../data/checkpoint/ms_marco_v2_final_24/epoch5_6_loss1.2808_mrr0.6965_acc53.049"
 
-BATCH_SIZE="8"
+BATCH_SIZE="4"
 DTYPE="FP16"  # FP16, FP32, FP64
 K="1000"
 

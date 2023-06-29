@@ -8,9 +8,9 @@
 #SBATCH --gres=gpu:1            # number of GPUs
 #SBATCH --mem=200G
 #SiBATCH -A p_sp_bigdata         # name of the associated project
-#SBATCH -J "8"  # name of the job
-#SBATCH --output="8_%j.out"    # output file name (std out)
-#SBATCH --error="8_%j.err"     # error file name (std err)
+#SBATCH -J "colbert"  # name of the job
+#SBATCH --output="colbert_%j.out"    # output file name (std out)
+#SBATCH --error="colbert_%j.err"     # error file name (std err)
 #SBATCH --mail-user="zhiwei.zhan@mailbox.tu-dresden.de" # will be used to used to update you about the state of your$
 #SBATCH --mail-type ALL
 
@@ -29,9 +29,9 @@ source /scratch/ws/0/zhzh622c-test-workspace/env/bin/activate
 
 # Example for FANDOM QA:
 # DATASET_MODE="QQP" # QQP or QPP
-# PASSAGES_PATH="../../data/fandoms_qa/harry_potter/all/passages.tsv"
-# QUERIES_PATH="../../data/fandoms_qa/harry_potter/all/queries.tsv"
-# TRIPLES_PATH="../../data/fandoms_qa/harry_potter/val/triples.tsv"
+# PASSAGES_PATH="../../data/fandoms_qa/fandoms_all/all/passages.tsv"
+# QUERIES_PATH="../../data/fandoms_qa/fandoms_all/all/queries.tsv"
+# TRIPLES_PATH="../../data/fandoms_qa/fandoms_all/val/triples.tsv"
 # INDEX_PATH="../../data/fandoms_qa/harry_potter/all/passages.index.pt"
 
 # Example for MS MARCO:
@@ -41,9 +41,9 @@ QUERIES_PATH="../../data/ms_marco/ms_marco_v2_1/val/queries.tsv"
 TRIPLES_PATH="../../data/ms_marco/ms_marco_v2_1/val/triples.tsv"
 # INDEX_PATH="../../data/passages.colbert.indices.pt"
 
-CHECKPOINT_PATH="../../data/checkpoint/ms_marco_v2_8/epoch4_2_loss1.3650_mrr0.6765_acc50.232"
+CHECKPOINT_PATH="../../data/colbertv2.0"
 
-BATCH_SIZE="8"
+BATCH_SIZE="4"
 DTYPE="FP16"  # FP16, FP32, FP64
 K="1000"
 

@@ -1,36 +1,48 @@
 #!/bin/bash
 
+#SBATCH --time=30:00:00         # walltime
+#SBATCH --nodes=1               # number of nodes
+#SBATCH --ntasks=1	            # limit to one node
+#SBATCH --cpus-per-task=4
+#SBATCH --partition=alpha
+#SBATCH --gres=gpu:1            # number of GPUs
+#SBATCH --mem=200G
+#SiBATCH -A p_sp_bigdata         # name of the associated project
+#SBATCH -J "colbert"  # name of the job
+#SBATCH --output="colbert_%j.out"    # output file name (std out)
+#SBATCH --error="colbert_%j.err"     # error file name (std err)
+#SBATCH --mail-user="zhiwei.zhan@mailbox.tu-dresden.de" # will be used to used to update you about the state of your$
+#SBATCH --mail-type ALL
+
+# clean current modules
+module purge
+
+# HPC-Cluster doesn't have newer Python Version 
+module load Python/3.10.4
+
+# switch to virtualenv to setup our environment, modules we need 
+# if needed change to your own workspace
+virtualenv --system-site-packages /scratch/ws/0/zhzh622c-test-workspace/env
+source /scratch/ws/0/zhzh622c-test-workspace/env/bin/activate
+
 # Set the arguments for the Python script:
 
 # DATASET_MODE="QQP" # QQP or QPP
-# PASSAGES_PATH="../../data/fandoms_qa/harry_potter/val/passages.tsv"
-# QUERIES_PATH="../../data/fandoms_qa/harry_potter/val/queries.tsv"
-# TRIPLES_PATH="../../data/fandoms_qa/harry_potter/val/triples.tsv"
-
+# PASSAGES_PATH="../../data/fandoms_qa/fandoms_all/all/passages.tsv"
+# QUERIES_PATH="../../data/fandoms_qa/fandoms_all/all/queries.tsv"
+# TRIPLES_PATH="../../data/fandoms_qa/fandoms_all/val/triples.tsv"
 # INDEX_PATH="../../data/fandoms_qa/harry_potter/all/passages.index.pt"
-# CHECKPOINT_PATH="../../data/colbertv2.0"
 
 # Example for MS MARCO:
 DATASET_MODE="QPP" # QQP or QPP
-PASSAGES_PATH="../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
-QUERIES_PATH="../../data/ms_marco/ms_marco_v1_1/val/queries.tsv"
-TRIPLES_PATH="../../data/ms_marco/ms_marco_v1_1/val/triples.tsv"
+PASSAGES_PATH="../../data/ms_marco/ms_marco_v2_1/val/passages.tsv"
+QUERIES_PATH="../../data/ms_marco/ms_marco_v2_1/val/queries.tsv"
+TRIPLES_PATH="../../data/ms_marco/ms_marco_v2_1/val/triples.tsv"
+# INDEX_PATH="../../data/passages.colbert.indices.pt"
 
-# INDEX_PATH="../../data/checkpoint/ms_marco/ms_marco_v2_8/passages.ms_marco_v2_8.indices.pt"
-# CHECKPOINT_PATH="../../data/checkpoint/ms_marco/ms_marco_v2_8/epoch4_2_loss1.3650_mrr0.6765_acc50.232"
+CHECKPOINT_PATH="../../data/colbertv2.0"
 
-# CHECKPOINT_PATH="../../data/checkpoint/ms_marco/ms_marco_v2_16/epoch4_2_loss1.3054_mrr0.6912_acc51.958"
-CHECKPOINT_PATH="../../data/checkpoint/ms_marco/ms_marco_v2_24/epoch4_2_loss1.2986_mrr0.6948_acc52.451"
-# CHECKPOINT_PATH="../../data/checkpoint/ms_marco/ms_marco_v2_32/epoch3_2_loss1.2895_mrr0.6943_acc52.262"
-# CHECKPOINT_PATH="../../data/checkpoint/ms_marco/ms_marco_v2_64/epoch3_2_loss1.2838_mrr0.6973_acc52.680"
-# CHECKPOINT_PATH="../../data/checkpoint/ms_marco/ms_marco_v2_128/epoch3_2_loss1.2828_mrr0.6986_acc52.852"
-# CHECKPOINT_PATH="../../data/checkpoint/ms_marco/ms_marco_v2_L2/epoch3_2_loss1.2783_mrr0.7018_acc52.948"
-# CHECKPOINT_PATH="../../data/checkpoint/ms_marco/ms_marco_v2_L2_normalized/epoch3_2_loss1.2830_mrr0.6993_acc52.660"
-# CHECKPOINT_PATH="../../data/checkpoint/ms_marco/ms_marco_v2_mse/epoch4_2_loss0.7460_mrr0.6574_acc47.342"
-# CHECKPOINT_PATH="../../data/checkpoint/ms_marco/ms_marco_v2_query_64/epoch3_2_loss1.2786_mrr0.7000_acc53.038"
-# CHECKPOINT_PATH="../../data/checkpoint/ms_marco/ms_marco_v2_roberta/epoch4_2_loss1.2602_mrr0.7049_acc53.571"
-
-BATCH_SIZE="8"
+BATCH_SIZE="4"
 DTYPE="FP16"  # FP16, FP32, FP64
 K="1000"
 
