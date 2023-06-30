@@ -150,22 +150,9 @@ def evaluate_colbert(retriever: ColBERTRetriever, dataset: TripleDataset, config
     # tf_idf_qids_visit = np.zeros(datalen, dtype=bool)
     rerank_qids_visit = np.zeros(datalen, dtype=bool)
     full_qids_visit = np.zeros(datalen, dtype=bool)
-    print(qrels)
-    dataset.triples.data = dataset.triples.data.iloc[::-1]
-
-    # min_index = qrels['QID'].min()
-    # max_index = qrels['QID'].max()
-    # all_indices = set(range(min_index, max_index + 1))
-    # existing_qids = set(qrels['QID'])
-    # missing_qids = all_indices - existing_qids
-
-    # print(missing_qids)
-
-
 
     
     for i, triple in enumerate(tqdm(dataset)):
-
         if config.dataset_mode=="QPP":
             qid, pid_pos, *pid_neg = triple
             query, psg_pos, *psg_neg = dataset.id2string(triple)
