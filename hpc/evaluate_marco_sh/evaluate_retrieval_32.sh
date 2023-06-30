@@ -8,7 +8,7 @@
 #SBATCH --gres=gpu:1            # number of GPUs
 #SBATCH --mem=200G
 #SBATCH -A p_sp_bigdata         # name of the associated project
-#SBATCH -J "maroc_32"  # name of the job
+#SBATCH -J "marco_32"  # name of the job
 #SBATCH --output="marco_32_%j.out"    # output file name (std out)
 #SBATCH --error="marco_32_%j.err"     # error file name (std err)
 #SBATCH --mail-user="zhiwei.zhan@mailbox.tu-dresden.de" # will be used to used to update you about the state of your$
@@ -54,3 +54,5 @@ python evaluate_retrieval.py \
     --use-gpu \
     # --embedding-only \  # enabling this option needs ~6x more memory compared to 128 dim embeddings
     # --index-path "$INDEX_PATH" \
+
+deactivate

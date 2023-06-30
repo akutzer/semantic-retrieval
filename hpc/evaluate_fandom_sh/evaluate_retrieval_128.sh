@@ -54,3 +54,5 @@ python evaluate_retrieval.py \
     --use-gpu \
     # --embedding-only \  # enabling this option needs ~6x more memory compared to 128 dim embeddings
     # --index-path "$INDEX_PATH" \
+
+deactivate

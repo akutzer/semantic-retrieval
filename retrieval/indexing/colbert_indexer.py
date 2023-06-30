@@ -117,13 +117,16 @@ class ColBERTIndexer(IndexerInterface):
             query = query[None]
         query = query.to(dtype=self.dtype)  # query shape: (B, L_q, D)
 
+        print('11111111',self.similarity)
         if self.similarity == "l2":
+            print('22222222',self.similarity)
             sim = -1.0 * (query.unsqueeze(-2) - self.embeddings.unsqueeze(-3)).pow(2).sum(dim=-1)
             # sim = -1.0 * torch.norm(query - self.embeddings, ord=2, dim=-1) # shape: (B * L_q, N_embs)
             # sim shape: (B * L_q, N_embs)            
         elif self.similarity == "cosine":
             sim = query @ self.embeddings.mT  # shape: (B, L_q, N_embs)
         else:
+            print('33333333',self.similarity)
             raise ValueError()
 
         topk_sim, topk_iids = sim.topk(k, dim=-1)  # both shapes: (B, L_q, k)
@@ -310,3 +313,4 @@ if __name__ == "__main__":
         for sim, pid in zip(values, sorted_pids[:10]):
             print(round(sim.item(), 3), pid.item(), passages[pid.item()])
         print(end="\n\n\n")
+
