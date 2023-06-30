@@ -83,7 +83,7 @@ class ColBERTRetriever:
                 Qs = Qs[None]
 
             # for each query embedding vector, search for the best k_hat index vectors in the passages embedding matrix
-            k_hat = math.ceil(k / 2)  # math.ceil(k / 2)
+            k_hat = math.ceil(k / 2)  # math.ceil(k / 10)
             batch_sim, batch_iids = self.indexer.search(Qs, k=k_hat)  # both: (B, L_q, k_hat)
 
             # for each query get the PIDs containing the best index vectors

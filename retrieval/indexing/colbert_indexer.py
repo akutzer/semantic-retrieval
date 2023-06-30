@@ -118,7 +118,7 @@ class ColBERTIndexer(IndexerInterface):
         query = query.to(dtype=self.dtype)  # query shape: (B, L_q, D)
 
         if self.similarity == "l2":
-            sim = -1.0 * torch.cdist(query, self.embeddings, p=2.0)
+            sim = -1.0 * torch.cdist(query, self.embeddings, p=2)
             # shape: (B, L_q, N_embs)
         elif self.similarity == "cosine":
             sim = query @ self.embeddings.mT  # shape: (B, L_q, N_embs)
