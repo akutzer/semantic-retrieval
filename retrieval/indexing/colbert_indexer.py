@@ -119,12 +119,7 @@ class ColBERTIndexer(IndexerInterface):
 
         if self.similarity == "l2":
             sim = -1.0 * torch.cdist(query, self.embeddings, p=2.0)
-            # query_expand = query.unsqueeze(-2)
-            # embeddings_expand = self.embeddings.unsqueeze(-3)
-            # sim = -1.0 * torch.cdist(query_expand, embeddings_expand, p=2.0).squeeze(-1)
-            #sim = -1.0 * (query.unsqueeze(-2) - self.embeddings.unsqueeze(-3)).pow(2).sum(dim=-1)
-            # sim = -1.0 * torch.norm(query - self.embeddings, ord=2, dim=-1) # shape: (B, L_q, N_embs)
-            # sim shape: (B, L_q, N_embs)            
+            # shape: (B, L_q, N_embs)
         elif self.similarity == "cosine":
             sim = query @ self.embeddings.mT  # shape: (B, L_q, N_embs)
         else:
