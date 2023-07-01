@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=00:15:00         # walltime
+#SBATCH --time=15:59:00         # walltime
 #SBATCH --nodes=1               # number of nodes
 #SBATCH --ntasks=1	            # limit to one node
 #SBATCH --cpus-per-task=4
@@ -7,9 +7,9 @@
 #SBATCH --gres=gpu:1            # number of GPUs
 #SBATCH --mem=32G
 #SBATCH -A p_sp_bigdata         # name of the associated project
-#SBATCH -J "fandom_harry_potter"  # name of the job
-#SBATCH --output="training_fandom_job-%j.out"    # output file name (std out)
-#SBATCH --error="training_fandom_job-%j.err"     # error file name (std err)
+#SBATCH -J "training_ms_marco_v2_bert_16_job"  # name of the job
+#SBATCH --output="logs/training_ms_marco_v2_bert_16_job-%j.out"    # output file name (std out)
+#SBATCH --error="logs/training_ms_marco_v2_bert_16_job-%j.err"     # error file name (std err)
 #SBATCH --mail-user="tommy.nguyen@mailbox.tu-dresden.de" # will be used to used to update you about the state of your$
 #SBATCH --mail-type ALL
 
@@ -24,35 +24,36 @@ source /scratch/ws/0/tong623c-tommy-workspace/env/bin/activate
 
 # Set the arguments for the Python script:
 # dataset arguments
-DATASET_NAME="harry_potter"
-DATASET_MODE="QQP"
-PASSAGES_PATH_TRAIN="../data/fandoms_qa/harry_potter/train/passages.tsv"
-QUERIES_PATH_TRAIN="../data/fandoms_qa/harry_potter/train/queries.tsv"
-TRIPLES_PATH_TRAIN="../data/fandoms_qa/harry_potter/train/triples.tsv"
-PASSAGES_PATH_VAL="../data/fandoms_qa/harry_potter/val/passages.tsv"
-QUERIES_PATH_VAL="../data/fandoms_qa/harry_potter/val/queries.tsv"
-TRIPLES_PATH_VAL="../data/fandoms_qa/harry_potter/val/triples.tsv"
+DATASET_NAME="ms_marco_v2"
+DATASET_MODE="QPP"
+PASSAGES_PATH_TRAIN="../data/ms_marco/ms_marco_v2_1/train/passages.tsv"
+QUERIES_PATH_TRAIN="../data/ms_marco/ms_marco_v2_1/train/queries.tsv"
+TRIPLES_PATH_TRAIN="../data/ms_marco/ms_marco_v2_1/train/triples.tsv"
+PASSAGES_PATH_VAL="../data/ms_marco/ms_marco_v2_1/val/passages.tsv"
+QUERIES_PATH_VAL="../data/ms_marco/ms_marco_v2_1/val/queries.tsv"
+TRIPLES_PATH_VAL="../data/ms_marco/ms_marco_v2_1/val/triples.tsv"
 
 
 # dataloader arguments
 DOC_MAXLEN="320"
 QUERY_MAXLEN="32"
+PASSAGES_PER_QUERY="10"
 TRAIN_WORKERS="4"
-VAL_WORKERS="2"
+VAL_WORKERS="4"
 
 # model arguments
 BACKBONE="bert-base-uncased" # "bert-base-uncased" or "../data/colbertv2.0/" or "roberta-base"
-DIM="128"
+DIM="16"
 DROPOUT="0.1"
 SIMILARITY="cosine" # "cosine" or "L2"
 
 # training arguments
-EPOCHS="10"
-BATCH_SIZE="64"
-ACCUM_STEPS="1"
+EPOCHS="5"
+BATCH_SIZE="28"
+ACCUM_STEPS="2"
 LEARNING_RATE="5e-6"
 WARMUP_EPOCHS="1"
-WARMUP_START_FACTOR="0.1"
+WARMUP_START_FACTOR="0.05"
 SEED="125"
 NUM_EVAL_PER_EPOCH="6"
 CHECKPOINTS_PER_EPOCH="2"
@@ -65,7 +66,6 @@ TENSORBOARD_PATH="../runs"
 # this is also the recommended way of loading the colbertv2 weights
 # CHECKPOINT="../../checkpoints/harry_potter_bert_2023-05-31T15:10:52/epoch1_2_loss0.1793_mrr0.9658_acc93.171/"
 # CHECKPOINT="../../data/colbertv2.0/"
-# CHECKPOINT="../../checkpoints/harry_potter_bert_2023-06-03T08:13:49/epoch3_1_loss0.1103_mrr0.9803_acc96.061"
 
 
 
@@ -81,6 +81,7 @@ python3 ../retrieval/training/train.py \
   --triples-path-val "$TRIPLES_PATH_VAL" \
   --doc-maxlen "$DOC_MAXLEN" \
   --query-maxlen "$QUERY_MAXLEN" \
+  --passages-per-query "$PASSAGES_PER_QUERY" \
   --train-workers "$TRAIN_WORKERS" \
   --val-workers "$VAL_WORKERS" \
   --shuffle \
@@ -108,3 +109,4 @@ python3 ../retrieval/training/train.py \
 
 
 deactivate 
+

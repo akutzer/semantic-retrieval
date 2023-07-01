@@ -206,7 +206,7 @@ class ColBERT(nn.Module):
                 # calculate squared l2 norm
                 # we need to negate, since we later want to maximize the similarity,
                 # and the closer they are, the smaller is the distance between two vectors
-                sim = -1.0 * (Q.unsqueeze(-2) - D.unsqueeze(-3)).pow(2).sum(dim=-1)
+                sim = -1.0 * torch.cdist(Q, D, p=2)
             elif self.config.similarity.lower() == "cosine":
                 # since the vectors are already normed, calculating the dot product
                 # gives the cosine similarity
@@ -353,7 +353,7 @@ class ColBERT(nn.Module):
         # use the default config, if loading the model's config was unsuccessful
         # and the given config was None
         if not config:
-            logging.warning("colbert_config.json does not exist, loading default config.")
+            logging.warning("`colbert_config.json` does not exist, loading default config! This warning can be ignored when using the ColBERTv2 checkpoint.")
             config = BaseConfig()
 
         # get randomly initialized model, it's parameters will be overridden later
