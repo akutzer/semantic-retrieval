@@ -134,7 +134,7 @@ def visualize_for_specific_word_in_question(inference: ColBERTInference, query: 
     # select the first word:
     topk_token_sim, topk_token_idx = topk_token_sim[word_index+2], topk_token_idx[word_index+2]
     # calculate sim (makes no sence when only the first word is selected)
-    sim = np.mean(topk_token_sim[..., 0])
+    #sim = np.mean(topk_token_sim[..., 0])
 
     topk_token_idx, topk_token_sim = topk_token_idx.flatten(), topk_token_sim.flatten()
 
