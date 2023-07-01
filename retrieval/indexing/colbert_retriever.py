@@ -83,7 +83,7 @@ class ColBERTRetriever:
                 Qs = Qs[None]
 
             # for each query embedding vector, search for the best k_hat index vectors in the passages embedding matrix
-            k_hat = math.ceil(k / 5)  # math.ceil(k / 2)
+            k_hat = math.ceil(k / 20)  # math.ceil(k / 2)
             batch_sim, batch_iids = self.indexer.search(Qs, k=k_hat)  # both: (B, L_q, k_hat)
 
             # for each query get the PIDs containing the best index vectors
@@ -114,7 +114,7 @@ class ColBERTRetriever:
                 topk_pids = pids[topk_indices]
                 reranked_pids.append((topk_sims, topk_pids))
 
-        return reranked_pids
+        return reranked_pids, k_hat
 
     def to(self, device: Optional[Union[str, torch.device]] = None, dtype: Optional[torch.dtype] = None) -> None:
         if isinstance(device, str):
@@ -217,3 +217,4 @@ if __name__ == "__main__":
 
     print("MRR@10:", round((100 * mrr_10.item()) / len(dataset), 3))
     print("MRR@100:", round((100 * mrr_100.item()) / len(dataset), 3))
+
