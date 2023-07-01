@@ -270,11 +270,10 @@ if __name__ == "__main__":
     colbert, tokenizer = load_colbert_and_tokenizer(config.checkpoint_path)
     print(colbert.config)
     inference = ColBERTInference(colbert, tokenizer)
-    retriever = ColBERTRetriever(inference, device=config.device, passages=dataset.passages)
-
     if args.embedding_only:
         inference = inference_to_embedding(inference, just_word_emb=False, layer_norm=True)
         print(inference.colbert)
+    retriever = ColBERTRetriever(inference, device=config.device, passages=dataset.passages)
 
     if config.index_path is not None:
         retriever.indexer.load(config.index_path)

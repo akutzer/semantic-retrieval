@@ -228,7 +228,7 @@ class ColBERTTokenizer:
             config = load_config(config_path)
         if not config:
             logging.basicConfig(level=logging.WARNING, format="[%(asctime)s][%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
-            logging.warning("colbert_config.json does not exist, loading default config.")
+            logging.warning("`colbert_config.json` does not exist, loading default config! This warning can be ignored when using the ColBERTv2 checkpoint.")
             config = BaseConfig()
 
         # load the tokenizers's parameters if available
