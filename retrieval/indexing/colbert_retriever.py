@@ -135,6 +135,9 @@ if __name__ == "__main__":
     # enable TensorFloat32 tensor cores for float32 matrix multiplication if available
     torch.set_float32_matmul_precision("high")
 
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
     INDEX_PATH = "../../data/ms_marco/ms_marco_v1_1/val/passages.indices.pt"
     CHECKPOINT_PATH = "../../data/colbertv2.0/"  # or "../../checkpoints/harry_potter_bert_2023-06-03T08:58:15/epoch3_2_loss0.1289_mrr0.9767_acc95.339/"
 

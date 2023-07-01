@@ -353,7 +353,7 @@ class ColBERT(nn.Module):
         # use the default config, if loading the model's config was unsuccessful
         # and the given config was None
         if not config:
-            logging.warning("colbert_config.json does not exist, loading default config.")
+            logging.warning("`colbert_config.json` does not exist, loading default config! This warning can be ignored when using the ColBERTv2 checkpoint.")
             config = BaseConfig()
 
         # get randomly initialized model, it's parameters will be overridden later
