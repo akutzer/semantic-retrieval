@@ -124,9 +124,9 @@ def evaluate_colbert(retriever: ColBERTRetriever, dataset: TripleDataset, config
     # tf_idf_recall_25, tf_idf_recall_50, tf_idf_recall_100, tf_idf_recall_200 = 0, 0, 0, 0
     # tf_idf_recall_1000, tf_idf_mrr_5, tf_idf_mrr_10, tf_idf_mrr_100 = 0, 0, 0, 0
 
-    # rerank_recall_1, rerank_recall_3, rerank_recall_5, rerank_recall_10 = 0, 0, 0, 0
-    # rerank_recall_25, rerank_recall_50, rerank_recall_100, rerank_recall_200 = 0, 0, 0, 0
-    # rerank_recall_1000, rerank_mrr_5, rerank_mrr_10, rerank_mrr_100 = 0, 0, 0, 0
+    rerank_recall_1, rerank_recall_3, rerank_recall_5, rerank_recall_10 = 0, 0, 0, 0
+    rerank_recall_25, rerank_recall_50, rerank_recall_100, rerank_recall_200 = 0, 0, 0, 0
+    rerank_recall_1000, rerank_mrr_5, rerank_mrr_10, rerank_mrr_100 = 0, 0, 0, 0
 
     full_recall_1, full_recall_3, full_recall_5, full_recall_10 = 0, 0, 0, 0
     full_recall_25, full_recall_50, full_recall_100, full_recall_200 = 0, 0, 0, 0
@@ -148,9 +148,9 @@ def evaluate_colbert(retriever: ColBERTRetriever, dataset: TripleDataset, config
     qids_batch = []
     query_batch = []
     # tf_idf_qids_visit = np.zeros(datalen, dtype=bool)
-    # rerank_qids_visit = np.zeros(datalen, dtype=bool)
+    rerank_qids_visit = np.zeros(datalen, dtype=bool)
     full_qids_visit = np.zeros(datalen, dtype=bool)
-    print(qrels)
+    # print(qrels)
     dataset.triples.data = dataset.triples.data.iloc[::-1]
 
     # min_index = qrels['QID'].min()
@@ -181,9 +181,9 @@ def evaluate_colbert(retriever: ColBERTRetriever, dataset: TripleDataset, config
         if len(query_batch) == config.batch_size or i + 1 == len(dataset):
             with torch.autocast(retriever.device.type):
                 # tf_idf_pids = retriever.tf_idf_rank(query_batch, config.k)
-                # rerank_pids = retriever.rerank(query_batch, config.k)
+                rerank_pids = retriever.rerank(query_batch, config.k)
                 full_pids, k_hat = retriever.full_retrieval(query_batch, config.k)
-                if i <= 50:
+                if i <= 20:
                     print('k_hat', k_hat)
 
             # tf_idf_qids_visit, tf_idf_recall_1, tf_idf_recall_3, tf_idf_recall_5, tf_idf_recall_10, tf_idf_recall_25, tf_idf_recall_50, tf_idf_recall_100, tf_idf_recall_200, tf_idf_recall_1000, tf_idf_mrr_5, tf_idf_mrr_10, tf_idf_mrr_100 = evaluate(tf_idf_pids, tf_idf_qids_visit, qids_batch, qrels, 
@@ -191,10 +191,10 @@ def evaluate_colbert(retriever: ColBERTRetriever, dataset: TripleDataset, config
             #          tf_idf_recall_25, tf_idf_recall_50, tf_idf_recall_100, tf_idf_recall_200, 
             #          tf_idf_recall_1000, tf_idf_mrr_5, tf_idf_mrr_10, tf_idf_mrr_100)
             
-            # rerank_qids_visit, rerank_recall_1, rerank_recall_3, rerank_recall_5, rerank_recall_10, rerank_recall_25, rerank_recall_50, rerank_recall_100, rerank_recall_200, rerank_recall_1000, rerank_mrr_5, rerank_mrr_10, rerank_mrr_100 = evaluate(rerank_pids, rerank_qids_visit, qids_batch, qrels, 
-            #          rerank_recall_1, rerank_recall_3, rerank_recall_5, rerank_recall_10,
-            #          rerank_recall_25, rerank_recall_50, rerank_recall_100, rerank_recall_200, 
-            #          rerank_recall_1000, rerank_mrr_5, rerank_mrr_10, rerank_mrr_100)    
+            rerank_qids_visit, rerank_recall_1, rerank_recall_3, rerank_recall_5, rerank_recall_10, rerank_recall_25, rerank_recall_50, rerank_recall_100, rerank_recall_200, rerank_recall_1000, rerank_mrr_5, rerank_mrr_10, rerank_mrr_100 = evaluate(rerank_pids, rerank_qids_visit, qids_batch, qrels, 
+                     rerank_recall_1, rerank_recall_3, rerank_recall_5, rerank_recall_10,
+                     rerank_recall_25, rerank_recall_50, rerank_recall_100, rerank_recall_200, 
+                     rerank_recall_1000, rerank_mrr_5, rerank_mrr_10, rerank_mrr_100)    
                     
             full_qids_visit, full_recall_1, full_recall_3, full_recall_5, full_recall_10, full_recall_25, full_recall_50, full_recall_100, full_recall_200, full_recall_1000, full_mrr_5, full_mrr_10, full_mrr_100 = evaluate(full_pids, full_qids_visit, qids_batch, qrels,
                      full_recall_1, full_recall_3, full_recall_5, full_recall_10, 
@@ -220,21 +220,21 @@ def evaluate_colbert(retriever: ColBERTRetriever, dataset: TripleDataset, config
     # print("MRR@100:", round((100 * tf_idf_mrr_100.item()) / len(dataset), 3))
     # print("") 
 
-    # print("rerank_retrieval:")
-    # print("Recall@1:", round((100 * rerank_recall_1) / len(qrels), 3))
-    # print("Recall@3:", round((100 * rerank_recall_3) / len(qrels), 3))
-    # print("Recall@5:", round((100 * rerank_recall_5) / len(qrels), 3))
-    # print("Recall@10:", round((100 * rerank_recall_10) / len(qrels), 3))
-    # print("Recall@25:", round((100 * rerank_recall_25) / len(qrels), 3))
-    # print("Recall@50:", round((100 * rerank_recall_50) / len(qrels), 3))
-    # print("Recall@100:", round((100 * rerank_recall_100) / len(qrels), 3))
-    # print("Recall@200:", round((100 * rerank_recall_200) / len(qrels), 3))
-    # print("Recall@1000:", round((100 * rerank_recall_1000) / len(qrels), 3))
+    print("rerank_retrieval:")
+    print("Recall@1:", round((100 * rerank_recall_1) / len(qrels), 3))
+    print("Recall@3:", round((100 * rerank_recall_3) / len(qrels), 3))
+    print("Recall@5:", round((100 * rerank_recall_5) / len(qrels), 3))
+    print("Recall@10:", round((100 * rerank_recall_10) / len(qrels), 3))
+    print("Recall@25:", round((100 * rerank_recall_25) / len(qrels), 3))
+    print("Recall@50:", round((100 * rerank_recall_50) / len(qrels), 3))
+    print("Recall@100:", round((100 * rerank_recall_100) / len(qrels), 3))
+    print("Recall@200:", round((100 * rerank_recall_200) / len(qrels), 3))
+    print("Recall@1000:", round((100 * rerank_recall_1000) / len(qrels), 3))
 
-    # print("MRR@5:", round((100 * rerank_mrr_5.item()) / len(qrels), 3))
-    # print("MRR@10:", round((100 * rerank_mrr_10.item()) / len(qrels), 3))
-    # print("MRR@100:", round((100 * rerank_mrr_100.item()) / len(qrels), 3))
-    # print("")
+    print("MRR@5:", round((100 * rerank_mrr_5.item()) / len(qrels), 3))
+    print("MRR@10:", round((100 * rerank_mrr_10.item()) / len(qrels), 3))
+    print("MRR@100:", round((100 * rerank_mrr_100.item()) / len(qrels), 3))
+    print("")
 
     print("full_retrieval:")
     print("Recall@1:", round((100 * full_recall_1) / len(qrels), 3))
@@ -293,5 +293,6 @@ if __name__ == "__main__":
         retriever.indexer = index(inference, config)
     
     evaluate_colbert(retriever, dataset, config)
+
 
 
