@@ -117,17 +117,35 @@ class ColBERTIndexer(IndexerInterface):
             query = query[None]
         query = query.to(dtype=self.dtype)  # query shape: (B, L_q, D)
 
-        # print('11111111',self.similarity)
+        # non iterative l2 calculation
+        # if self.similarity == "l2":
+            # sim = -1.0 * torch.cdist(query, self.embeddings, p=2)
+            # shape: (B, L_q, N_embs)
+
+        # iterative l2 calculation which is slower but more memory efficient
         if self.similarity == "l2":
-            # print('22222222',self.similarity)
-            sim = -1.0 * (query.unsqueeze(-2) - self.embeddings.unsqueeze(-3)).pow(2).sum(dim=-1)
-            # sim = -1.0 * torch.norm(query - self.embeddings, ord=2, dim=-1) # shape: (B * L_q, N_embs)
-            # sim shape: (B * L_q, N_embs)            
+            B, L_q, D = query.shape
+            N_emb = self.embeddings.shape[0]
+            # divide the embedding matrix into smaller chunks
+            chunk_size = 1_000_000  # adjust this value according to your memory constraints
+            chunks = (N_emb + chunk_size - 1) // chunk_size
+
+            # preallocate the sim tensor
+            sim = torch.zeros(B, L_q, N_emb, dtype=self.dtype, device=query.device)
+
+            for i in range(chunks):
+                start_idx = i * chunk_size
+                end_idx = min((i + 1) * chunk_size, N_emb)
+
+                # compute similarity for the current chunk
+                embeddings_chunk = self.embeddings[start_idx:end_idx, :]
+                sim_chunk = -1.0 * torch.cdist(query, embeddings_chunk, p=2.0)
+
+                sim[:, :, start_idx:end_idx] = sim_chunk
+
         elif self.similarity == "cosine":
-            # print('33333333',self.similarity)
             sim = query @ self.embeddings.mT  # shape: (B, L_q, N_embs)
         else:
-            # print('44444444',self.similarity)
             raise ValueError()
 
         topk_sim, topk_iids = sim.topk(k, dim=-1)  # both shapes: (B, L_q, k)

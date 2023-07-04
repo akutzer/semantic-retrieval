@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 from retrieval.configs import BaseConfig
 from retrieval.data import TripleDataset
-from retrieval.models import ColBERTInference, load_colbert_and_tokenizer
+from retrieval.models import ColBERTInference, load_colbert_and_tokenizer, inference_to_embedding
 from retrieval.indexing import ColBERTRetriever, index
 
 
@@ -150,22 +150,8 @@ def evaluate_colbert(retriever: ColBERTRetriever, dataset: TripleDataset, config
     # tf_idf_qids_visit = np.zeros(datalen, dtype=bool)
     rerank_qids_visit = np.zeros(datalen, dtype=bool)
     full_qids_visit = np.zeros(datalen, dtype=bool)
-    # print(qrels)
-    dataset.triples.data = dataset.triples.data.iloc[::-1]
-
-    # min_index = qrels['QID'].min()
-    # max_index = qrels['QID'].max()
-    # all_indices = set(range(min_index, max_index + 1))
-    # existing_qids = set(qrels['QID'])
-    # missing_qids = all_indices - existing_qids
-
-    # print(missing_qids)
-
-
-
     
     for i, triple in enumerate(tqdm(dataset)):
-
         if config.dataset_mode=="QPP":
             qid, pid_pos, *pid_neg = triple
             query, psg_pos, *psg_neg = dataset.id2string(triple)
@@ -268,6 +254,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch-size", type=int, default=8, help="Batch size for used during the retrieval process")
     parser.add_argument("--dtype", type=str, default="FP16", choices=["FP16", "FP32", "FP64"], help="Floating-point precision of the indices")
     parser.add_argument("--k", type=int, default=100, help="Number of top-k passages that should be retrieved")
+    parser.add_argument("--embedding-only", action="store_true", help="This used only the word embedding layer of the ColBERT model")
 
     args = parser.parse_args()
     config = argparser2retrieval_config(args)
@@ -284,6 +271,9 @@ if __name__ == "__main__":
     colbert, tokenizer = load_colbert_and_tokenizer(config.checkpoint_path)
     print(colbert.config)
     inference = ColBERTInference(colbert, tokenizer)
+    if args.embedding_only:
+        inference = inference_to_embedding(inference, just_word_emb=False, layer_norm=True)
+        print(inference.colbert)
     retriever = ColBERTRetriever(inference, device=config.device, passages=dataset.passages)
 
     if config.index_path is not None:
