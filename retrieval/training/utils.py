@@ -8,6 +8,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from retrieval.configs import BaseConfig
+from retrieval.models import ColBERT
 
 
 def seed(seed: int = 125):
@@ -133,3 +134,18 @@ def load_grad_scaler_checkpoint(directory: str, scaler: torch.cuda.amp.GradScale
         )
     
     return scaler
+
+
+def freeze_until_layer(colbert: ColBERT, layer: int):
+    """
+    Freezes the backbone weights up to a certain layer.
+    """
+    freeze_parameters = ["embeddings"] + [f"encoder.layer.{i}." for i in range(1, layer + 1)]
+
+    for para_name, parameters in colbert.backbone.named_parameters():
+        for freeze_para in freeze_parameters:
+            if freeze_para in para_name:
+                parameters.requires_grad = False
+                break
+
+    return colbert

@@ -16,6 +16,7 @@ from retrieval.training.utils import (
     load_optimizer_checkpoint,
     load_scheduler_checkpoint,
     load_grad_scaler_checkpoint,
+    freeze_until_layer,
 )
 
 
@@ -98,9 +99,14 @@ def train(args):
         )
     else:
         colbert, tokenizer = get_colbert_and_tokenizer(config, device)
+    
     logging.info("Loaded ColBERT!")
     logging.info(tokenizer)
     logging.info(colbert)
+
+    if args.freeze_until_layer:
+        logging.info(f"Freezing ColBERT weight up to layer {args.freeze_until_layer}!")
+        colbert = freeze_until_layer(colbert, layer=args.freeze_until_layer)
 
     train_dataset = TripleDataset(
         config,
@@ -332,6 +338,7 @@ if __name__ == "__main__":
     model_args.add_argument("--similarity", type=str, choices=["cosine", "L2"], default="cosine", help="Similarity function")
     model_args.add_argument("--normalize", action="store_true", help="Normalize the embeddings")
     model_args.add_argument("--checkpoint", type=str, help="Path of the checkpoint which should be loaded")
+    model_args.add_argument("--freeze-until-layer", type=int, help="Number of layers that should not be trained")
 
     # Training arguments
     training_args = parser.add_argument_group("Training Arguments")
