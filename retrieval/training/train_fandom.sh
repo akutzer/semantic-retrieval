@@ -23,6 +23,7 @@ BACKBONE="bert-base-uncased" # "bert-base-uncased" or "../../data/colbertv2.0/" 
 DIM="128"
 DROPOUT="0.1"
 SIMILARITY="cosine" # "cosine" or "L2"
+FREEZE_UNTIL_LAYER="0"
 
 # training arguments
 EPOCHS="10"
@@ -83,3 +84,4 @@ python3 train.py \
   --warmup-epochs "$WARMUP_EPOCHS"\
   --warmup-start-factor "$WARMUP_START_FACTOR"\
   --checkpoint "$CHECKPOINT"\
+  --freeze-until-layer "$FREEZE_UNTIL_LAYER"\
