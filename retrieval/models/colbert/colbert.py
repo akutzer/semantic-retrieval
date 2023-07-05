@@ -200,12 +200,13 @@ class ColBERT(nn.Module):
         L_d - number of embeddings per document
         F   - dimension of an embedding vector (number of features)
         """
+        Q = Q.to(dtype=D.dtype)
         if not intra_batch:
             if self.config.similarity.lower() == "l2":
                 # calculate squared l2 norm
                 # we need to negate, since we later want to maximize the similarity,
                 # and the closer they are, the smaller is the distance between two vectors
-                sim = -1.0 * (Q.unsqueeze(-2) - D.unsqueeze(-3)).pow(2).sum(dim=-1)
+                sim = -1.0 * torch.cdist(Q, D, p=2).pow(2)
             elif self.config.similarity.lower() == "cosine":
                 # since the vectors are already normed, calculating the dot product
                 # gives the cosine similarity
@@ -289,13 +290,13 @@ class ColBERT(nn.Module):
                 mask = ~is_pad_token
         return mask
     
-    def to(self, device: Union[str, torch.device]) -> None:
+    def to(self, device: Optional[Union[str, torch.device]] = None, dtype: Optional[torch.dtype] = None) -> None:
         if isinstance(device, str):
             device = torch.device(device)
         self.device = device
         if self.skiplist is not None:
             self.skiplist = self.skiplist.to(device=device)
-        super().to(device=device)
+        super().to(device=device, dtype=dtype)
 
     def register_tokenizer(self, tokenizer: ColBERTTokenizer) -> None:
         """
@@ -352,7 +353,7 @@ class ColBERT(nn.Module):
         # use the default config, if loading the model's config was unsuccessful
         # and the given config was None
         if not config:
-            logging.warning("colbert_config.json does not exist, loading default config.")
+            logging.warning("`colbert_config.json` does not exist, loading default config! This warning can be ignored when using the ColBERTv2 checkpoint.")
             config = BaseConfig()
 
         # get randomly initialized model, it's parameters will be overridden later
@@ -420,7 +421,7 @@ class ColBERT(nn.Module):
             if "pytorch_model" in file or ".pt" in file or ".pth" in file:
                 try:
                     with open(path_to_weights, mode="br") as f:
-                        parameters = torch.load(f)
+                        parameters = torch.load(f, map_location=self.device)
 
                     if "linear.weight" in parameters.keys():
                         weights = parameters["linear.weight"]

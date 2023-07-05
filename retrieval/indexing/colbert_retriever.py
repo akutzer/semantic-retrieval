@@ -34,7 +34,7 @@ class ColBERTRetriever:
         batch_sims, batch_pids = self.tfidf.batchBestKPIDs(query, k)  # shape: (B, k)
         batch_pids = torch.tensor(batch_pids, dtype=torch.int32)
         batch_sims = torch.tensor(batch_sims)
-        return zip(batch_sims, batch_pids)
+        return list(zip(batch_sims, batch_pids))
 
     def rerank(self, query: List[str], k: int):
         with torch.inference_mode():
@@ -73,7 +73,7 @@ class ColBERTRetriever:
 
             reranked_pids = zip(topk_sims, topk_pids)
 
-        return reranked_pids
+        return list(reranked_pids)
 
     def full_retrieval(self, query: List[str], k: int):
         with torch.inference_mode():
@@ -83,7 +83,7 @@ class ColBERTRetriever:
                 Qs = Qs[None]
 
             # for each query embedding vector, search for the best k_hat index vectors in the passages embedding matrix
-            k_hat = math.ceil(k / 2)  # math.ceil(k/10)
+            k_hat = math.ceil(k / 2)  # math.ceil(k / 10)
             batch_sim, batch_iids = self.indexer.search(Qs, k=k_hat)  # both: (B, L_q, k_hat)
 
             # for each query get the PIDs containing the best index vectors
@@ -112,16 +112,16 @@ class ColBERTRetriever:
                 k_ = min(sms.shape[0], k)
                 topk_sims, topk_indices = torch.topk(sms, k=k_)
                 topk_pids = pids[topk_indices]
-                reranked_pids.append([topk_sims, topk_pids])
+                reranked_pids.append((topk_sims, topk_pids))
 
         return reranked_pids
 
-    def to(self, device: Union[str, torch.device]) -> None:
+    def to(self, device: Optional[Union[str, torch.device]] = None, dtype: Optional[torch.dtype] = None) -> None:
         if isinstance(device, str):
             device = torch.device(device)
         self.device = device
-        self.inference.to(self.device)
-        self.indexer.to(self.device)
+        self.inference.to(self.device, dtype=dtype)
+        self.indexer.to(self.device, dtype=dtype)
 
 
 if __name__ == "__main__":
@@ -134,6 +134,9 @@ if __name__ == "__main__":
 
     # enable TensorFloat32 tensor cores for float32 matrix multiplication if available
     torch.set_float32_matmul_precision("high")
+
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
     INDEX_PATH = "../../data/ms_marco/ms_marco_v1_1/val/passages.indices.pt"
     CHECKPOINT_PATH = "../../data/colbertv2.0/"  # or "../../checkpoints/harry_potter_bert_2023-06-03T08:58:15/epoch3_2_loss0.1289_mrr0.9767_acc95.339/"

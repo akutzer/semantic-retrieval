@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+
 import glob
 import os
 import tqdm
@@ -7,9 +7,13 @@ import json
 import shutil
 import re
 
-preprocessed_qa_json_path_dir = '../../data/fandoms_qa/'
-output_path_dir = "../../data/fandoms_qa/"
+# preprocessed_qa_json_path_dir = '../../data/fandoms_qa/'
+# output_path_dir = "../../data/fandoms_qa/"
 
+#'../../data/humanfandoms/'
+
+preprocessed_qa_json_path_dir = '../../data/humanfandoms/final/'
+output_path_dir = '../../data/humanfandoms/final/'
 
 def transform_triple(df, len_p,len_q):
     return df
@@ -80,9 +84,10 @@ if __name__ == "__main__":
         pid_id = 0
         for file in os.listdir(preprocessed_qa_json_path_dir):
             if file.endswith(".json"):
+
                 current_frac = 0
                 f = file
-
+                print(preprocessed_qa_json_path_dir + f)
                 df2 = pd.read_json(preprocessed_qa_json_path_dir + f, orient ='records')
 
 
@@ -132,6 +137,8 @@ if __name__ == "__main__":
 
 
                         for k in range(min(len(row['positive'][j]), len(row['negative'][j]))):
+                            print(row['positive'][j][k])
+                            print(row['negative'][j][k])
                             if re.findall(REGEX_STRING,row['positive'][j][k]) and re.findall(REGEX_STRING,row['negative'][j][k]):
                                 # added to not include passages where information was lost due to wikiextractor
                                 queries.append(row['positive'][j][k])
@@ -232,6 +239,8 @@ if __name__ == "__main__":
     for root, dirs, files in os.walk(output_path_dir):
         for file in sorted(files)[::-1]:
             path = os.path.join(root, file)
+            if 'witcher' in path:
+                continue
 
             if path.endswith('train/passages.tsv'):
                 i, j = (0,0)
@@ -300,7 +309,7 @@ if __name__ == "__main__":
                 wikis[2] = wikis[2] | transform_wiki(json_f, len_p)
 
     os.makedirs(output_path_dir + '/fandoms_all', exist_ok=True)
-    dirs = [output_path_dir + '/fandoms_all/test/', output_path_dir + '/fandoms_all/train/', output_path_dir + '/fandoms_all/val/']
+    dirs = [output_path_dir + '/fandoms_all/train/', output_path_dir + '/fandoms_all/test/', output_path_dir + '/fandoms_all/val/']
     for dire in dirs:
         os.makedirs(dire, exist_ok=True)
     for i in range(3):
@@ -311,7 +320,7 @@ if __name__ == "__main__":
             json.dump(wikis[i], f, indent=4)
 
     
-    dir = '../../data/fandoms_qa/'
+    dir = output_path_dir
     subfolders = [ f.path for f in os.scandir(dir) if f.is_dir() ]
 
     for folder in subfolders:

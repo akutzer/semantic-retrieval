@@ -12,11 +12,11 @@ from retrieval.indexing.colbert_indexer import ColBERTIndexer
 class IndexConfig:
     passages_path: str
     checkpoint_path: str
-    index_path: str
-    use_gpu: bool
-    device: str
-    dtype: torch.dtype = torch.float16
+    index_path: str = ""
     batch_size: int = 8
+    use_gpu: bool = False
+    device: str = torch.device("cpu")
+    dtype: torch.dtype = torch.float16    
 
 
 def argparser2index_config(args):

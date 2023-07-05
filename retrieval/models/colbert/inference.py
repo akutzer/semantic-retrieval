@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import math
 from typing import List, Union, Optional
+import copy
 
 import torch
 from tqdm import tqdm
@@ -154,11 +155,11 @@ class ColBERTInference:
         model.to(device)
         return model
 
-    def to(self, device: Union[str, torch.device]) -> None:
+    def to(self, device: Optional[Union[str, torch.device]] = None, dtype: Optional[torch.dtype] = None) -> None:
         if isinstance(device, str):
             device = torch.device(device)
         self.device = device
-        self.colbert.to(device=device)
+        self.colbert.to(device=device, dtype=dtype)
 
 
 def inference_to_embedding(inference: ColBERTInference, just_word_emb: bool = False, layer_norm: bool = True):
@@ -167,27 +168,29 @@ def inference_to_embedding(inference: ColBERTInference, just_word_emb: bool = Fa
     class EmbeddingWrapper(torch.nn.Module):
         def __init__(self, emb):
             super().__init__()
-            self.emb = emb
+            self.embeddings = emb
 
         def forward(self, x, attention_mask):
-            return [self.emb(x)]
+            return [self.embeddings(x)]
 
-    inference.colbert.out_features = inference.colbert.backbone.embeddings.word_embeddings.embedding_dim
+    inference_ = copy.deepcopy(inference)
+    inference_.colbert.out_features = inference_.colbert.backbone.embeddings.word_embeddings.embedding_dim
     if just_word_emb:
-        inference.colbert.backbone = EmbeddingWrapper(inference.colbert.backbone.embeddings.word_embeddings)
+        inference_.colbert.backbone = EmbeddingWrapper(inference_.colbert.backbone.embeddings.word_embeddings)
     else:
-        inference.colbert.backbone = EmbeddingWrapper(inference.colbert.backbone.embeddings)
+        inference_.colbert.backbone = EmbeddingWrapper(inference_.colbert.backbone.embeddings)
         if not layer_norm:
-            inference.colbert.backbone.emb.LayerNorm = torch.nn.Identity()
-    inference.colbert.linear = torch.nn.Identity()
+            inference_.colbert.backbone.embeddings.LayerNorm = torch.nn.Identity()
+        inference_.colbert.backbone.embeddings.dropout.p = 0.
 
-    return inference
+    inference_.colbert.linear = torch.nn.Identity()    
+    inference_.colbert.eval()
+
+    return inference_
 
 
 
 if __name__ == "__main__":
-    from tqdm import tqdm
-
     queries = ["Hi, how are you today?", "Wow, Where do you live?"]
     passages = ["I'm ... let me think ... great!", "Nowhere, brudi.", "ooohhh noooo..."]
 

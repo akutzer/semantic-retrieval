@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import logging
-from typing import Union, List, Tuple
+from typing import Optional, Union, List, Tuple
 import torch
 
 from retrieval.models import ColBERTInference
@@ -28,7 +28,7 @@ class ColBERTIndexer(IndexerInterface):
 
         self.inference = inference
         self.inference.to(device)
-        self.similarity = self.inference.colbert.config.similarity
+        self.similarity = self.inference.colbert.config.similarity.lower()
 
         self.embeddings = torch.tensor([], device=self.device, dtype=self.dtype)
         self.iid2pid = torch.empty(0, device=self.device, dtype=torch.int32)
@@ -115,14 +115,33 @@ class ColBERTIndexer(IndexerInterface):
         # add batch dimension
         if query.dim() == 2:
             query = query[None]
-        query = query.to(dtype=self.dtype)
-        # query shape: (B, L_q, D)
+        query = query.to(dtype=self.dtype)  # query shape: (B, L_q, D)
 
-        # TODO: use similarity from model config
+        # non iterative l2 calculation
+        # if self.similarity == "l2":
+            # sim = -1.0 * torch.cdist(query, self.embeddings, p=2)
+            # shape: (B, L_q, N_embs)
+
+        # iterative l2 calculation which is slower but more memory efficient
         if self.similarity == "l2":
-            sim = -1.0 * (query.unsqueeze(-2) - self.embeddings.unsqueeze(-3)).pow(2).sum(dim=-1)
-            # sim = -1.0 * torch.norm(query - self.embeddings, ord=2, dim=-1) # shape: (B * L_q, N_embs)
-            # sim shape: (B * L_q, N_embs)            
+            B, L_q, D = query.shape
+            N_emb = self.embeddings.shape[0]
+            # divide the embedding matrix into smaller chunks
+            chunk_size = 1_000_000  # adjust this value according to your memory constraints
+            chunks = (N_emb + chunk_size - 1) // chunk_size
+
+            # preallocate the sim tensor
+            sim = torch.zeros(B, L_q, N_emb, dtype=self.dtype, device=query.device)
+
+            for i in range(chunks):
+                start_idx = i * chunk_size
+                end_idx = min((i + 1) * chunk_size, N_emb)
+
+                # compute similarity for the current chunk
+                embeddings_chunk = self.embeddings[start_idx:end_idx, :]
+                sim_chunk = -1.0 * torch.cdist(query, embeddings_chunk, p=2.0).pow(2)
+
+                sim[:, :, start_idx:end_idx] = sim_chunk
 
         elif self.similarity == "cosine":
             sim = query @ self.embeddings.mT  # shape: (B, L_q, N_embs)
@@ -171,14 +190,14 @@ class ColBERTIndexer(IndexerInterface):
         torch.save(parameters, path)
 
     def load(self, path: str):
-        parameters = torch.load(path)
+        parameters = torch.load(path, map_location=self.device)
         self.iid2pid = parameters["iid2pid"].to(self.device)
         self.pid2iid = parameters["pid2iid"].to(self.device)
         self.embeddings = parameters["embeddings"].to(self.device)
         self.offset = parameters["offset"]
         self.dtype = self.embeddings.dtype
         logging.info(
-            f"Successfully loaded the precomputed indices. Changed dtype to {self.dtype}!"
+            f"Successfully loaded the precomputed indices. Set dtype to {self.dtype}!"
         )
 
     def _new_passages(
@@ -205,15 +224,16 @@ class ColBERTIndexer(IndexerInterface):
 
         return passages_, pids_
 
-    def to(self, device: Union[str, torch.device]) -> None:
+    def to(self, device: Optional[Union[str, torch.device]] = None, dtype: Optional[torch.dtype] = None) -> None:
         if isinstance(device, str):
             device = torch.device(device)
         self.device = device
+        self.dtype = dtype
 
-        self.inference.to(self.device)
-        self.embeddings = self.embeddings.to(self.device)
-        self.iid2pid = self.iid2pid.to(self.device)
-        self.pid2iid = self.pid2iid.to(self.device)
+        self.inference.to(device=self.device, dtype=dtype)
+        self.embeddings = self.embeddings.to(device=self.device, dtype=dtype)
+        self.iid2pid = self.iid2pid.to(device=self.device)
+        self.pid2iid = self.pid2iid.to(device=self.device)
 
 
 if __name__ == "__main__":
@@ -312,3 +332,4 @@ if __name__ == "__main__":
         for sim, pid in zip(values, sorted_pids[:10]):
             print(round(sim.item(), 3), pid.item(), passages[pid.item()])
         print(end="\n\n\n")
+
