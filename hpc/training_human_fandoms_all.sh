@@ -7,9 +7,9 @@
 #SBATCH --gres=gpu:1            # number of GPUs
 #SBATCH --mem=32G
 #SBATCH -A p_sp_bigdata         # name of the associated project
-#SBATCH -J "training_final_fandoms_all_wo_opt_job"  # name of the job
-#SBATCH --output="logs/training_final_fandoms_all_wo_opt_job-%j.out"    # output file name (std out)
-#SBATCH --error="logs/training_final_fandoms_all_wo_opt_job-%j.err"     # error file name (std err)
+#SBATCH -J "training_human_fandoms_all_wo_opt_job"  # name of the job
+#SBATCH --output="logs/training_human_fandoms_all_wo_opt_job-%j.out"    # output file name (std out)
+#SBATCH --error="logs/training_human_fandoms_all_wo_opt_job-%j.err"     # error file name (std err)
 #SBATCH --mail-user="tommy.nguyen@mailbox.tu-dresden.de" # will be used to used to update you about the state of your$
 #SBATCH --mail-type ALL
 
@@ -24,11 +24,11 @@ source /scratch/ws/0/tong623c-tommy-workspace/env/bin/activate
 
 # Set the arguments for the Python script:
 # dataset arguments
-DATASET_NAME="final_fandoms_all"
+DATASET_NAME="human_fandoms_all_wo_opt"
 DATASET_MODE="QQP"
-PASSAGES_PATH_TRAIN="../data/fandoms_qa/fandoms_all/train/passages.tsv"
-QUERIES_PATH_TRAIN="../data/fandoms_qa/fandoms_all/train/queries.tsv"
-TRIPLES_PATH_TRAIN="../data/fandoms_qa/fandoms_all/train/triples.tsv"
+PASSAGES_PATH_TRAIN="../data/fandoms_qa/fandoms_all/human_verified/passages.tsv"
+QUERIES_PATH_TRAIN="../data/fandoms_qa/fandoms_all/human_verified/queries.tsv"
+TRIPLES_PATH_TRAIN="../data/fandoms_qa/fandoms_all/human_verified/triples.tsv"
 PASSAGES_PATH_VAL="../data/fandoms_qa/fandoms_all/val/passages.tsv"
 QUERIES_PATH_VAL="../data/fandoms_qa/fandoms_all/val/queries.tsv"
 TRIPLES_PATH_VAL="../data/fandoms_qa/fandoms_all/val/triples.tsv"
@@ -48,7 +48,7 @@ DROPOUT="0.1"
 SIMILARITY="cosine" # "cosine" or "L2"
 
 # training arguments
-EPOCHS="50"
+EPOCHS="20"
 BATCH_SIZE="128"
 ACCUM_STEPS="1"
 LEARNING_RATE="3e-6"
@@ -64,7 +64,7 @@ TENSORBOARD_PATH="../runs"
 # if you want to resuming training from a checkpoint comment out the CHECKPOINT variable 
 # and add the path to the checkpoint
 # this is also the recommended way of loading the colbertv2 weights
-CHECKPOINT="../trained_models/ms_marco_v2_final_24/checkpoints/epoch5_6_loss1.2808_mrr0.6965_acc53.049"
+CHECKPOINT="../checkpoints/final_fandoms_all_roberta_cosine_24_2023-06-28T13:24:24.057/epoch4_1_loss0.0849_mrr0.9844_acc96.942"
 
 
 # Execute the Python script with the provided arguments

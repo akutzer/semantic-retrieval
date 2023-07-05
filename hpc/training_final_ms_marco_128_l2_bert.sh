@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=27:59:00         # walltime
+#SBATCH --time=24:59:00         # walltime
 #SBATCH --nodes=1               # number of nodes
 #SBATCH --ntasks=1	            # limit to one node
 #SBATCH --cpus-per-task=4
@@ -7,10 +7,10 @@
 #SBATCH --gres=gpu:1            # number of GPUs
 #SBATCH --mem=32G
 #SBATCH -A p_sp_bigdata         # name of the associated project
-#SBATCH -J "training_ms_marco_v2_final_128_L2_job"  # name of the job
-#SBATCH --output="logs/training_ms_marco_v2_final_128_L2_job-%j.out"    # output file name (std out)
-#SBATCH --error="logs/training_ms_marco_v2_final_128_L2_job-%j.err"     # error file name (std err)
-#SBATCH --mail-user="aaron.kutzer@mailbox.tu-dresden.de" # will be used to used to update you about the state of your$
+#SBATCH -J "training_ms_marco_v2_final_128_bert_L2_job"  # name of the job
+#SBATCH --output="logs/training_ms_marco_v2_final_128_bert_L2_job-%j.out"    # output file name (std out)
+#SBATCH --error="logs/training_ms_marco_v2_final_128_bert_L2_job-%j.err"     # error file name (std err)
+#SBATCH --mail-user="tommy.nguyen@mailbox.tu-dresden.de" # will be used to used to update you about the state of your$
 #SBATCH --mail-type ALL
 
 # clean current modules
@@ -24,7 +24,7 @@ source /scratch/ws/0/tong623c-tommy-workspace/env/bin/activate
 
 # Set the arguments for the Python script:
 # dataset arguments
-DATASET_NAME="final_ms_marco_v2"
+DATASET_NAME="final_ms_marco_v2_128_L2_bert"
 DATASET_MODE="QPP"
 PASSAGES_PATH_TRAIN="../data/ms_marco/ms_marco_v2_1/train/passages.tsv"
 QUERIES_PATH_TRAIN="../data/ms_marco/ms_marco_v2_1/train/queries.tsv"
@@ -48,7 +48,7 @@ DROPOUT="0.1"
 SIMILARITY="L2" # "cosine" or "L2"
 
 # training arguments
-EPOCHS="9"
+EPOCHS="8"
 BATCH_SIZE="39"
 ACCUM_STEPS="3"
 LEARNING_RATE="3e-6"
