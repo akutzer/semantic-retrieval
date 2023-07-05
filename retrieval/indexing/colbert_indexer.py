@@ -139,7 +139,7 @@ class ColBERTIndexer(IndexerInterface):
 
                 # compute similarity for the current chunk
                 embeddings_chunk = self.embeddings[start_idx:end_idx, :]
-                sim_chunk = -1.0 * torch.cdist(query, embeddings_chunk, p=2.0)
+                sim_chunk = -1.0 * torch.cdist(query, embeddings_chunk, p=2.0).pow(2)
 
                 sim[:, :, start_idx:end_idx] = sim_chunk
 
