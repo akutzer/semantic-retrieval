@@ -112,13 +112,11 @@ def visualize(inference: ColBERTInference, query: str, passage: str, k=1, simila
 
     # get tokens
     tokens = np.array(inference.tokenizer.tokenize(passage, "doc", add_special_tokens=True))
-    # print(tokens.shape, topk_token_idx.shape, k)
-    # print(k,"* 32 = ", topk_token_idx.size, "datapoints used")
-    # print("Max topk index:", topk_token_idx.max())
-    # print("len(tokens):", topk_token_idx.shape)
+    prefix = "Ġ" if "roberta" in inference.colbert.config.tok_name_or_path else "##"
+    # print(inference.tokenizer.tokenize(query, "query"))
 
     #create heatmaps
-    kde_heatmap, count_heatmap, sum_heatmap = html_heatmap(tokens, topk_token_idx, topk_token_sim, plot=False, store=True)
+    kde_heatmap, count_heatmap, sum_heatmap = html_heatmap(tokens, topk_token_idx, topk_token_sim, prefix=prefix, plot=False, store=False)
     
     return kde_heatmap, count_heatmap, sum_heatmap
 
@@ -189,7 +187,7 @@ if __name__ == "__main__":
 
     
 
-    CHECKPOINT_PATH = "../../data/colbertv2.0/"
+    CHECKPOINT_PATH = "../../saves/ms_marco_v2_final_24/checkpoints/epoch5_6_loss1.2808_mrr0.6965_acc53.049/" # "../../data/colbertv2.0/"
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     colbert, tokenizer = load_colbert_and_tokenizer(CHECKPOINT_PATH)
     tokenizer.doc_maxlen = 512

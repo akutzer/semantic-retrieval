@@ -88,11 +88,10 @@ Comparative Study of Classical and Neural Retrieval Methods for FANDOM Wikis
 % }
 
 \author{
-Author 1 \and Author 2 \and Author 3 \and \\
-{\bf Author 4} \and {\bf Author 5} \\
+Aaron Kutzer \and Till Dirschnabel \and Florian Müller?? \and \\
+{\bf Tommy Nguyen??} \and {\bf Zhìwēi ???} \\
 Technische Universität Dresden \\ Dresden, Germany
 }
-
 
 
 \begin{document}
@@ -126,10 +125,9 @@ Figure \ref{table1} and \ref{table2} provide information about the size of the d
     \hline
     \texttt{FANDOM-QA} & 779,822 & 640,066 & 53.0 & 11.0 \\
     % \hline
-    \texttt{MS MARCO v2.1} & 8,132,834 & 909,824 & 50.0 & 6.0 \\
+    \texttt{MS MARCO v1.1} & 707,946 & 92,373 & 72.0 & 6.0 \\
     % \hline
-    % \texttt{MS MARCO v1.1} & 707,946 & 92,373 & 72.0 & 6.0 \\
-    % Add more datasets below
+    \texttt{MS MARCO v2.1} & 8,132,834 & 909,824 & 50.0 & 6.0 \\
     \hline
     \end{tabular}
         \label{table1}
@@ -145,9 +143,9 @@ Figure \ref{table1} and \ref{table2} provide information about the size of the d
         \hline
         \texttt{FANDOM-QA} & 0.48 & 0.14 & 0.04 \\
         % \hline
-        \texttt{MS-MARCO v2.1} & 0.35 & 0.17 & 0.04  \\
+        \texttt{MS MARCO v1.1} & 0.40 & 0.15 & 0.04  \\
         % \hline
-        % \texttt{MS MARCO v1.1} & 0.40 & 0.15 & 0.04  \\
+        \texttt{MS-MARCO v2.1} & 0.35 & 0.17 & 0.04  \\
         \hline
     \end{tabular}
     \label{table2}
@@ -167,12 +165,13 @@ To further enhance the dataset's quality, a small human-verified dataset was man
 \section{Retrieval Methods}
 \subsection{Classical Retrieval Methods}
 % We employed the TF-IDF method for classical retrieval. TF-IDF calculates the importance of a term in a document by considering its frequency in the document and its inverse frequency in the entire corpus.
+We used Term Frequency - Inverse Document Frequency (TF-IDF) as a classic retrieval method that quantifies the importance of terms in a collection of documents. TF-IDF determines the frequency of a term (TF) within a document and adjusts it based on the inverse document frequency (IDF) across the collection, assigning higher weights to terms that occur more frequently within a particular document but are relatively rare across the collection. By representing the query and the passages as vectors, the passages can be ranked using cosine similarity. However, TF-IDF has significant limitations. It assumes that the importance of a term depends solely on its frequency and treats each term as an independent entity, ignoring contextual factors such as the order or proximity of terms within a document, as well as synonyms. As a result, TF-IDF fails to capture semantic meaning.
 
 \subsection{Neural Retrieval Methods}
 For our neural retrieval approach, we adopted the ColBERT \cite{khattab2020ColBERT} model, which utilizes Transformer models to generate vector embeddings for word tokens in a text sequence. These embeddings capture the contextual information of the tokens within the sequence and are then used to calculate the similarity between two sequences.
 
 \subsubsection{ColBERT Model}
-The ColBERT model takes a query and a document passage as input. These strings are then tokenized using a Transformer model's associated tokenizer, resulting in sequences of query tokens ($q = q_1q_2\dots q_m$) and document tokens ($d = d_1d_2\dots d_n$). Next we prepend a \texttt{[CLS]} token at the beginning and append a \texttt{[SEP]} token at the end of both sequences and add either a \texttt{[Q]} or \texttt{[D]} token after the \texttt{[CLS]} token to encode the input sequence type (query or document/passage). The query and document sequences are constrained to maximum lengths of $N_q$ and $N_d$ tokens, respectively. If the query is shorter than $N_q$ tokens, we pad the sequence with \texttt{[MASK]} tokens until it reaches length $N_q$. The document sequence will not be padded if shorter than $N_d$ and will be of length $L_d = min(n + 3, N_d)$. Thus, the input sequences for the ColBERT model are as follows: \\ $q = \texttt{[CLS]}\texttt{[Q]}q_1q_2 \dots q_m\texttt{[SEP]}\texttt{[MASK]}\dots\texttt{[MASK]}$ and $d = \texttt{[CLS]}\texttt{[D]}d_1d_2 \dots d_{L_d-3}\texttt{[SEP]}$, respectively. These tokenized sequences are then passed through a Transformer model's Encoder, with experiments conducted using both BERT \cite{devlin2019bert} and RoBERTa \cite{liu2019roberta} architectures. The resulting output is a sequence $E = E_1E_2 \dots E_k$ of high-dimensional vectors, where $k$ corresponds to $N_q$ or $L_d$, depending on the sequence being processed. These vectors are subsequently mapped to a lower dimensionality $d$ using a linear transformation. To calculate the similarity between the query and document sequences, we employ the \textit{sum of maximum similarity} function, as presented in the ColBERT paper. However, instead of using the sum, we use the mean to obtain a more interpretable similarity score. The function is computed as follows:
+The ColBERT model takes a query and a document passage as input. These strings are then tokenized using the Transformer model's associated tokenizer, resulting in sequences of query tokens ($q = q_1q_2\dots q_m$) and document tokens ($d = d_1d_2\dots d_n$). Next we prepend a \texttt{[CLS]} token at the beginning and append a \texttt{[SEP]} token at the end of both sequences and add either a \texttt{[Q]} or \texttt{[D]} token after the \texttt{[CLS]} token to encode the input sequence type (query or document/passage). The query and document sequences are constrained to maximum lengths of $N_q$ and $N_d$ tokens, respectively. If the query is shorter than $N_q$ tokens, we pad the sequence with \texttt{[MASK]} tokens until it reaches length $N_q$. The document sequence will not be padded if shorter than $N_d$ and will be of length $L_d = min(n + 3, N_d)$. Thus, the input sequences for the ColBERT model are as follows: \\ $q = \texttt{[CLS]}\texttt{[Q]}q_1q_2 \dots q_m\texttt{[SEP]}\texttt{[MASK]}\dots\texttt{[MASK]}$ and $d = \texttt{[CLS]}\texttt{[D]}d_1d_2 \dots d_{L_d-3}\texttt{[SEP]}$, respectively. These tokenized sequences are then passed through a Transformer model's Encoder, with experiments conducted using both BERT \cite{devlin2019bert} and RoBERTa \cite{liu2019roberta} architectures. The resulting output is a sequence $E = E_1E_2 \dots E_k$ of high-dimensional vectors, where $k$ corresponds to $N_q$ or $L_d$, depending on the sequence being processed. These vectors are subsequently mapped to a lower dimensionality $d$ using a linear transformation. To calculate the similarity between the query and document sequences, we employ the \textit{sum of maximum similarity} function, as presented in the ColBERT paper. However, instead of using the sum, we use the mean to obtain a more interpretable similarity score. The function is computed as follows:
 $$ S(q,d) := \frac{1}{N_q} \sum_{i=1}^{N_q} \max_{j = 1, \dots, L_d} sim(E_{q_i}, E_{d_j})
 $$
 We evaluate similarity between embedding vectors using both cosine similarity and negated squared $L_2$-norm. The formulas for the similarity measures are as follows:
@@ -224,7 +223,7 @@ ColBERT utilizes the similarity between query vectors and passage vectors to det
 Our research has confirmed a strong relationship between query tokens $q_i$ and query vector $E_{q_i}$, as well as between
 passage tokens $d_j$ and passage vector $E_{d_j}$.
 Therefore, a passage token $d_j$ is considered relevant to ColBERT regarding
-a question q if the associated vector $E_{d_j}$ contributes to a high similarity score $S(q, d)$.
+a question $q$ if the associated vector $E_{d_j}$ contributes to a high similarity score $S(q, d)$.
 This occurs when $E_{d_j}$ exhibits a high similarity to one or multiple query vectors $E_{q_i}$.
 The relevance of a passage vector $d_j$ can be determined by the number of query vectors that exhibit high similarity
 to $E_{d_j}$.
@@ -232,7 +231,7 @@ $$
     R_{abs}(q, d_l) = \:\mid Q(q, d_l) \mid, \text{where }
 $$
 $$
-  Q(q, d_l) = \{E_{q_i} \mid E_{d_l} \in \underset{j = 1, \dots, N_d}{max_k} sim(E_{q_i}, E_{d_j})\}
+  Q(q, d_l) = \{E_{q_i} \mid E_{d_l} \in \underset{j = 1, \dots, L_d}{max_k} sim(E_{q_i}, E_{d_j})\}
 $$
 
 and $max_k(U) = \{a_1, a_2, \dots, a_n\}$ such that $a_1 = max(U), a_2 = max(U \setminus \{a_1\}), \dots, a_n = max(U \setminus \{a_1, a_2, \dots, a_{n-1}\})$. It is evident that the relevance of a passage vector depends not only on its frequency among the top k similarities of the query vectors but also on the value of each individual similarity. In light of this, we have expanded the similarity score $R_{abs}$ to the metric $R_{acc\_sim}$:
@@ -243,12 +242,12 @@ $$
 In our study, we identified the two most ($k=2$) relevant passage vectors for each query vector using $Q$.
 We choose $k=2$ to strike a balance between marking a sufficient amount of information without assigning high relevance to every passage token. 
 Considering that the queries are encoded into $32$-dimensional vectors, 
-this yields a total of $k*32=64$ one-dimensional data points, which range from $0$ to $N_d$ and represent one passage token each.
+this yields a total of $k*32=64$ one-dimensional data points, which range from $0$ to $L_d$ and represent one passage token each.
 Therefore, the relevance function $R_{abs}$ can be viewed as a histogram that represents the distribution of these $64$ data points. 
 Given our objective of not only highlighting individual tokens in the passage as particularly relevant but also identifying the range likely to contain the answer to the question, we utilize Kernel Density Estimation (KDE)\cite{kde} as an additional approach. 
 KDE is a statistical method used to estimate the probability density function to a given data sample, enabling us to identify a range of passage tokens that holds significant priority for ColBERT.
 In other words, when multiple tokens within a specific range exhibit high relevance scores and are densely clustered together, it signifies the importance of that particular range in the broader context.
-Simplified, Kernel Density Estimation (KDE) generates a density function by overlaying kernels, such as normal distributions.
+Simplified, KDE generates a density function by overlaying kernels, such as normal distributions.
 In this process, each data point contributes a kernel that is shifted based on the position of the data point.
 One of the benefits of using KDE is that it provides a smooth and continuous estimation of the probability distribution. 
 Additionally, KDE does not require the specification of additional parameters beyond the choice of kernel and bandwidth, 
@@ -270,7 +269,7 @@ sports event that was won by Italy." of figure~\ref{fig:example1} the highest si
 in the passage. 
 ColBERT was not trained to find the answer, but rather to determine whether the answer is contained within the passage.
 Substituting any other word for "Italy" would have minimal impact on the probability of the passage providing an answer to the question.
-Kernel Density Estimation (KDE) partially addresses this problem by assuming that the answer is likely to be located in the areas of the passage 
+KDE partially addresses this problem by assuming that the answer is likely to be located in the areas of the passage 
 that contain a higher concentration of relevant tokens with respect to the question.
 The tokens \texttt{[CLS]}, \texttt{[D]} and \texttt{[SEP]} are ignored by KDE.
 The markings aid the user in swiftly identifying the likely location of the answer within the passage. Moreover, the markings elucidate the 
@@ -283,203 +282,240 @@ subsequently modify the query accordingly.
 	\caption{Single Token Similarity}
 	\label{fig:example2}
 \end{figure} 
+
+In Figure~\ref{fig:example2}, the similarity of the passage to the tokens 'who', 'when' and 'where' is visualized. 
+Colbert's understanding obviously goes beyond synonyms: the token 'in' occurs twice in the passage, but the similarity of when is only high in relation to the first, and the similarity of where is only high in relation to the second. 
+The major strength of ColBERT lies in its understanding of semantics, where words are not considered in isolation but in context. 
+The context 'germany' changes the word 'in' from a time-related word to a place-related word.
+However, ColBERT encounters similar issues as single-word-based systems like TF-IDF. 
+ColBERT often misses the mark in answering the question and instead retrieves passages that provide extensive information about the content of the question. ColBERT is easily distracted by passages that extensively cover the topic of the question. Passages that succinctly provide the answer but have a different core topic are overlooked by ColBERT. 
+It also seems that not enough attention is paid to interrogative words such as 'who', even though these words are well understood by ColBERT.
+This behavior can be explained by the fact that during the training phase, there are only a few passages that contain substantial information about the topic of the question but do not directly answer the question.
+ColBERT learns to find the right passage without paying attention to the specific type of question.
+
+Another interesting observation made during the visualisation is that the vectors of the \texttt{[MASK]} tokens also carry information, e.g. two \texttt{[MASK]} tokens have different similarities to the tokens from the passage. 
+
+\subsection{Contribution of Contextual-Aware Embeddings}
+Lastly, we conducted small-scale experiments to evaluate the respective contributions of the word embeddings and the transformer architecture to ColBERTs performance. Word embeddings are known for their robustness against synonyms, while the transformer architecture enables contextual awareness in embeddings compared to the context-unaware embeddings of individual words.
+
+To investigate this, we analyzed the learned embeddings of our ColBERT model, which was trained on MS MARCO v2.1. Due to the large size of the resulting 768-dimensional word embeddings, we performed the evaluation on the smaller MS MARCO v1.1 dataset. For our testing we removed the transformer backbone and the final linear mapping and used solely the output of the embedding layer for the end-to-end retrieval process. We tested three experimental settings: (A) utilizing only word embeddings, (B) incorporating word embeddings with positional embeddings, and (C) combining word and positional embeddings with LayerNorm.
+
+The results, presented in Table \ref{embeddings-table}, indicated that employing either word embeddings or word and positional embeddings achieved performance comparable to that of TF-IDF. However, when LayerNorm was also applied, the model slightly outperformed TF-IDF. Nevertheless, when compared to the complete ColBERT model, the exclusive use of context-unaware word embeddings resulted in inferior performance. We therefore suspect that the contextual information encoded in the embeddings by the transformer backbone significantly contributes to the overall performance of ColBERT.
+
+\begin{figure*}
+    \centering
+    \caption{End-to-End Retrieval Performance of Different Embedding Methods}
+    \begin{tabular}{cccccc}
+        \hline
+        \textbf{Experiment} & \textbf{MRR@10} & \textbf{REC@1} & \textbf{REC@5} & \textbf{REC@100} & \textbf{REC@1000} \\
+        \hline
+        \texttt{TF-IDF} & 26.86 & 13.10 & 42.67 & 80.38 & 86.13 \\
+        \texttt{(A)} & 24.20 & 12.17 & 38.27 & 77.62 & 91.25 \\
+        \texttt{(B)} & 23.45 & 11.93 & 36.49 & 73.02 & 91.85 \\
+        \texttt{(C)} & 32.18 & 16.82  & 50.05 & 87.04 & 96.99 \\
+        \texttt{ColBERT} & 57.50 & 38.38 & 79.34 & 97.80 & 99.61 \\ 
+        \hline
+    \end{tabular}
+    \label{embeddings-table}
+\end{figure*}
+
+
  
- The major strength of ColBERT lies in its understanding of semantics, where words are not considered in isolation but in context. However, ColBERT encounters similar issues as single-word-based systems like TF-IDF. In Example 2, the similarity for the word 'when' is visualized. Evidently, ColBERT comprehends the intended meaning behind the interrogative word 'when.' Nevertheless, ColBERT often misses the mark in answering the question and instead retrieves passages that provide extensive information about the content of the question. ColBERT is easily distracted by passages that extensively cover the topic of the question. Passages that succinctly provide the answer but have a different core topic are overlooked by ColBERT. Additionally, it seems that insufficient attention is given to the interrogative word.
- This behavior can be explained by the fact that during the training phase, there are only a few passages that contain substantial information about the topic of the question but do not directly answer the question.
- 
 
-\section{Introduction}
+% \section{Introduction}
 
-These instructions are for authors submitting papers to ACL 2023 using \LaTeX. They are not self-contained. All authors must follow the general instructions for *ACL proceedings,\footnote{\url{http://acl-org.github.io/ACLPUB/formatting.html}} as well as guidelines set forth in the ACL 2023 call for papers.\footnote{\url{https://2023.aclweb.org/calls/main_conference/}} This document contains additional instructions for the \LaTeX{} style files.
-The templates include the \LaTeX{} source of this document (\texttt{acl2023.tex}),
-the \LaTeX{} style file used to format it (\texttt{acl2023.sty}),
-an ACL bibliography style (\texttt{acl\_natbib.bst}),
-an example bibliography (\texttt{custom.bib}),
-and the bibliography for the ACL Anthology (\texttt{anthology.bib}).
+% These instructions are for authors submitting papers to ACL 2023 using \LaTeX. They are not self-contained. All authors must follow the general instructions for *ACL proceedings,\footnote{\url{http://acl-org.github.io/ACLPUB/formatting.html}} as well as guidelines set forth in the ACL 2023 call for papers.\footnote{\url{https://2023.aclweb.org/calls/main_conference/}} This document contains additional instructions for the \LaTeX{} style files.
+% The templates include the \LaTeX{} source of this document (\texttt{acl2023.tex}),
+% the \LaTeX{} style file used to format it (\texttt{acl2023.sty}),
+% an ACL bibliography style (\texttt{acl\_natbib.bst}),
+% an example bibliography (\texttt{custom.bib}),
+% and the bibliography for the ACL Anthology (\texttt{anthology.bib}).
 
-\section{Engines}
+% \section{Engines}
 
-To produce a PDF file, pdf\LaTeX{} is strongly recommended (over original \LaTeX{} plus dvips+ps2pdf or dvipdf). Xe\LaTeX{} also produces PDF files, and is especially suitable for text in non-Latin scripts.
-\begin{table}
-\centering
-\begin{tabular}{lc}
-\hline
-\textbf{Command} & \textbf{Output}\\
-\hline
-\verb|{\"a}| & {\"a} \\
-\verb|{\^e}| & {\^e} \\
-\verb|{\`i}| & {\`i} \\ 
-\verb|{\.I}| & {\.I} \\ 
-\verb|{\o}| & {\o} \\
-\verb|{\'u}| & {\'u}  \\ 
-\verb|{\aa}| & {\aa}  \\\hline
-\end{tabular}
-\begin{tabular}{lc}
-\hline
-\textbf{Command} & \textbf{Output}\\
-\hline
-\verb|{\c c}| & {\c c} \\ 
-\verb|{\u g}| & {\u g} \\ 
-\verb|{\l}| & {\l} \\ 
-\verb|{\~n}| & {\~n} \\ 
-\verb|{\H o}| & {\H o} \\ 
-\verb|{\v r}| & {\v r} \\ 
-\verb|{\ss}| & {\ss} \\
-\hline
-\end{tabular}
-\caption{Example commands for accented characters, to be used in, \emph{e.g.}, Bib\TeX{} entries.}
-\label{tab:accents}
-\end{table}
-\section{Preamble}
-\begin{table*}
-\centering
-\begin{tabular}{lll}
-\hline
-\textbf{Output} & \textbf{natbib command} & \textbf{Old ACL-style command}\\
-\hline
-\citep{ct1965} & \verb|\citep| & \verb|\cite| \\
-\citealp{ct1965} & \verb|\citealp| & no equivalent \\
-\citet{ct1965} & \verb|\citet| & \verb|\newcite| \\
-\citeyearpar{ct1965} & \verb|\citeyearpar| & \verb|\shortcite| \\
-\citeposs{ct1965} & \verb|\citeposs| & no equivalent \\
-\citep[FFT;][]{ct1965} &  \verb|\citep[FFT;][]| & no equivalent\\
-\hline
-\end{tabular}
-\caption{\label{citation-guide}
-Citation commands supported by the style file.
-The style is based on the natbib package and supports all natbib citation commands.
-It also supports commands defined in previous ACL style files for compatibility.
-}
-\end{table*}
-The first line of the file must be
-\begin{quote}
-\begin{verbatim}
-\documentclass[11pt]{article}
-\end{verbatim}
-\end{quote}
-To load the style file in the review version:
-\begin{quote}
-\begin{verbatim}
-\usepackage[review]{ACL2023}
-\end{verbatim}
-\end{quote}
-For the final version, omit the \verb|review| option:
-\begin{quote}
-\begin{verbatim}
-\usepackage{ACL2023}
-\end{verbatim}
-\end{quote}
-To use Times Roman, put the following in the preamble:
-\begin{quote}
-\begin{verbatim}
-\usepackage{times}
-\end{verbatim}
-\end{quote}
-(Alternatives like txfonts or newtx are also acceptable.)
-Please see the \LaTeX{} source of this document for comments on other packages that may be useful.
-Set the title and author using \verb|\title| and \verb|\author|. Within the author list, format multiple authors using \verb|\and| and \verb|\And| and \verb|\AND|; please see the \LaTeX{} source for examples.
-By default, the box containing the title and author names is set to the minimum of 5 cm. If you need more space, include the following in the preamble:
-\begin{quote}
-\begin{verbatim}
-\setlength\titlebox{<dim>}
-\end{verbatim}
-\end{quote}
-where \verb|<dim>| is replaced with a length. Do not set this length smaller than 5 cm.
+% To produce a PDF file, pdf\LaTeX{} is strongly recommended (over original \LaTeX{} plus dvips+ps2pdf or dvipdf). Xe\LaTeX{} also produces PDF files, and is especially suitable for text in non-Latin scripts.
+% \begin{table}
+% \centering
+% \begin{tabular}{lc}
+% \hline
+% \textbf{Command} & \textbf{Output}\\
+% \hline
+% \verb|{\"a}| & {\"a} \\
+% \verb|{\^e}| & {\^e} \\
+% \verb|{\`i}| & {\`i} \\ 
+% \verb|{\.I}| & {\.I} \\ 
+% \verb|{\o}| & {\o} \\
+% \verb|{\'u}| & {\'u}  \\ 
+% \verb|{\aa}| & {\aa}  \\\hline
+% \end{tabular}
+% \begin{tabular}{lc}
+% \hline
+% \textbf{Command} & \textbf{Output}\\
+% \hline
+% \verb|{\c c}| & {\c c} \\ 
+% \verb|{\u g}| & {\u g} \\ 
+% \verb|{\l}| & {\l} \\ 
+% \verb|{\~n}| & {\~n} \\ 
+% \verb|{\H o}| & {\H o} \\ 
+% \verb|{\v r}| & {\v r} \\ 
+% \verb|{\ss}| & {\ss} \\
+% \hline
+% \end{tabular}
+% \caption{Example commands for accented characters, to be used in, \emph{e.g.}, Bib\TeX{} entries.}
+% \label{tab:accents}
+% \end{table}
+% \section{Preamble}
+% \begin{table*}
+% \centering
+% \begin{tabular}{lll}
+% \hline
+% \textbf{Output} & \textbf{natbib command} & \textbf{Old ACL-style command}\\
+% \hline
+% \citep{ct1965} & \verb|\citep| & \verb|\cite| \\
+% \citealp{ct1965} & \verb|\citealp| & no equivalent \\
+% \citet{ct1965} & \verb|\citet| & \verb|\newcite| \\
+% \citeyearpar{ct1965} & \verb|\citeyearpar| & \verb|\shortcite| \\
+% \citeposs{ct1965} & \verb|\citeposs| & no equivalent \\
+% \citep[FFT;][]{ct1965} &  \verb|\citep[FFT;][]| & no equivalent\\
+% \hline
+% \end{tabular}
+% \caption{\label{citation-guide}
+% Citation commands supported by the style file.
+% The style is based on the natbib package and supports all natbib citation commands.
+% It also supports commands defined in previous ACL style files for compatibility.
+% }
+% \end{table*}
+% The first line of the file must be
+% \begin{quote}
+% \begin{verbatim}
+% \documentclass[11pt]{article}
+% \end{verbatim}
+% \end{quote}
+% To load the style file in the review version:
+% \begin{quote}
+% \begin{verbatim}
+% \usepackage[review]{ACL2023}
+% \end{verbatim}
+% \end{quote}
+% For the final version, omit the \verb|review| option:
+% \begin{quote}
+% \begin{verbatim}
+% \usepackage{ACL2023}
+% \end{verbatim}
+% \end{quote}
+% To use Times Roman, put the following in the preamble:
+% \begin{quote}
+% \begin{verbatim}
+% \usepackage{times}
+% \end{verbatim}
+% \end{quote}
+% (Alternatives like txfonts or newtx are also acceptable.)
+% Please see the \LaTeX{} source of this document for comments on other packages that may be useful.
+% Set the title and author using \verb|\title| and \verb|\author|. Within the author list, format multiple authors using \verb|\and| and \verb|\And| and \verb|\AND|; please see the \LaTeX{} source for examples.
+% By default, the box containing the title and author names is set to the minimum of 5 cm. If you need more space, include the following in the preamble:
+% \begin{quote}
+% \begin{verbatim}
+% \setlength\titlebox{<dim>}
+% \end{verbatim}
+% \end{quote}
+% where \verb|<dim>| is replaced with a length. Do not set this length smaller than 5 cm.
 
-\section{Document Body}
+% \section{Document Body}
 
-\subsection{Footnotes}
+% \subsection{Footnotes}
 
-Footnotes are inserted with the \verb|\footnote| command.\footnote{This is a footnote.}
+% Footnotes are inserted with the \verb|\footnote| command.\footnote{This is a footnote.}
 
-\subsection{Tables and figures}
+% \subsection{Tables and figures}
 
-See Table~\ref{tab:accents} for an example of a table and its caption.
-\textbf{Do not override the default caption sizes.}
+% See Table~\ref{tab:accents} for an example of a table and its caption.
+% \textbf{Do not override the default caption sizes.}
 
-\subsection{Hyperlinks}
+% \subsection{Hyperlinks}
 
-Users of older versions of \LaTeX{} may encounter the following error during compilation: 
-\begin{quote}
-\tt\verb|\pdfendlink| ended up in different nesting level than \verb|\pdfstartlink|.
-\end{quote}
-This happens when pdf\LaTeX{} is used and a citation splits across a page boundary. The best way to fix this is to upgrade \LaTeX{} to 2018-12-01 or later.
+% Users of older versions of \LaTeX{} may encounter the following error during compilation: 
+% \begin{quote}
+% \tt\verb|\pdfendlink| ended up in different nesting level than \verb|\pdfstartlink|.
+% \end{quote}
+% This happens when pdf\LaTeX{} is used and a citation splits across a page boundary. The best way to fix this is to upgrade \LaTeX{} to 2018-12-01 or later.
 
-\subsection{Citations}
+% \subsection{Citations}
 
 
 
-Table~\ref{citation-guide} shows the syntax supported by the style files.
-We encourage you to use the natbib styles.
-You can use the command \verb|\citet| (cite in text) to get ``author (year)'' citations, like this citation to a paper by \citet{Gusfield:97}.
-You can use the command \verb|\citep| (cite in parentheses) to get ``(author, year)'' citations \citep{Gusfield:97}.
-You can use the command \verb|\citealp| (alternative cite without parentheses) to get ``author, year'' citations, which is useful for using citations within parentheses (e.g. \citealp{Gusfield:97}).
+% Table~\ref{citation-guide} shows the syntax supported by the style files.
+% We encourage you to use the natbib styles.
+% You can use the command \verb|\citet| (cite in text) to get ``author (year)'' citations, like this citation to a paper by \citet{Gusfield:97}.
+% You can use the command \verb|\citep| (cite in parentheses) to get ``(author, year)'' citations \citep{Gusfield:97}.
+% You can use the command \verb|\citealp| (alternative cite without parentheses) to get ``author, year'' citations, which is useful for using citations within parentheses (e.g. \citealp{Gusfield:97}).
 
-\subsection{References}
+% \subsection{References}
 
-\nocite{Ando2005,augenstein-etal-2016-stance,andrew2007scalable,rasooli-tetrault-2015,goodman-etal-2016-noise,harper-2014-learning}
+% \nocite{Ando2005,augenstein-etal-2016-stance,andrew2007scalable,rasooli-tetrault-2015,goodman-etal-2016-noise,harper-2014-learning}
 
-The \LaTeX{} and Bib\TeX{} style files provided roughly follow the American Psychological Association format.
-If your own bib file is named \texttt{custom.bib}, then placing the following before any appendices in your \LaTeX{} file will generate the references section for you:
-\begin{quote}
-\begin{verbatim}
-\bibliographystyle{acl_natbib}
-\bibliography{custom}
-\end{verbatim}
-\end{quote}
-You can obtain the complete ACL Anthology as a Bib\TeX{} file from \url{https://aclweb.org/anthology/anthology.bib.gz}.
-To include both the Anthology and your own .bib file, use the following instead of the above.
-\begin{quote}
-\begin{verbatim}
-\bibliographystyle{acl_natbib}
-\bibliography{anthology,custom}
-\end{verbatim}
-\end{quote}
-Please see Section~\ref{sec:bibtex} for information on preparing Bib\TeX{} files.
+% The \LaTeX{} and Bib\TeX{} style files provided roughly follow the American Psychological Association format.
+% If your own bib file is named \texttt{custom.bib}, then placing the following before any appendices in your \LaTeX{} file will generate the references section for you:
+% \begin{quote}
+% \begin{verbatim}
+% \bibliographystyle{acl_natbib}
+% \bibliography{custom}
+% \end{verbatim}
+% \end{quote}
+% You can obtain the complete ACL Anthology as a Bib\TeX{} file from \url{https://aclweb.org/anthology/anthology.bib.gz}.
+% To include both the Anthology and your own .bib file, use the following instead of the above.
+% \begin{quote}
+% \begin{verbatim}
+% \bibliographystyle{acl_natbib}
+% \bibliography{anthology,custom}
+% \end{verbatim}
+% \end{quote}
+% Please see Section~\ref{sec:bibtex} for information on preparing Bib\TeX{} files.
 
-\subsection{Appendices}
+% \subsection{Appendices}
 
-Use \verb|\appendix| before any appendix section to switch the section numbering over to letters. See Appendix~\ref{sec:appendix} for an example.
+% Use \verb|\appendix| before any appendix section to switch the section numbering over to letters. See Appendix~\ref{sec:appendix} for an example.
 
-\section{Bib\TeX{} Files}
-\label{sec:bibtex}
+% \section{Bib\TeX{} Files}
+% \label{sec:bibtex}
 
-Unicode cannot be used in Bib\TeX{} entries, and some ways of typing special characters can disrupt Bib\TeX's alphabetization. The recommended way of typing special characters is shown in Table~\ref{tab:accents}.
+% Unicode cannot be used in Bib\TeX{} entries, and some ways of typing special characters can disrupt Bib\TeX's alphabetization. The recommended way of typing special characters is shown in Table~\ref{tab:accents}.
 
-Please ensure that Bib\TeX{} records contain DOIs or URLs when possible, and for all the ACL materials that you reference.
-Use the \verb|doi| field for DOIs and the \verb|url| field for URLs.
-If a Bib\TeX{} entry has a URL or DOI field, the paper title in the references section will appear as a hyperlink to the paper, using the hyperref \LaTeX{} package.
+% Please ensure that Bib\TeX{} records contain DOIs or URLs when possible, and for all the ACL materials that you reference.
+% Use the \verb|doi| field for DOIs and the \verb|url| field for URLs.
+% If a Bib\TeX{} entry has a URL or DOI field, the paper title in the references section will appear as a hyperlink to the paper, using the hyperref \LaTeX{} package.
 
-\section*{Limitations}
-ACL 2023 requires all submissions to have a section titled ``Limitations'', for discussing the limitations of the paper as a complement to the discussion of strengths in the main text. This section should occur after the conclusion, but before the references. It will not count towards the page limit.
-The discussion of limitations is mandatory. Papers without a limitation section will be desk-rejected without review.
+% \section*{Limitations}
+% ACL 2023 requires all submissions to have a section titled ``Limitations'', for discussing the limitations of the paper as a complement to the discussion of strengths in the main text. This section should occur after the conclusion, but before the references. It will not count towards the page limit.
+% The discussion of limitations is mandatory. Papers without a limitation section will be desk-rejected without review.
 
-While we are open to different types of limitations, just mentioning that a set of results have been shown for English only probably does not reflect what we expect. 
-Mentioning that the method works mostly for languages with limited morphology, like English, is a much better alternative.
-In addition, limitations such as low scalability to long text, the requirement of large GPU resources, or other things that inspire crucial further investigation are welcome.
+% While we are open to different types of limitations, just mentioning that a set of results have been shown for English only probably does not reflect what we expect. 
+% Mentioning that the method works mostly for languages with limited morphology, like English, is a much better alternative.
+% In addition, limitations such as low scalability to long text, the requirement of large GPU resources, or other things that inspire crucial further investigation are welcome.
 
-\section*{Ethics Statement}
-Scientific work published at ACL 2023 must comply with the ACL Ethics Policy.\footnote{\url{https://www.aclweb.org/portal/content/acl-code-ethics}} We encourage all authors to include an explicit ethics statement on the broader impact of the work, or other ethical considerations after the conclusion but before the references. The ethics statement will not count toward the page limit (8 pages for long, 4 pages for short papers).
+% \section*{Ethics Statement}
+% Scientific work published at ACL 2023 must comply with the ACL Ethics Policy.\footnote{\url{https://www.aclweb.org/portal/content/acl-code-ethics}} We encourage all authors to include an explicit ethics statement on the broader impact of the work, or other ethical considerations after the conclusion but before the references. The ethics statement will not count toward the page limit (8 pages for long, 4 pages for short papers).
 
-\section*{Acknowledgements}
-This document has been adapted by Jordan Boyd-Graber, Naoaki Okazaki, Anna Rogers from the style files used for earlier ACL, EMNLP and NAACL proceedings, including those for
-EACL 2023 by Isabelle Augenstein and Andreas Vlachos,
-EMNLP 2022 by Yue Zhang, Ryan Cotterell and Lea Frermann,
-ACL 2020 by Steven Bethard, Ryan Cotterell and Rui Yan,
-ACL 2019 by Douwe Kiela and Ivan Vuli\'{c},
-NAACL 2019 by Stephanie Lukin and Alla Roskovskaya, 
-ACL 2018 by Shay Cohen, Kevin Gimpel, and Wei Lu, 
-NAACL 2018 by Margaret Mitchell and Stephanie Lukin,
-Bib\TeX{} suggestions for (NA)ACL 2017/2018 from Jason Eisner,
-ACL 2017 by Dan Gildea and Min-Yen Kan, NAACL 2017 by Margaret Mitchell, 
-ACL 2012 by Maggie Li and Michael White, 
-ACL 2010 by Jing-Shin Chang and Philipp Koehn, 
-ACL 2008 by Johanna D. Moore, Simone Teufel, James Allan, and Sadaoki Furui, 
-ACL 2005 by Hwee Tou Ng and Kemal Oflazer, 
-ACL 2002 by Eugene Charniak and Dekang Lin, 
-and earlier ACL and EACL formats written by several people, including
-John Chen, Henry S. Thompson and Donald Walker.
-Additional elements were taken from the formatting instructions of the \emph{International Joint Conference on Artificial Intelligence} and the \emph{Conference on Computer Vision and Pattern Recognition}.
+% \section*{Acknowledgements}
+% This document has been adapted by Jordan Boyd-Graber, Naoaki Okazaki, Anna Rogers from the style files used for earlier ACL, EMNLP and NAACL proceedings, including those for
+% EACL 2023 by Isabelle Augenstein and Andreas Vlachos,
+% EMNLP 2022 by Yue Zhang, Ryan Cotterell and Lea Frermann,
+% ACL 2020 by Steven Bethard, Ryan Cotterell and Rui Yan,
+% ACL 2019 by Douwe Kiela and Ivan Vuli\'{c},
+% NAACL 2019 by Stephanie Lukin and Alla Roskovskaya, 
+% ACL 2018 by Shay Cohen, Kevin Gimpel, and Wei Lu, 
+% NAACL 2018 by Margaret Mitchell and Stephanie Lukin,
+% Bib\TeX{} suggestions for (NA)ACL 2017/2018 from Jason Eisner,
+% ACL 2017 by Dan Gildea and Min-Yen Kan, NAACL 2017 by Margaret Mitchell, 
+% ACL 2012 by Maggie Li and Michael White, 
+% ACL 2010 by Jing-Shin Chang and Philipp Koehn, 
+% ACL 2008 by Johanna D. Moore, Simone Teufel, James Allan, and Sadaoki Furui, 
+% ACL 2005 by Hwee Tou Ng and Kemal Oflazer, 
+% ACL 2002 by Eugene Charniak and Dekang Lin, 
+% and earlier ACL and EACL formats written by several people, including
+% John Chen, Henry S. Thompson and Donald Walker.
+% Additional elements were taken from the formatting instructions of the \emph{International Joint Conference on Artificial Intelligence} and the \emph{Conference on Computer Vision and Pattern Recognition}.
+
+
 
 % Entries for the entire Anthology, followed by custom entries
 % \bibliography{anthology,custom}
@@ -488,9 +524,8 @@ Additional elements were taken from the formatting instructions of the \emph{Int
 
 \appendix
 
-\section{Example Appendix}
+\section{Appendix}
 \label{sec:appendix}
-
 This is a section in the appendix.
 
 \end{document}
