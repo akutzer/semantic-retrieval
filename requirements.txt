@@ -14,7 +14,7 @@ datasets==2.11.0
 # machine learning
 scikit-learn==1.2.2
 nltk==3.8.1
-torch==2.0.0
+torch==2.0.1
 torchprofile==0.0.4
 transformers==4.30.0
 tensorboard==2.12.2
