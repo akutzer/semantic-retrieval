@@ -1,8 +1,10 @@
 #!/bin/bash
 
 # Set the arguments for the Python script:
-PASSAGES_PATH="../../data/fandoms_qa/fandoms_all/val/passages.tsv"
-INDEX_PATH="../../data/fandoms_qa/fandoms_all/val/passages.idx"
+PASSAGES_PATH="../../data/fandoms_qa/witcher/all/passages.tsv"
+INDEX_PATH="../../data/fandoms_qa/witcher/all/passages.idx"
+#PASSAGES_PATH="../../data/fandoms_qa/fandoms_all/val/passages.tsv"
+#INDEX_PATH="../../data/fandoms_qa/fandoms_all/val/passages.index.pt"
 CHECKPOINT_PATH="../../data/colbertv2.0"
 DTYPE="FP16"  # FP16, FP32, FP64
 BATCH_SIZE="8"
