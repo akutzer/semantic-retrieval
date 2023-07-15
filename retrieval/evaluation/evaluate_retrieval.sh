@@ -10,9 +10,9 @@
 
 # Example for MS MARCO:
 DATASET_MODE="QPP" # QQP or QPP
-PASSAGES_PATH="../../data/ms_marco/ms_marco_v1_1/val/passages.tsv"
-QUERIES_PATH="../../data/ms_marco/ms_marco_v1_1/val/queries.tsv"
-TRIPLES_PATH="../../data/ms_marco/ms_marco_v1_1/val/triples.tsv"
+PASSAGES_PATH="../../data/ms_marco/ms_marco_v2_1/val/passages.tsv"
+QUERIES_PATH="../../data/ms_marco/ms_marco_v2_1/val/queries.tsv"
+TRIPLES_PATH="../../data/ms_marco/ms_marco_v2_1/val/triples.tsv"
 # INDEX_PATH="../../data/ms_marco/ms_marco_v1_1/val/triples.idx"
 
 CHECKPOINT_PATH="../../data/colbertv2.0" #"../../saves/ms_marco_v2_24/checkpoints/epoch4_2_loss1.2986_mrr0.6948_acc52.451/"
