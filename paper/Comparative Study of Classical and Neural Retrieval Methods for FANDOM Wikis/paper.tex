@@ -15,6 +15,10 @@
 \usepackage{graphicx} % For including images
 \usepackage{amsmath,amssymb} % Mathematical symbols and environments
 \usepackage[export]{adjustbox}
+\usepackage{tabularx}
+\usepackage{pgfplots}
+%\usepackage{todonotes}
+
 
 % For proper rendering and hyphenation of words containing Latin characters (including in bib files)
 \usepackage[T1]{fontenc}
@@ -38,6 +42,15 @@
 \usepackage{inconsolata}
 
 
+\definecolor{plt_blue}{RGB}{31, 119, 180}
+\definecolor{plt_orange}{RGB}{255, 127, 14}
+\definecolor{plt_green}{RGB}{44, 160, 44}
+\definecolor{plt_red}{RGB}{214, 39, 40}
+\definecolor{plt_purple}{RGB}{148, 103, 189}
+\definecolor{plt_cyan}{RGB}{0,157,174}
+\definecolor{plt_pink}{RGB}{227,119,194}
+
+
 % If the title and author information does not fit in the area allocated, uncomment the following
 %
 %\setlength\titlebox{<dim>}
@@ -48,472 +61,361 @@
 Comparative Study of Classical and Neural Retrieval Methods for FANDOM Wikis
 }
 
-
-
-% Author information can be set in various styles:
-% For several authors from the same institution:
-% \author{Author 1 \and ... \and Author n \\
-%         Address line \\ ... \\ Address line}
-% if the names do not fit well on one line use
-%         Author 1 \\ {\bf Author 2} \\ ... \\ {\bf Author n} \\
-% For authors from different institutions:
-% \author{Author 1 \\ Address line \\  ... \\ Address line
-%         \And  ... \And
-%         Author n \\ Address line \\ ... \\ Address line}
-% To start a seperate ``row'' of authors use \AND, as in
-% \author{Author 1 \\ Address line \\  ... \\ Address line
-%         \AND
-%         Author 2 \\ Address line \\ ... \\ Address line \And
-%         Author 3 \\ Address line \\ ... \\ Address line}
-
-% \author{First Author \\
-%   Affiliation / Address line 1 \\
-%   Affiliation / Address line 2 \\
-%   Affiliation / Address line 3 \\
-%   \texttt{email@domain} \\\And
-%   Second Author \\
-%   Affiliation / Address line 1 \\
-%   Affiliation / Address line 2 \\
-%   Affiliation / Address line 3 \\
-%   \texttt{email@domain} \\}
-
-
-% \setlength\titlebox{10cm}
-% \author{
-% Author 1 \\ Technische Universität Dresden \\ Dresden, Germany \\ \texttt{author1@mailbox.tu-dresden.de} \And
-% Author 2 \\ Technische Universität Dresden \\ Dresden, Germany \\ \texttt{author2@mailbox.tu-dresden.de} \AND
-% Author 3 \\ Technische Universität Dresden \\ Dresden, Germany \\ \texttt{author3@mailbox.tu-dresden.de} \And
-% Author 4 \\ Technische Universität Dresden \\ Dresden, Germany \\ \texttt{author4@mailbox.tu-dresden.de} \AND
-% Author 5 \\ Technische Universität Dresden \\ Dresden, Germany \\ \texttt{author5@mailbox.tu-dresden.de}
-% }
-
 \author{
-Aaron Kutzer \and Till Dirschnabel \and Florian Müller?? \and \\
-{\bf Tommy Nguyen??} \and {\bf Zhìwēi ???} \\
-Technische Universität Dresden \\ Dresden, Germany
+Aaron Kutzer \and Florian M. Müller \and Till Dirschnabel  \and \\
+{\bf Tommy Nguyen} \and {\bf Zhìwēi Zhān} \and {\bf Anja Reusch} \and {\bf Julius Gonsior} \\
+Dresden University of Technology \\ Dresden, Germany
 }
 
 
 \begin{document}
 \maketitle
 \begin{abstract}
-This is the abstract of our paper.
+This paper investigates the effectiveness of traditional information retrieval methods and the neural retrieval method ColBERT in the context of locating relevant passages within fandom wikis. To facilitate this study, we developed a new dataset called FANDOM-QA, consisting of query and answering passage pairs. Additionally, we provide a novel analysis of the operational mechanisms employed by ColBERT, shedding light on its functioning and capabilities.
 \end{abstract}
 
 
 \section{Introduction}
-\textit{Maybe a small introduction about our task and the field of information retrieval (especially classical retrieval vs neural retrieval)?}
-% Your introduction here
-
+%Maybe a small introduction about our task and the field of information retrieval (especially classical retrieval vs neural retrieval)?
+Natural language processing has developed at an astonishing rate in recent years. 
+An important task of natural language processing is information retrieval which consists of finding relevant information to answer a given questions. Classical retrieval methods do not have semantic understanding of language \cite{hambarde2023information}, severely limiting the information retrieval, this changed with neural retrieval. \\
+Our research consists of implementing a semantic retrieval system performing extractive question answering on fandom wikis sourced from \href{https://www.fandom.com/}{fandom.com}. Both classical and neural retrieval methods were tested on their effectiveness for this task. For this, we first extracted and cleaned publicly available fandom wiki exports and secondly generated our own training and validation datasets, which were used for training and evaluation of the retrieval methods.
+Furthermore, this paper discusses and evaluates optimisation methods for training datasets and hyperparameters and visualization methods to gain a better understanding of ColBERT.
+We start by introducing the datasets and their construction (Chapter~\ref{chap:datasets}), then we explain our retrieval methods and their training (Chapter~\ref{chap:retrieval}). In Chapter~\ref{chap:results}, we present the results obtained in terms of metrics, hyperparameters and multi-stage fine-tuning.
+Finally in Chapter~\ref{chap:understanding}, we introduce visualisation methods to better understand Colbert and find the answer in the extracted passage, and discuss the observations made.
 
 \section{Datasets}
-Our experiments utilized two datasets: the publicly available MS MARCO v2.1 \cite{bajaj2018ms} dataset and our custom dataset, FANDOM-QA. \\
-The MS MARCO dataset was used to pretrain our neural retrieval models and compare our implementation to the original implementation, while the FANDOM-QA dataset was later used to fine-tune these models on either a specific fandom wiki or all collected wikis. \\
-Figure \ref{table1} and \ref{table2} provide information about the size of the datasets as well as the distribution of the most common question words.
+\label{chap:datasets}
+For training and validation of the retrieval system, we utilized two datasets: the publicly available MS MARCOv2 \cite{bajaj2018ms} dataset and our custom dataset, FANDOM-QA. \\
+The MS MARCO dataset was used in the first stage of multi-stage fine-tuning in our neural retrieval models and to validate our implementation against the original implementation, while the FANDOM-QA dataset was later used in the second stage of multi-stage fine-tuning. In this second stage, either the entire dataset or a subset of the dataset corresponding to a particular wiki were used. \\
+Figure \ref{qword-dist} and \ref{table1} provide information about the size of the datasets and the distribution of the fandom wikis in the FANDOM-QA dataset.
 
-\begin{figure*}
+\begin{figure}
     \centering
-
-    \caption{Dataset sizes and median words per passage/query}
-    % \small % Set table font size to small
-    \setlength{\tabcolsep}{4pt} % Reduce cell padding
-    \begin{tabular}{ccccc}
-    \hline
-    \textbf{Dataset} & \textbf{\# Passages} & \textbf{\# Queries} & \multicolumn{2}{c}{\textbf{Median}} \\
-    % \cline{2-5}
-    & & & \textbf{Passage Words} & \textbf{Query Words} \\
-    \hline
-    \texttt{FANDOM-QA} & 779,822 & 640,066 & 53.0 & 11.0 \\
-    % \hline
-    \texttt{MS MARCO v1.1} & 707,946 & 92,373 & 72.0 & 6.0 \\
-    % \hline
-    \texttt{MS MARCO v2.1} & 8,132,834 & 909,824 & 50.0 & 6.0 \\
-    \hline
-    \end{tabular}
-        \label{table1}
-\end{figure*}
-
-\begin{figure*}
-    \centering
-    \caption{Probabilities of common question words in the datasets}
-    \begin{tabular}{lccc}
-        \hline
-        \textbf{Dataset} & \multicolumn{3}{c}{\textbf{Probabilities}} \\
-        & \textbf{What} & \textbf{How} & \textbf{Where}  \\
-        \hline
-        \texttt{FANDOM-QA} & 0.48 & 0.14 & 0.04 \\
-        % \hline
-        \texttt{MS MARCO v1.1} & 0.40 & 0.15 & 0.04  \\
-        % \hline
-        \texttt{MS-MARCO v2.1} & 0.35 & 0.17 & 0.04  \\
-        \hline
-    \end{tabular}
-    \label{table2}
-\end{figure*}
+    \begin{tikzpicture}
+    \small
+    \begin{axis}[
+        width=7.7cm,
+        height=6cm,
+        ylabel={Percentage},
+        xlabel={},
+        xtick=data,
+        xticklabel style={rotate=30, anchor=north, yshift=-0.12cm, xshift=-0.15cm},
+        xticklabels={Marvel, Star Wars, Harry Potter, Elder Scrolls},
+        enlarge x limits={abs=0.6},
+        ymin=0,
+        ymax=85,
+        yticklabel={\pgfmathprintnumber{\tick}\%},
+        legend style={at={(0.75,0.9)},
+            anchor=north,legend columns=-1},
+        ybar=0pt,
+        bar width=0.4cm,
+        nodes near coords,
+        nodes near coords style={font=\scriptsize},
+        every node near coord/.append style={rotate=90, anchor=west},
+        legend style={yshift=1em, xshift=-1em}, % Reduce the padding between legend and plot area
+        legend cell align=right top, % Align legend items horizontally
+    ]
+    
+    \addplot[fill=plt_blue,draw=plt_blue] coordinates {
+        (0, 1.8)
+        (1, 70.4)
+        (2, 7.4)
+        (3, 20.4)
+    };
+    
+    \addplot[fill=plt_orange,draw=plt_orange] coordinates {
+        (0, 8.8)
+        (1, 12.8)
+        (2, 36.1)
+        (3, 42.3)
+    };
+    \addlegendentry{Passages}
+    \addlegendentry{Queries}
+    
+    \end{axis}
+    \end{tikzpicture}
+    \caption{Percentage of Passages and Queries of each Wiki in the FANDOM-QA dataset}
+    \label{qword-dist}
+\end{figure}
+\setlength{\textfloatsep}{8pt} 
 
 
 
 \subsection{FANDOM-QA}
-The FANDOM-QA dataset was constructed by extracting all passages from specific fandom wikis: \href{https://dc.fandom.com}{DC Comics}, \href{https://elderscrolls.fandom.com}{Elder Scrolls}, \href{https://harrypotter.fandom.com}{Harry Potter}, \href{https://marvel.fandom.com}{Marvel}, \href{https://starwars.fandom.com}{Star Wars}, and \href{https://witcher.fandom.com}{The Witcher} using the the assistance of the \textit{wikiextractor} tool \cite{Wikiextractor2015}. \\
-Next, we generated positive and negative queries for all passages. Positive queries are formulated to be answerable based on the information contained in the passage, while negative queries cannot be answered using the passage. To expedite this process, we utilized publicly available GPT-frontends using the \textit{gpt4free}\footnote{\url{https://github.com/xtekky/gpt4free}} repository. \\
-To ensure effective evaluation of our neural retrieval method, we partitioned the dataset into three subsets: training, validation, and test. The training subset constituted 80\% of the data, while the validation and test subsets each contained 10\%. The training subset was used for training the models, while the validation subset was used for validating the training process and selecting the best checkpoints. The test dataset was reserved for the final evaluation. \\
-It is important to note that these steps were performed separately for each wiki, and the resulting datasets were then merged to create the final FANDOM-QA dataset. This ensured that our models could be trained and evaluated on specific fandom wikis or all collected wikis, while preventing information leakage between the training and evaluation datasets.\\
-To further enhance the dataset's quality, a small human-verified dataset was manually created for the Harry Potter, Elder Scrolls, and The Witcher fandoms. This human dataset underwent careful scrutiny to ensure its correctness. The intention behind this step was to train the final model using the human dataset, thereby improving its performance further.\\
+The FANDOM-QA dataset was constructed by extracting all passages from the specific fandom wikis: \href{https://dc.fandom.com}{DC Comics}, \href{https://elderscrolls.fandom.com}{Elder Scrolls}, \href{https://harrypotter.fandom.com}{Harry Potter}, \href{https://marvel.fandom.com}{Marvel}, \href{https://starwars.fandom.com}{Star Wars}, and \href{https://witcher.fandom.com}{The Witcher} using the the assistance of the \textit{wikiextractor} tool \cite{Wikiextractor2015}. \\
+Next, we generated positive and negative queries for all passages. Positive questions are designed to have answers that can be found in the passage, while negative questions cannot be answered using the information in the passage. To expedite this process, we utilized publicly available GPT-frontends using the \textit{gpt4free}\footnote{\url{https://github.com/xtekky/gpt4free}} repository. \\
+To ensure effective evaluation of our neural retrieval method, we partitioned the dataset into two subsets: training and validation. The training subset constituted 89\% of the data, while the validation contained 11\%. \\
+It is important to note that these steps were performed separately for each wiki, and the resulting datasets were then merged to create the final FANDOM-QA dataset. This ensured that our models could be trained and evaluated on specific fandom wikis or all collected wikis, while preventing information leakage between the training and evaluation datasets. 
+We also wanted to evaluate our model on a wiki on which the model had not been trained. We used the Witcher dataset for this, and consequently did not include it in the Fandom-QA dataset. A few random samples of the dataset can be found in Figure \ref{tab:fandom-qa}.\\
+We observed some problems with query generation using GPT. One obstacle was observed during training in the second stage of the multi-stage fine-tuning. 
+A high proportion of the words in the negative query also appeared in the passage. To our surprise, this led to a drastic decrease in the performance of our model, possibly due to the loss function we used. % in the second stage of multi-stage fine-tuning, possibly due to the loss function we used.
+To overcome this obstacle, we shuffled the negative queries in the FANDOM-QA training dataset to obtain a dataset where the positive and negative queries for a passage are more diverse.
+
+% A high proportion of the words contained in the negative query also occurred in the passage. To our surprise, this led to a drastic decrease in performance of our model in the second stage of multi-stage fine-tuning. A possible reason might be that cross-entropy that we used also tried to minimise the similarity between the passage and the negative query. This problem was solved by shuffling the negative queries.
+%To further enhance the dataset's quality, a small human-verified dataset was manually created for the Harry Potter, Elder Scrolls, and The Witcher fandoms containing 2,870 queries. This human dataset underwent careful scrutiny to ensure its correctness. The intention behind this step was to train the final model using the human dataset, thereby improving its performance further.\\
 
 
 
 \section{Retrieval Methods}
+\label{chap:retrieval}
 \subsection{Classical Retrieval Methods}
-% We employed the TF-IDF method for classical retrieval. TF-IDF calculates the importance of a term in a document by considering its frequency in the document and its inverse frequency in the entire corpus.
-We used Term Frequency - Inverse Document Frequency (TF-IDF) as a classic retrieval method that quantifies the importance of terms in a collection of documents. TF-IDF determines the frequency of a term (TF) within a document and adjusts it based on the inverse document frequency (IDF) across the collection, assigning higher weights to terms that occur more frequently within a particular document but are relatively rare across the collection. By representing the query and the passages as vectors, the passages can be ranked using cosine similarity. However, TF-IDF has significant limitations. It assumes that the importance of a term depends solely on its frequency and treats each term as an independent entity, ignoring contextual factors such as the order or proximity of terms within a document, as well as synonyms. As a result, TF-IDF fails to capture semantic meaning.
+We used Term Frequency - Inverse Document Frequency (TF-IDF), a classic retrieval method, as a baseline model for comparison and for the re-ranking retrieval method described in Chapter~\ref{chap:retrieval}. TF-IDF quantifies the importance of terms in a collection of documents by determining the frequency of a term (TF) within a document and adjusting it based on the inverse document frequency (IDF) across the collection. Thus, terms that occur more frequently within a particular document, but are relatively rare across the collection, are given high weights. By representing the query and the passages as vectors containing a TF-IDF value for each term that occurs in the entire corpus, the passages can be ranked using cosine similarity. However, TF-IDF has significant limitations. It assumes that the importance of a term depends solely on its frequency and treats each term as an independent entity, ignoring contextual factors such as the order or proximity of terms within a document, as well as synonyms. As a result, TF-IDF cannot capture semantic meaning, a problem that neural approaches seek to overcome.
 
 \subsection{Neural Retrieval Methods}
 For our neural retrieval approach, we adopted the ColBERT \cite{khattab2020ColBERT} model, which utilizes Transformer models to generate vector embeddings for word tokens in a text sequence. These embeddings capture the contextual information of the tokens within the sequence and are then used to calculate the similarity between two sequences.
 
 \subsubsection{ColBERT Model}
-The ColBERT model takes a query and a document passage as input. These strings are then tokenized using the Transformer model's associated tokenizer, resulting in sequences of query tokens ($q = q_1q_2\dots q_m$) and document tokens ($d = d_1d_2\dots d_n$). Next we prepend a \texttt{[CLS]} token at the beginning and append a \texttt{[SEP]} token at the end of both sequences and add either a \texttt{[Q]} or \texttt{[D]} token after the \texttt{[CLS]} token to encode the input sequence type (query or document/passage). The query and document sequences are constrained to maximum lengths of $N_q$ and $N_d$ tokens, respectively. If the query is shorter than $N_q$ tokens, we pad the sequence with \texttt{[MASK]} tokens until it reaches length $N_q$. The document sequence will not be padded if shorter than $N_d$ and will be of length $L_d = min(n + 3, N_d)$. Thus, the input sequences for the ColBERT model are as follows: \\ $q = \texttt{[CLS]}\texttt{[Q]}q_1q_2 \dots q_m\texttt{[SEP]}\texttt{[MASK]}\dots\texttt{[MASK]}$ and $d = \texttt{[CLS]}\texttt{[D]}d_1d_2 \dots d_{L_d-3}\texttt{[SEP]}$, respectively. These tokenized sequences are then passed through a Transformer model's Encoder, with experiments conducted using both BERT \cite{devlin2019bert} and RoBERTa \cite{liu2019roberta} architectures. The resulting output is a sequence $E = E_1E_2 \dots E_k$ of high-dimensional vectors, where $k$ corresponds to $N_q$ or $L_d$, depending on the sequence being processed. These vectors are subsequently mapped to a lower dimensionality $d$ using a linear transformation. To calculate the similarity between the query and document sequences, we employ the \textit{sum of maximum similarity} function, as presented in the ColBERT paper. However, instead of using the sum, we use the mean to obtain a more interpretable similarity score. The function is computed as follows:
-$$ S(q,d) := \frac{1}{N_q} \sum_{i=1}^{N_q} \max_{j = 1, \dots, L_d} sim(E_{q_i}, E_{d_j})
-$$
-We evaluate similarity between embedding vectors using both cosine similarity and negated squared $L_2$-norm. The formulas for the similarity measures are as follows:
-$$
-sim_{cos}(E_{q_i}, E_{d_j}) := \frac{E_{q_i}^{T}E_{d_j} }{\| E_{q_i} \|\| E_{d_j} \|} 
-$$
-
-$$
-sim_{L2}(E_{q_i}, E_{d_j}) := -{\| E_{q_i} -E_{d_j} \|}^2
-$$
-
-$$
-sim_{L2,norm}(E_{q_i}, E_{d_j}) := -{\| \frac{E_{q_i}}{\| E_{q_i} \|}  - \frac{E_{d_j}}{\| E_{d_j} \|} \|}^2
-$$
-In the ColBERT paper, the vectors were normalized before applying these similarity measures. However, we also experimented with $L_2$-norm without normalization of the embedding vectors.
+The ColBERT model takes a query and a document passage as input. These strings are then tokenized using the Transformer model's associated tokenizer, resulting in sequences of query tokens ($q = q_1q_2\dots q_m$) and document tokens ($d = d_1d_2\dots d_n$). Next we prepend a \texttt{[CLS]} token at the beginning and append a \texttt{[SEP]} token at the end of both sequences and add either a \texttt{[Q]} or \texttt{[D]} token after the \texttt{[CLS]} token to encode the input sequence type (query or document/passage). The query and document sequences are constrained to maximum lengths of $N_q$ and $N_d$ tokens, respectively. If the query is shorter than $N_q$ tokens, we pad the sequence with \texttt{[MASK]} tokens until it reaches length $N_q$. The document sequence will not be padded if shorter than $N_d$ and will be of length $L_d = min(n + 3, N_d)$. Thus, the input sequences for the ColBERT model are as follows: \\ $q = \texttt{[CLS]}\texttt{[Q]}q_1q_2 \dots q_m\texttt{[SEP]}\texttt{[MASK]}\dots\texttt{[MASK]}$ and $d = \texttt{[CLS]}\texttt{[D]}d_1d_2 \dots d_{L_d-3}\texttt{[SEP]}$, respectively. These tokenized sequences are then passed through a Transformer model's Encoder, with experiments conducted using both BERT \cite{devlin2019bert} and RoBERTa \cite{liu2019roberta} architectures. The resulting output is a sequence $E = E_1E_2 \dots E_k$ of high-dimensional vectors, where $k$ corresponds to $N_q$ or $L_d$, depending on the sequence being processed. These vectors are subsequently mapped to a lower dimensionality $d$ using a linear transformation. To calculate the similarity between the query and document sequences, we employ the \textit{sum of maximum similarity} function, as presented by the authors of ColBERT. However, instead of using the sum, we use the mean to obtain a more interpretable similarity score. The function is computed as follows:
+\[ S(q,d) := \frac{1}{N_q} \sum_{i=1}^{N_q} \max_{j = 1, \dots, L_d} sim(E_{q_i}, E_{d_j})
+\]
+We evaluate similarity between embedding vectors using both cosine similarity and negated squared $L_2$-norm.
+Originally, the vectors were normalized before applying these similarity measures. However, we also experimented with $L_2$-norm without normalization of the embedding vectors.
+The formulas for the similarity measures can be found in the Appendix~\ref{appendix:similarity}. 
 
 \subsubsection{ColBERT Training}
-During the training the BERT/RoBERTa encoder is fine-tuned and the last linear projection and the additional \texttt{[Q]}/\texttt{[D]} tokens are learned from scratch. For training on the MS MARCO dataset, the model receives batches of tuples in the form $\langle q_i^+, d_i^+, d_{i, 1}^-, \dots, d_{i, 9}^-\rangle$. Here, $d_i^+$ represents the answer passage for the query $q_i^+$, and the passages $d_{i, l}^-$ do not contain the answer. When training on our FANDOM QA dataset, the model receives batches of tuples in the form $\langle q_i^+, q_i^-, d_i^+\rangle$, where $q_i^+$ is answered by $d_i^+$ while $q_i^-$ is not. Despite the differences in data format, the training objective remains the same: maximizing the similarity between the answering query/passage pairs relative to the other given passages. The loss is calculated using the cross-entropy loss and is defined as follows for the MS MARCO dataset:
+During the training the BERT/RoBERTa encoder is fine-tuned and the last linear projection and the additional \texttt{[Q]}/\texttt{[D]} tokens are learned from scratch. For training on the MS MARCO dataset, the model receives batches of tuples in the form $\langle q_i^+, d_i^+, d_{i, 1}^-, \dots, d_{i, 9}^-\rangle$. Here, $d_i^+$ represents the answer passage for the query $q_i^+$, and the passages $d_{i, l}^-$ do not contain the answer. 
+The FANDOM-QA dataset contains negative queries for a passage, rather than providing negative passages for a query.
+%that were generated to not be answered by a passage. 
+So when training on our FANDOM-QA dataset, the model receives batches of tuples in the form $\langle q_i^+, q_i^-, d_i^+\rangle$, where $q_i^+$ is answered by $d_i^+$ while $q_i^-$ is not. Despite the differences in data format, the training objective remains the same: maximizing the similarity between the answering query/passage pairs relative to the other given passages. The loss is calculated using the cross-entropy loss and is defined as follows for the MS MARCO dataset:
 $$
 \ell = -\frac{1}{B} \sum_{i=1}^{B} \log \frac{e^{N_q S(q_i^+, d_i^+)}}{e^{N_q S(q_i^+, d_i^+)} + \sum_{j=1}^{9}{e^{N_q S(q_i^+, d_{i, j}^-)}}}
 $$
-For the FANDOM QA dataset, the loss function becomes:
+For the FANDOM-QA dataset, the loss function becomes:
 $$
 \ell = -\frac{1}{B} \sum_{i=1}^{B} \log \frac{e^{N_q S(q_i^+, d_i^+)}}{e^{N_q S(q_i^+, d_i^+)} + e^{N_q S(q_i^-, d_i^+)}}
 $$
-Sadly, it is necessary to manually scale the similarity scores by a factor of $N_q$ in order to achieve better convergence during training (so we actually use the sum of maximum similarity for training). The reason behind this requirement is likely attributed to the range of cosine similarity scores, which typically fall between -1 and 1. Even in an ideal scenario where predicted similarities take the form of $\langle 1, -1, \dots, -1\rangle$, applying the softmax function yields probabilities such as $\langle 0.451, 0.061, \dots, 0.061\rangle$, which is similar to using extremly aggressive label smoothing \cite{szegedy2015rethinking}. Unfortunately, we have not been successful in devising an alternative loss function to address this limitation. \\
+Sadly, it was observed during our experiments that it is necessary to manually scale the similarity scores by a factor of $N_q$ in order to achieve better convergence during training (so we actually use the sum of maximum similarity for training). The reason behind this requirement is likely attributed to the range of cosine similarity scores, which typically fall between -1 and 1. Even in an ideal scenario where predicted similarities take the form of $\langle 1, -1, \dots, -1\rangle$, applying the softmax function yields probabilities such as $\langle 0.451, 0.061, \dots, 0.061\rangle$, which is similar to using extremly aggressive label smoothing \cite{szegedy2015rethinking}. Unfortunately, we have not been successful in devising an alternative loss function to address this limitation. \\
 We conducted experiments using Mean Squared Error (MSE) loss in combination with cosine similarity. In this setup, the target for the loss function was set to 1 for the pairs $\langle q, d^+\rangle$ representing answering passages. Conversely, for the pairs $\langle q, d^-\rangle$ representing not answering passages, we enforced orthogonality by aiming for a cosine similarity of 0. However, this approach yielded inferior performance, as demonstrated in the subsequent analysis.
 
-
-\subsubsection{Retrieval with ColBERT}
-Due to the computational cost associated with calculating the similarity between a given query and all passages, we adopt the two greedy methods from the original ColBERT paper: \textit{re-ranking} and \textit{end-to-end retrieval}. In the \textit{re-ranking} approach, we employ a classical retrieval algorithm (in our case TF-IDF) to retrieve the top-$k$ passages for a query. Subsequently, ColBERT is used to re-rank these $k$ documents based on their similarity scores. On the other hand, \textit{end-to-end retrieval} exclusively utilizes ColBERT. For a given query, we search for the top-$\hat{k}$ most similar document token embedding vectors for each of the $N_q$ query embedding vectors. We retrieve the associated documents ($\leq \hat{k}N_q$ unique documents) and calculate the similarity between the query and these documents. Finally, we return the top-$k$ documents. In contrast to the original paper we set $\hat{k} = k / 5$, instead of $\hat{k} = k / 2$, since both seem to yield similar performance while reducing the number of passages to rank and thus resulting in a more fair comparison to re-ranking and saving inference time.
+\subsubsection{Retrieval with ColBERT} \label{chap:retrieval}
+Due to the computational cost associated with calculating the similarity between a given query and all passages, we adopt the two methods from the original ColBERT paper: \textit{re-ranking} and \textit{end-to-end retrieval}. In the \textit{re-ranking} approach, we employ a classical retrieval algorithm (in our case TF-IDF) to retrieve the top-$k$ passages for a query. Subsequently, ColBERT is used to re-rank these $k$ documents based on their similarity scores. On the other hand, \textit{end-to-end retrieval} exclusively utilizes ColBERT. For a given query, we search for the top-$\hat{k}$ most similar document embedding vectors for each of the $N_q$ query embedding vectors. In the original work this was done using the vector search framework \texttt{faiss}, however due to time limitation we used a simple precomputed document embedding matrix and exhaustively calculated the similarities. We retrieve the associated documents ($\leq \hat{k}N_q$ unique documents) and calculate the similarity between the query and these documents. Finally, we return the top-$k$ documents. 
+The validation of our implementation with the original implementation can be found in the Appendix \ref{appendix:validationimplementation}.
 
 \section{Results}
-% Your results here
-% Besides the results and a discussion of them it is necessary to:
-% - describe how the evaluation is done, which datasets are used for validation/testing, etc.
-% - explain the hyperparameters
-% - specify the values of hyperparameters which are not in the large hyperparameter comparison table (e.g. Learning rate, Batch size, Epochs, ...)
-% - specify optimizer, learning rate scheduler, used FP-precission (Aarons Aufgabe)
-% - specify the used hardware as well as the training time
+\label{chap:results}
+This chapter showcases the results of our conducted experiments on ColBERT with the aim of
+(1) assessing the significance of various hyperparameters in relation to the retrieval performance, and
+(2) evaluating the comparative advantages of training the model using all fandoms versus specific ones, as well as its ability to generalize to unseen wikis.
+To address task (1), we conducted an extensive experimental phase of hyperparameter optimization. %(Appendix ~\ref{appendix:hyperparameters}). 
+The performance of each model was evaluated using selected metrics (Chapter~\ref{chap:metrics}). 
+Subsequently, we fine-tuned the model with the best hyperparameter settings on our FANDOM-QA dataset and the Harry Potter dataset  (Chapter~\ref{chap:fine-tuning}).
 
-\section{Model Interpretability and Explainability}
-% Model understanding here
-% images in the appendix?
-As part of our research, we aimed to understand how ColBERT works and identify its strengths and weaknesses.
-To accomplish this, we visualized the tokens in the passage that hold high relevance for ColBERT. One of the objectives
-was to locate the answer to the question within the passage and present it to the user.
-ColBERT utilizes the similarity between query vectors and passage vectors to determine the correct passage.
-Our research has confirmed a strong relationship between query tokens $q_i$ and query vector $E_{q_i}$, as well as between
-passage tokens $d_j$ and passage vector $E_{d_j}$.
-Therefore, a passage token $d_j$ is considered relevant to ColBERT regarding
-a question $q$ if the associated vector $E_{d_j}$ contributes to a high similarity score $S(q, d)$.
-This occurs when $E_{d_j}$ exhibits a high similarity to one or multiple query vectors $E_{q_i}$.
-The relevance of a passage vector $d_j$ can be determined by the number of query vectors that exhibit high similarity
-to $E_{d_j}$.
-$$
-    R_{abs}(q, d_l) = \:\mid Q(q, d_l) \mid, \text{where }
-$$
-$$
-  Q(q, d_l) = \{E_{q_i} \mid E_{d_l} \in \underset{j = 1, \dots, L_d}{max_k} sim(E_{q_i}, E_{d_j})\}
-$$
+\subsection{Metrics}
+\label{chap:metrics}
+We placed emphasis on computing Recall@k and MRR@k, which are two commonly used model evaluation metrics that are crucial for assessing the information retrieval capability and ranking accuracy of a model and are also used in the official ColBERT paper, allowing for comparison. 
+In both cases, @k represents the truncation value, beyond which a passage is deemed a false negative or, in the case of MRR, assigned a reciprocal rank of 0. 
+\[
+\text{Recall@}k = \frac{TP@k}{P} \]
+\[
+\text{MRR@}k = \frac{1}{|Q|} \sum_{i=1}^{|Q|} r
+\begin{cases}
+r = \frac{1}{\text{rank}_i} & \text{if } \text{rank}_i \leq k \\
+r =  0 & \text{otherwise}
+\end{cases}
+\]
+In the MS MARCOv2 dataset, it is important to note that a single query $q_i^+$ can have multiple relevant documents $d_{i,j}^+$. Therefore, we opted to use recall instead of accuracy to account for this variability. When calculating MRR@k, we consider the rank of the highest-ranked relevant document $d_{i,l}^+$. In contrast, the FANDOM-QA dataset consists of a single answering passage per query, rendering the calculation of accuracy or recall indistinguishable in this context, so we sticked with recall for its validation.
 
-and $max_k(U) = \{a_1, a_2, \dots, a_n\}$ such that $a_1 = max(U), a_2 = max(U \setminus \{a_1\}), \dots, a_n = max(U \setminus \{a_1, a_2, \dots, a_{n-1}\})$. It is evident that the relevance of a passage vector depends not only on its frequency among the top k similarities of the query vectors but also on the value of each individual similarity. In light of this, we have expanded the similarity score $R_{abs}$ to the metric $R_{acc\_sim}$:
-$$
-	R_{acc\_sim}(q, d_l) = \sum_{E_{q_i} \in Q(q, d_l)} sim(E_{q_i}, E_{d_l}) 
-$$
+\subsection{Hyperparameter Search} \label{hparameter-chapter}
 
-In our study, we identified the two most ($k=2$) relevant passage vectors for each query vector using $Q$.
-We choose $k=2$ to strike a balance between marking a sufficient amount of information without assigning high relevance to every passage token. 
-Considering that the queries are encoded into $32$-dimensional vectors, 
-this yields a total of $k*32=64$ one-dimensional data points, which range from $0$ to $L_d$ and represent one passage token each.
-Therefore, the relevance function $R_{abs}$ can be viewed as a histogram that represents the distribution of these $64$ data points. 
-Given our objective of not only highlighting individual tokens in the passage as particularly relevant but also identifying the range likely to contain the answer to the question, we utilize Kernel Density Estimation (KDE)\cite{kde} as an additional approach. 
-KDE is a statistical method used to estimate the probability density function to a given data sample, enabling us to identify a range of passage tokens that holds significant priority for ColBERT.
-In other words, when multiple tokens within a specific range exhibit high relevance scores and are densely clustered together, it signifies the importance of that particular range in the broader context.
-Simplified, KDE generates a density function by overlaying kernels, such as normal distributions.
-In this process, each data point contributes a kernel that is shifted based on the position of the data point.
-One of the benefits of using KDE is that it provides a smooth and continuous estimation of the probability distribution. 
-Additionally, KDE does not require the specification of additional parameters beyond the choice of kernel and bandwidth, 
-which determines the level of smoothing.
+To determine the optimal hyperparameter configuration for our ColBERT model, we conducted a manual sequential optimization strategy. We systematically changed specific hyperparameters while keeping others constant. During the search, all models  were trained on MS MARCOv2. Additional details regarding the training process can be found in Appendix~\ref{appendix:constsettings}. \\
+The investigated hyperparameters included the embedding dimension ($d$), with values of 8, 16, 24, 32, 64, and 128. We compared three similarity calculation methods: cosine similarity, $L2$ distance, and normalized $L2$ distance similarity. We tested training with either cross-entropy or mean squared error loss. The impact of varying the number of query embedding vectors ($N_q$) was also explored, with values of 32 and 64. Furthermore, the performance of BERT and RoBERTa architectures as backbone models was compared. Additionally, the influence of reducing the ratio $\hat{k} = \frac{k}{\lambda}$ on the end-to-end retrieval performance was examined. Detailed results for each hyperparameter configuration can be found in Figure \ref{hparameter-end2end} for end-to-end retrieval and Figure \ref{hparameter-rerank} for re-ranking.\\
+The evaluation results indicate that the original configuration used in the ColBERT paper is mostly optimal in terms of hyperparameter settings. However, a slight improvement in performance was observed with an increased value of $N_q$. The best performing setting determined by our search is as follows: 128 embedding dimensions, cosine similarity, cross-entropy loss function, BERT as the backbone model, 64 embedding query vectors, and $\hat{k} = k / 2$. Interestingly, decreasing the value of $\hat{k}$ did not significantly impact the retrieval process, particularly for the top 10 results which receive the most focus in our retrieval process, as users are less likely to explore lower-ranked results. Therefore, we set $\hat{k} = k / 5$ to reduce the number of passages to rank and consequently save inference time. \\
+Interestingly, during the evaluation phase, the model using a BERT backbone consistently outperformed the model with a RoBERTa backbone, despite RoBERTa being a superior trained BERT model. To strengthen this observation, we conducted tests on RoBERTa with various hyperparameter settings. However, all of these settings resulted in poorer performance compared to the BERT backbone. Regrettably, we are unable to explain the underlying cause of this behavior.
 
-\begin{figure}[h]
-	\includegraphics[width = 7.6cm, left]{"./images/heatmap1.png"}
-	\caption{KDE, Abs. Count, Acc. Similarities}
-	\label{fig:example1}
+
+\subsection{Multi-Stage Fine-Tuning}
+\label{chap:fine-tuning}
+After identifying the best hyperparameters in Chapter~\ref{hparameter-chapter}, we conducted a Multi-Stage Fine-Tuning process to train a robust retrieval model for our FANDOM-QA dataset. In the first stage, we preadapted ColBERT on MS MARCOv2, as the dataset provides fundamental semantic knowledge for ColBERT in retrieving correct answers to queries. In the second stage, we performed fine-tuning seperatly on the FANDOM-QA and Harry Potter datasets. We trained those two models separatly, since we wanted to test if it is necessary to train a model for each wiki seperatly or if a more general model would be similarly capable. 
+We should mention that we not only trained models with 128-dimensional embeddings but also with 24-dimensional embeddings. We made this decission, since choosing 24 dimensions reduces the required storage for the precomputed document embeddings by a factor of 5, while maintaining reasonable retrieval performance. Additionally, we increased $N_q$ to 48 to enhance performance with smaller additional computational cost compared to 64. During this training, a learning rate of 3e-6 and a batch size ($B$) of 42 were employed for improved stability. \\
+The results for the first stage, along with a comparison to the classical retrieval method TF-IDF, can be seen in Figure \ref{final-models}. It is evident that all ColBERT settings perform significantly better than TF-IDF, with 128-dimensional embeddings and end-to-end retrieval yielding the best recall. Interestingly, the re-rank method outperforms end-to-end retrieval for 24-dimensional embeddings. Due to time limitations, we were unable to investigate the cause of this behavior further, but it presents an intriguing avenue for future research.
+\begin{figure}
+    \centering
+    \caption{Retrieval Performance on MS MARCOv2 (Eval)}
+    \label{final-models} 
+    \begin{tikzpicture}[scale = 0.9]
+    \begin{semilogxaxis}[
+        xlabel = {k},
+        ylabel={Recall@k (\%)},
+        xmin = 1, xmax = 1000,
+        ymin = 10, ymax = 100,
+        xtick=data,
+        xticklabels={1,3,5,10,25,50,100,200,1000},
+        legend pos = south east,
+        line width = 1pt,
+        ymajorgrids = true,
+        font=\footnotesize,
+        ylabel style={yshift=-1em}, % Reduce the padding between y-axis label and y-axis
+        legend style={yshift=0.2em, xshift=0.3em}, % Reduce the padding between legend and plot area
+        ]
+    
+    \addplot[color=plt_blue, line width=1pt]
+        coordinates {
+        (1, 11.154)(3, 24.812)(5, 33.609)(10, 45.194)(25, 58.212)(50, 66.963)(100, 74.479)(200, 80.823)(1000, 90.566)
+    }; \addlegendentry{TF-IDF}
+    
+    \addplot[color=plt_orange, line width=1pt]
+        coordinates {
+        (1, 35.683)(3, 59.577)(5, 68.586)(10, 77.607)(25, 85.544)(50, 89.592)(100, 92.401)(200, 94.519)(1000, 97.393)
+    }; \addlegendentry{128 + cosine + end2end }
+    
+    \addplot[color=plt_orange, line width=1pt, dashed]
+        coordinates {
+        (1, 35.649)(3, 59.572)(5, 68.45)(10, 77.088)(25, 83.888)(50, 87.094)(100, 88.964)(200, 89.95)(1000, 90.566)
+    }; \addlegendentry{128 + cosine + rerank}
+    
+    \addplot[color=plt_green, line width=1pt]
+        coordinates {
+        (1, 33.101)(3, 54.81)(5, 63.27)(10, 71.8267)(25, 79.916)(50, 84.331)(100, 87.674)(200, 90.353)(1000, 94.352)
+    }; \addlegendentry{24 + cosine + end2end}
+    
+    \addplot[color=plt_green, line width=1pt, dashed]
+        coordinates {
+        (1, 34.12)(3, 57.14)(5, 65.936)(10, 74.664)(25, 82.186)(50, 85.944)(100, 88.379)(200, 89.728)(1000, 90.566)
+    }; \addlegendentry{24 + cosine + rerank}
+    
+    \end{semilogxaxis}
+    \end{tikzpicture}
+\end{figure}
+\\
+The end-to-end retrieval performances of the second stage models on the Harry Potter dataset, as seen in Figure \ref{FandomQAvHP}, show similar performance between the models fine-tuned on FANDOM-QA and Harry Potter, with a slight lead observed for the FANDOM-QA model. However, when comparing these models to the preadapted model, a significant performance difference was observed. This difference could be attributed to the fine-tuned models being trained on well-formulated questions and performing on a smaller information pool, while the preadapted model dealt with more diverse and extensive topics. The fine-tuned models may have also adopted certain formulations frequently used by GPT, leading to improved performance. \\
+%A further obstacle in using the GPT generated queries was observed during the training. 
+%A high proportion of the words contained in the negative query also occurred in the passage. To our surprise, this led to a drastic decrease in performance of our model in the second stage of multi-stage fine-tuning. %A possible reason might be that cross-entropy that we used for training also tried to minimise the similarity between the passage and the negative query. 
+%Consequently, we shuffled the negative queries among in the test dataset to obtain a dataset that does not have this problem.\\
+We also evaluated the generalization capabilities of the models to unseen data, by utilizing the Witcher dataset. The results, seen in Figure \ref{FandomQAvHPonWitcher}, indicated that the more general model performed better than the model trained solely on Harry Potter. However, the performance of both models was still quite similar, suggesting again a potential flaw in the autogenerated questions generated by GPT-3, since repetitive formulation in the fine-tuned models may have led to an excessive performance in this context. \\
+In conclusion, the end-to-end retrieval method is superior to the re-ranking approach. For retrieval on fandoms, a more general model (all wikis) appears to perform as well as more specialized (single wiki) models while exhibiting better generalization capability to unseen data. However, further research with more diverse data should be conducted to validate these findings.
+
+\begin{figure}
+    \centering
+    \caption{End-to-End Retrieval on Harry Potter ($d=24$, $sim=\text{cosine}$)}
+    \label{FandomQAvHP}
+    \begin{tikzpicture}[scale = 0.9]
+        \begin{semilogxaxis}[
+            % title = {End-to-End Retrieval on Harry Potter ($d=24$, $sim=\text{cosine}$)
+            % },
+            xlabel = {k},
+            ylabel={Recall@k (\%)},
+            xmin = 1, xmax = 1000,
+            ymin = 40, ymax = 100,
+            xtick=data,
+            xticklabels={1,3,5,10,25,50,100,200,1000},
+            legend pos = south east,
+            line width = 1pt,
+            ymajorgrids = true,
+            font=\footnotesize,
+            ylabel style={yshift=-1em}, % Reduce the padding between y-axis label and y-axis
+            legend style={yshift=0.2em, xshift=0.3em}, % Reduce the padding between legend and plot area
+            ]
+            
+            \addplot[color=plt_red, line width=1pt, dotted]
+                coordinates {
+                (1, 41.521)(3, 58.895)(5, 65.921)(10, 73.606)(25, 81.906)(50, 86.833)(100, 90.572)(200, 93.443)(1000, 96.912)
+                }; \addlegendentry{TF-IDF}
+        
+            \addplot[color=plt_blue, line width=1pt, dashed]
+                coordinates {
+                (1, 58.69)(3, 73.62)(5, 78.3)(10, 82.98)(25, 87.8)(50, 90.42)(100, 92.84)(200, 94.94)(1000, 97.55)
+                }; \addlegendentry{preadapted on MS MARCOv2}
+                    
+            \addplot[color=plt_orange, line width=1pt]
+                coordinates {
+                (1, 72.079)(3, 85.367)(5, 89.08)(10, 92.211)(25, 94.891)(50, 96.409)(100, 97.727)(200, 98.517)(1000, 99.211)
+                }; \addlegendentry{fine-tun. FANDOM-QA}
+                
+            \addplot[color=plt_green, line width=1pt]
+                coordinates {
+                (1, 71.056)(3, 85.072)(5, 88.629)(10, 92.003)(25, 94.683)(50, 96.348)(100, 97.502)(200, 98.3)(1000, 99.029)
+                }; \addlegendentry{fine-tun. Harry Potter}
+                
+        \end{semilogxaxis}
+    \end{tikzpicture}
 \end{figure}
 
-ColBERT reliably identifies the passage containing the answer to the given question by comparing the passage embedding with the query embedding. 
-However, in most cases, the answer cannot be directly identified by comparing the embedding of the passage with the embedding of the query.
-In most instances, the words in the passage that exhibit the highest similarity with the query are not the answer itself, but rather the words 
-that lead to the answer.
-When comparing the query "Who won the football championship in 2006?" and the passage "The football championship in the year 2006 was a great 
-sports event that was won by Italy." of figure~\ref{fig:example1} the highest similarity will be found in the words "the", "football", "championship", "2006", "was", 
-"won" and "by" instead  of the actual answer "Italy", because the actual answer is not relevant to decide whether the question is answered 
-in the passage. 
+\section{Model Interpretability and Explainability}
+\label{chap:understanding}
+As part of our study, we aimed to understand how our ColBERT model trained on MS MARCOv2 works, assess its strengths and weaknesses, and determine the location of the answer within the extracted passage.
+To achieve this, we have highlighted the tokens in the passage that are highly relevant to ColBERT (Chapter~\ref{chap:visualization}), improved this highlighting method using Kernel Density Estimation to locate the answer in the passage (Chapter~\ref{chap:kde}), and summarised the main observations in (Chapter~\ref{chap:observations}). 
+Finally, in Appendix~\ref{chap:context}, we conducted small-scale experiments to evaluate the respective contributions of the word embeddings and the transformer architecture to the performance of ColBERT.
+
+\subsection{Visualization of the Relevance of Passage Tokens}
+\label{chap:visualization}
+To find relevant tokens in the passage, we first note that ColBERT uses the similarity between query vectors and passage vectors to determine the correct passage.
+In addition, by visualising the similarity between passage tokens and query tokens as in Figure~\ref{fig:example2}, we found that the embedded query vector $E_{q_i}$ at index $i$ encodes a large part of the information of the query token $q_i$ at index $i$. The same relationship was found between the embedded passage vector $E_{d_j}$ and the passage token $d_j$.
+Therefore, a passage token $d_j$ is considered relevant to ColBERT regarding a question $q$ if the associated vector $E_{d_j}$ contributes to a high similarity score $S(q, d)$.
+This occurs when $E_{d_j}$ exhibits the highest similarity to one or multiple query vectors $E_{q_i}$.
+We identified the ${\tilde{k}}=2$ most similar passage vectors for each query vector, although the similarity score $S$ only considers the top 1 to strike a balance between marking a sufficient amount of information without assigning high relevance to each passage token. 
+The relevance $R$ of a passage token $d_j$ can be determined by the $absolute$ $count$ of query vectors that exhibit high similarity to $E_{d_j}$. 
+$$
+    R_{abs}(q, d_l) = |Q(q, d_l)| \text{\quad, where\quad} Q(q, d_l) = 
+$$
+$$
+  \{E_{q_i} \mid sim(E_{q_i}, E_{d_l}) \in \underset{j = 1, \dots, L_d}{max_{\tilde{k}}} sim(E_{q_i}, E_{d_j})\}
+$$
+and $max_{\tilde{k}}$ returns the highest ${\tilde{k}}$ elements computed while iterating over index $j$.
+%and $max_k(U) = \{a_1, a_2, \dots, a_k\}$ such that $a_1 = max(U), a_2 = max(U \setminus %\{a_1\}), \dots, a_k = max(U \setminus \{a_1, a_2, \dots, a_{k-1}\})$. 
+Since the relevance of a passage vector depends not only on its frequency among the top ${\tilde{k}}$ similarities of the query vectors, but also on the value of each individual similarity, we have extended the similarity score $R_{abs}$ to $R_{acc}$:
+$$
+	R_{acc}(q, d_l) = \sum_{E_{q_i} \in Q(q, d_l)} sim(E_{q_i}, E_{d_l}) 
+$$
+
+\subsection{Locating the Answer in the Passage}
+\label{chap:kde}
+Although ColBERT identifies the passage containing the answer to the given question by comparing the passage embedding with the query embedding, in most cases the answer itself cannot be identified directly by comparing these two embeddings using $R_{abs}$ or $R_{acc}$.
+In most cases, the most relevant tokens of the passage are not the answer itself, but rather the tokens that lead to the answer.
+When comparing the query 'who won the football championship in 2006?' and the passage 'the football championship in the year 2006 was a great sports event that was won by italy.' of Figure~\ref{fig:example1} the highest relevance will be found in the words 'the', 'football', 'championship', '2006', 'was', 'won' and 'by' instead  of the actual answer 'italy', because the actual answer is not relevant to decide whether the question is answered in the passage. 
 ColBERT was not trained to find the answer, but rather to determine whether the answer is contained within the passage.
-Substituting any other word for "Italy" would have minimal impact on the probability of the passage providing an answer to the question.
-KDE partially addresses this problem by assuming that the answer is likely to be located in the areas of the passage 
-that contain a higher concentration of relevant tokens with respect to the question.
+Replacing 'italy' with any other word would have a minimal effect on the "probability" of the passage providing an answer to the question. 
+Our approach to solving this problem is to use Kernel Density Estimation~\cite{kde}, by assuming that the answer is likely to be located in the areas of the passage that contain a higher concentration of relevant tokens with respect to the question.
+\\
+Kernel Density Estimation is a statistical method that estimates the underlying probability density function of a random variable by placing a kernel function on each data point and summing them up to create a smooth density estimate.
+ %without the need to specify additional parameters beyond the choice of kernel and %smoothing factor.
+Given that the queries are encoded in $N_q$ embedding vectors, calculating the top ${\tilde{k}}$ passage vectors for each query vector yields a total of ${\tilde{k}} \cdot N_q$ one-dimensional index points ranging from $0$ to $L_d-1$ and containing duplicates.
+%The data points are one dimensional because each passage token can be identified by its index, which ranges from $0$ to $L_d$.
 The tokens \texttt{[CLS]}, \texttt{[D]} and \texttt{[SEP]} are ignored by KDE.
-The markings aid the user in swiftly identifying the likely location of the answer within the passage. Moreover, the markings elucidate the 
-significance of the retrieved passage to ColBERT. 
-In the event that the answer is not present in the passage, the user can hopefully discern the reasons for ColBERT's failure and
-subsequently modify the query accordingly.
- 
-\begin{figure}[h]
-	\includegraphics[width = 7.6cm, left]{"./images/first_word_heatmap.png"}
-	\caption{Single Token Similarity}
-	\label{fig:example2}
-\end{figure} 
+Applying KDE to this data sample allows us to identify areas in the passage with a high density of relevant tokens, indicating not a high probability, but the relevance of that particular area in the broader context.
+\\
+%In our case, a high density does not mean a high probability, but the passage token at that index has a high relevance to Colbert.
+%In other words, if several tokens within a particular range have high relevance scores and are densely clustered together, this indicates the relevance %of that particular range in the broader context.
+%Therefore, the relevance function $R_{abs}$ can be viewed as a histogram that represents the distribution of these data %points. 
+The assumption that the answer is likely to be found in these dense areas of the passage is often correct, and therefore useful for quickly identifying the likely location of the answer in the passage, but not reliable. 
+KDE sacrifices information by smoothing compared to using $R_{abs}$ for visualisation. The three visualisations (Figure~\ref{fig:example3},~\ref{fig:example4}) provide insight into the relevance of the retrieved information to ColBERT.
+%, such that users can modify their query if the correct passage is not found by CoLBERT. 
+While KDE is suitable for regular users looking for answers with easy to understand markings, $R_{acc}$ is more suitable for gaining insight into the functioning of ColBERT and for troubleshooting.
+%In summary, the three given types of visualisation aid the user in swiftly identifying the likely location of the answer within the passage. Moreover, %the markings elucidate the significance of the retrieved passage to ColBERT. 
+%If the answer is not in the passage, the user will hopefully be able to identify the reasons for ColBERT's failure and subsequently modify the query %accordingly, for example by repeating a word in the query several times to give it more weight.
+%Therefore, KDE is more suitable for the normal user who is only looking for an answer, as the markings are easier to understand and the answer is often %highlighted. on the other hand, $R_acc$ is well suited if you want to gain an insight into how ColBERT works and for troubleshooting. 
+%The three different visualisations can be viewed on a real example passage (Figure \ref{fig:example3}) extracted from the Witcher fandom dataset using end-to-end retrieval.
 
-In Figure~\ref{fig:example2}, the similarity of the passage to the tokens 'who', 'when' and 'where' is visualized. 
-Colbert's understanding obviously goes beyond synonyms: the token 'in' occurs twice in the passage, but the similarity of when is only high in relation to the first, and the similarity of where is only high in relation to the second. 
-The major strength of ColBERT lies in its understanding of semantics, where words are not considered in isolation but in context. 
+
+\subsection{Observations during Visualization}
+\label{chap:observations}
+
+To further analyse our model, we extracted questions and passages from the FANDOM-QA dataset on which Colbert did particularly well and particularly badly, and did the same for TF-IDF. We then manually analysed the visualisation of the intersection of each of the 4 sets.
+In addition, we used single token similarity, as shown in Figure~\ref{fig:example2}, which visualizes the similarity of the passage to the exemplary single tokens 'who', 'when' and 'where'. 
+Colbert's understanding obviously goes beyond synonyms: the token 'in' occurs twice in the passage, but the similarity of 'when' is only high in relation to the first, and the similarity of 'where' is only high in relation to the second. 
+The major strength of ColBERT lies in the context-aware embeddings (Chapter~\ref{chap:context}), where tokens are no longer considered in isolation.
 The context 'germany' changes the word 'in' from a time-related word to a place-related word.
+\\
 However, ColBERT encounters similar issues as single-word-based systems like TF-IDF. 
-ColBERT often misses the mark in answering the question and instead retrieves passages that provide extensive information about the content of the question. ColBERT is easily distracted by passages that extensively cover the topic of the question. Passages that succinctly provide the answer but have a different core topic are overlooked by ColBERT. 
-It also seems that not enough attention is paid to interrogative words such as 'who', even though these words are well understood by ColBERT.
+ColBERT often misses the point of the question and instead retrieves passages that provide extensive information about the content of the question. Passages that provide the answer but have a different core topic are overlooked. 
+It also seems that not enough attention is paid to interrogative words such as 'who', even though these words are well understood by ColBERT, as Figure~\ref{fig:example2} demonstrates.
 This behavior can be explained by the fact that during the training phase, there are only a few passages that contain substantial information about the topic of the question but do not directly answer the question.
-ColBERT learns to find the right passage without paying attention to the specific type of question.
-
-Another interesting observation made during the visualisation is that the vectors of the \texttt{[MASK]} tokens also carry information, e.g. two \texttt{[MASK]} tokens have different similarities to the tokens from the passage. 
-
-\subsection{Contribution of Contextual-Aware Embeddings}
-Lastly, we conducted small-scale experiments to evaluate the respective contributions of the word embeddings and the transformer architecture to ColBERTs performance. Word embeddings are known for their robustness against synonyms, while the transformer architecture enables contextual awareness in embeddings compared to the context-unaware embeddings of individual words.
-
-To investigate this, we analyzed the learned embeddings of our ColBERT model, which was trained on MS MARCO v2.1. Due to the large size of the resulting 768-dimensional word embeddings, we performed the evaluation on the smaller MS MARCO v1.1 dataset. For our testing we removed the transformer backbone and the final linear mapping and used solely the output of the embedding layer for the end-to-end retrieval process. We tested three experimental settings: (A) utilizing only word embeddings, (B) incorporating word embeddings with positional embeddings, and (C) combining word and positional embeddings with LayerNorm.
-
-The results, presented in Table \ref{embeddings-table}, indicated that employing either word embeddings or word and positional embeddings achieved performance comparable to that of TF-IDF. However, when LayerNorm was also applied, the model slightly outperformed TF-IDF. Nevertheless, when compared to the complete ColBERT model, the exclusive use of context-unaware word embeddings resulted in inferior performance. We therefore suspect that the contextual information encoded in the embeddings by the transformer backbone significantly contributes to the overall performance of ColBERT.
-
-\begin{figure*}
-    \centering
-    \caption{End-to-End Retrieval Performance of Different Embedding Methods}
-    \begin{tabular}{cccccc}
-        \hline
-        \textbf{Experiment} & \textbf{MRR@10} & \textbf{REC@1} & \textbf{REC@5} & \textbf{REC@100} & \textbf{REC@1000} \\
-        \hline
-        \texttt{TF-IDF} & 26.86 & 13.10 & 42.67 & 80.38 & 86.13 \\
-        \texttt{(A)} & 24.20 & 12.17 & 38.27 & 77.62 & 91.25 \\
-        \texttt{(B)} & 23.45 & 11.93 & 36.49 & 73.02 & 91.85 \\
-        \texttt{(C)} & 32.18 & 16.82  & 50.05 & 87.04 & 96.99 \\
-        \texttt{ColBERT} & 57.50 & 38.38 & 79.34 & 97.80 & 99.61 \\ 
-        \hline
-    \end{tabular}
-    \label{embeddings-table}
-\end{figure*}
+Hence, ColBERT learns to find the right passage without paying attention to the specific type of question.
+Furthermore, each query vector contributes equally to the sum of similarities.
+Assuming a strict 1:1 relationship between query token and query vector, the interrogative word will not be given more weight than any other token in the query, but this assumption needs further investigation. 
+%It would also be interesting to see how artificially giving the question word more weight in the sum of similarities would %improve the system.
+We also found that the vectors of the \texttt{[MASK]} tokens also carry information, e.g. two \texttt{[MASK]} tokens have different similarities to the tokens from the passage. This shows at the very least a partial resolution of the 1:1 relationship between query token $q_i$ and query vector $E_{q_i}$.
 
 
- 
-
-% \section{Introduction}
-
-% These instructions are for authors submitting papers to ACL 2023 using \LaTeX. They are not self-contained. All authors must follow the general instructions for *ACL proceedings,\footnote{\url{http://acl-org.github.io/ACLPUB/formatting.html}} as well as guidelines set forth in the ACL 2023 call for papers.\footnote{\url{https://2023.aclweb.org/calls/main_conference/}} This document contains additional instructions for the \LaTeX{} style files.
-% The templates include the \LaTeX{} source of this document (\texttt{acl2023.tex}),
-% the \LaTeX{} style file used to format it (\texttt{acl2023.sty}),
-% an ACL bibliography style (\texttt{acl\_natbib.bst}),
-% an example bibliography (\texttt{custom.bib}),
-% and the bibliography for the ACL Anthology (\texttt{anthology.bib}).
-
-% \section{Engines}
-
-% To produce a PDF file, pdf\LaTeX{} is strongly recommended (over original \LaTeX{} plus dvips+ps2pdf or dvipdf). Xe\LaTeX{} also produces PDF files, and is especially suitable for text in non-Latin scripts.
-% \begin{table}
-% \centering
-% \begin{tabular}{lc}
-% \hline
-% \textbf{Command} & \textbf{Output}\\
-% \hline
-% \verb|{\"a}| & {\"a} \\
-% \verb|{\^e}| & {\^e} \\
-% \verb|{\`i}| & {\`i} \\ 
-% \verb|{\.I}| & {\.I} \\ 
-% \verb|{\o}| & {\o} \\
-% \verb|{\'u}| & {\'u}  \\ 
-% \verb|{\aa}| & {\aa}  \\\hline
-% \end{tabular}
-% \begin{tabular}{lc}
-% \hline
-% \textbf{Command} & \textbf{Output}\\
-% \hline
-% \verb|{\c c}| & {\c c} \\ 
-% \verb|{\u g}| & {\u g} \\ 
-% \verb|{\l}| & {\l} \\ 
-% \verb|{\~n}| & {\~n} \\ 
-% \verb|{\H o}| & {\H o} \\ 
-% \verb|{\v r}| & {\v r} \\ 
-% \verb|{\ss}| & {\ss} \\
-% \hline
-% \end{tabular}
-% \caption{Example commands for accented characters, to be used in, \emph{e.g.}, Bib\TeX{} entries.}
-% \label{tab:accents}
-% \end{table}
-% \section{Preamble}
-% \begin{table*}
-% \centering
-% \begin{tabular}{lll}
-% \hline
-% \textbf{Output} & \textbf{natbib command} & \textbf{Old ACL-style command}\\
-% \hline
-% \citep{ct1965} & \verb|\citep| & \verb|\cite| \\
-% \citealp{ct1965} & \verb|\citealp| & no equivalent \\
-% \citet{ct1965} & \verb|\citet| & \verb|\newcite| \\
-% \citeyearpar{ct1965} & \verb|\citeyearpar| & \verb|\shortcite| \\
-% \citeposs{ct1965} & \verb|\citeposs| & no equivalent \\
-% \citep[FFT;][]{ct1965} &  \verb|\citep[FFT;][]| & no equivalent\\
-% \hline
-% \end{tabular}
-% \caption{\label{citation-guide}
-% Citation commands supported by the style file.
-% The style is based on the natbib package and supports all natbib citation commands.
-% It also supports commands defined in previous ACL style files for compatibility.
-% }
-% \end{table*}
-% The first line of the file must be
-% \begin{quote}
-% \begin{verbatim}
-% \documentclass[11pt]{article}
-% \end{verbatim}
-% \end{quote}
-% To load the style file in the review version:
-% \begin{quote}
-% \begin{verbatim}
-% \usepackage[review]{ACL2023}
-% \end{verbatim}
-% \end{quote}
-% For the final version, omit the \verb|review| option:
-% \begin{quote}
-% \begin{verbatim}
-% \usepackage{ACL2023}
-% \end{verbatim}
-% \end{quote}
-% To use Times Roman, put the following in the preamble:
-% \begin{quote}
-% \begin{verbatim}
-% \usepackage{times}
-% \end{verbatim}
-% \end{quote}
-% (Alternatives like txfonts or newtx are also acceptable.)
-% Please see the \LaTeX{} source of this document for comments on other packages that may be useful.
-% Set the title and author using \verb|\title| and \verb|\author|. Within the author list, format multiple authors using \verb|\and| and \verb|\And| and \verb|\AND|; please see the \LaTeX{} source for examples.
-% By default, the box containing the title and author names is set to the minimum of 5 cm. If you need more space, include the following in the preamble:
-% \begin{quote}
-% \begin{verbatim}
-% \setlength\titlebox{<dim>}
-% \end{verbatim}
-% \end{quote}
-% where \verb|<dim>| is replaced with a length. Do not set this length smaller than 5 cm.
-
-% \section{Document Body}
-
-% \subsection{Footnotes}
-
-% Footnotes are inserted with the \verb|\footnote| command.\footnote{This is a footnote.}
-
-% \subsection{Tables and figures}
-
-% See Table~\ref{tab:accents} for an example of a table and its caption.
-% \textbf{Do not override the default caption sizes.}
-
-% \subsection{Hyperlinks}
-
-% Users of older versions of \LaTeX{} may encounter the following error during compilation: 
-% \begin{quote}
-% \tt\verb|\pdfendlink| ended up in different nesting level than \verb|\pdfstartlink|.
-% \end{quote}
-% This happens when pdf\LaTeX{} is used and a citation splits across a page boundary. The best way to fix this is to upgrade \LaTeX{} to 2018-12-01 or later.
-
-% \subsection{Citations}
+\section{Conclusion}
+In this research, we focused on implementing a semantic retrieval system that performs extractive question answering on fandom wikis. Our system effectively cleansed the given fandom dataset and generated its own training and validation datasets. This approach allows for easy reuse and further development of the system. The final model produced satisfactory results. Pre-computation of model weights and document embedding vectors allowed for fast response retrieval. Multi-stage fine-tuning proved useful in achieving high recall rates. 
+Our research showed that neural retrieval significantly outperformed classical retrieval methods, mainly due to the context awareness of ColBERT. 
+The optimal hyperparameters we found are consistent with the original paper.
+Furthermore, the presented visualisation methods proved to be useful to gain insights into the functioning of CoLBERT, to troubleshoot problems and to find answers within the extracted passage.
+\\
+Moving forward, future research should focus on improving question generation to obtain a more diverse range of questions. Furthermore, it is crucial to encourage the model to understand the intent behind the question, rather than just focusing on the topic itself. To achieve this, giving more weight to the question words and evaluating the model's performance based on this aspect would be a valuable area of research.
 
 
-
-% Table~\ref{citation-guide} shows the syntax supported by the style files.
-% We encourage you to use the natbib styles.
-% You can use the command \verb|\citet| (cite in text) to get ``author (year)'' citations, like this citation to a paper by \citet{Gusfield:97}.
-% You can use the command \verb|\citep| (cite in parentheses) to get ``(author, year)'' citations \citep{Gusfield:97}.
-% You can use the command \verb|\citealp| (alternative cite without parentheses) to get ``author, year'' citations, which is useful for using citations within parentheses (e.g. \citealp{Gusfield:97}).
-
-% \subsection{References}
-
-% \nocite{Ando2005,augenstein-etal-2016-stance,andrew2007scalable,rasooli-tetrault-2015,goodman-etal-2016-noise,harper-2014-learning}
-
-% The \LaTeX{} and Bib\TeX{} style files provided roughly follow the American Psychological Association format.
-% If your own bib file is named \texttt{custom.bib}, then placing the following before any appendices in your \LaTeX{} file will generate the references section for you:
-% \begin{quote}
-% \begin{verbatim}
-% \bibliographystyle{acl_natbib}
-% \bibliography{custom}
-% \end{verbatim}
-% \end{quote}
-% You can obtain the complete ACL Anthology as a Bib\TeX{} file from \url{https://aclweb.org/anthology/anthology.bib.gz}.
-% To include both the Anthology and your own .bib file, use the following instead of the above.
-% \begin{quote}
-% \begin{verbatim}
-% \bibliographystyle{acl_natbib}
-% \bibliography{anthology,custom}
-% \end{verbatim}
-% \end{quote}
-% Please see Section~\ref{sec:bibtex} for information on preparing Bib\TeX{} files.
-
-% \subsection{Appendices}
-
-% Use \verb|\appendix| before any appendix section to switch the section numbering over to letters. See Appendix~\ref{sec:appendix} for an example.
-
-% \section{Bib\TeX{} Files}
-% \label{sec:bibtex}
-
-% Unicode cannot be used in Bib\TeX{} entries, and some ways of typing special characters can disrupt Bib\TeX's alphabetization. The recommended way of typing special characters is shown in Table~\ref{tab:accents}.
-
-% Please ensure that Bib\TeX{} records contain DOIs or URLs when possible, and for all the ACL materials that you reference.
-% Use the \verb|doi| field for DOIs and the \verb|url| field for URLs.
-% If a Bib\TeX{} entry has a URL or DOI field, the paper title in the references section will appear as a hyperlink to the paper, using the hyperref \LaTeX{} package.
-
-% \section*{Limitations}
-% ACL 2023 requires all submissions to have a section titled ``Limitations'', for discussing the limitations of the paper as a complement to the discussion of strengths in the main text. This section should occur after the conclusion, but before the references. It will not count towards the page limit.
-% The discussion of limitations is mandatory. Papers without a limitation section will be desk-rejected without review.
-
-% While we are open to different types of limitations, just mentioning that a set of results have been shown for English only probably does not reflect what we expect. 
-% Mentioning that the method works mostly for languages with limited morphology, like English, is a much better alternative.
-% In addition, limitations such as low scalability to long text, the requirement of large GPU resources, or other things that inspire crucial further investigation are welcome.
-
-% \section*{Ethics Statement}
-% Scientific work published at ACL 2023 must comply with the ACL Ethics Policy.\footnote{\url{https://www.aclweb.org/portal/content/acl-code-ethics}} We encourage all authors to include an explicit ethics statement on the broader impact of the work, or other ethical considerations after the conclusion but before the references. The ethics statement will not count toward the page limit (8 pages for long, 4 pages for short papers).
-
-% \section*{Acknowledgements}
-% This document has been adapted by Jordan Boyd-Graber, Naoaki Okazaki, Anna Rogers from the style files used for earlier ACL, EMNLP and NAACL proceedings, including those for
-% EACL 2023 by Isabelle Augenstein and Andreas Vlachos,
-% EMNLP 2022 by Yue Zhang, Ryan Cotterell and Lea Frermann,
-% ACL 2020 by Steven Bethard, Ryan Cotterell and Rui Yan,
-% ACL 2019 by Douwe Kiela and Ivan Vuli\'{c},
-% NAACL 2019 by Stephanie Lukin and Alla Roskovskaya, 
-% ACL 2018 by Shay Cohen, Kevin Gimpel, and Wei Lu, 
-% NAACL 2018 by Margaret Mitchell and Stephanie Lukin,
-% Bib\TeX{} suggestions for (NA)ACL 2017/2018 from Jason Eisner,
-% ACL 2017 by Dan Gildea and Min-Yen Kan, NAACL 2017 by Margaret Mitchell, 
-% ACL 2012 by Maggie Li and Michael White, 
-% ACL 2010 by Jing-Shin Chang and Philipp Koehn, 
-% ACL 2008 by Johanna D. Moore, Simone Teufel, James Allan, and Sadaoki Furui, 
-% ACL 2005 by Hwee Tou Ng and Kemal Oflazer, 
-% ACL 2002 by Eugene Charniak and Dekang Lin, 
-% and earlier ACL and EACL formats written by several people, including
-% John Chen, Henry S. Thompson and Donald Walker.
-% Additional elements were taken from the formatting instructions of the \emph{International Joint Conference on Artificial Intelligence} and the \emph{Conference on Computer Vision and Pattern Recognition}.
 
 
 
@@ -522,10 +424,393 @@ The results, presented in Table \ref{embeddings-table}, indicated that employing
 \bibliography{custom}
 \bibliographystyle{acl_natbib}
 
-\appendix
 
-\section{Appendix}
+\newpage
+\ 
+\newpage
+\appendix
+%\section{Appendix}
 \label{sec:appendix}
-This is a section in the appendix.
+
+\section{Validation of our implementation}
+\label{appendix:validationimplementation}
+To compare our implementation of ColBERT with the official implementation, we trained our model using the same hyperparameter configuration as the official ColBERTv2 model \cite{santhanam2022colbertv2} on the MS MARCOv2 dataset. It is important to note that our training approach closely resembles ColBERTv1, so we did not expect identical performance to ColBERTv2. However, since only the weights of ColBERTv2 are publicly available, we compared our model to this version. Due to computational constraints, we were unable to compute passage embeddings for the entire set of 8.8 million passages in the MS MARCOv2 dataset for our application. Consequently, our evaluation was limited to the 1 million validation passages. As a result, a direct comparison with the official results was not feasible. Instead, we recalculated the performance metrics solely based on the validation passages. The comparison results are shown in Figure \ref{our-vs-colbertv2}, where our model performed slightly worse, but still fairly similar to the offical ColBERTv2 checkpoint.
+
+\begin{figure}
+    \begin{tikzpicture}[scale=0.9]
+        \begin{semilogxaxis}[
+            title = {End-to-End Retrieval with $d = 128$ on MS MARCOv2 (Eval)},
+            xlabel = {k},
+            ylabel={Recall@k (\%)},
+            xmin = 1, xmax = 1000,
+            ymin = 20, ymax = 100,
+            xtick=data,
+            xticklabels={1,3,5,10,25,50,100,200,1000},
+            ytick = {20, 40, 60, 80, 100},
+            legend pos = south east,
+            line width = 1pt,
+            ymajorgrids = true,
+            font=\footnotesize,
+            ylabel style={yshift=-1em}, % Reduce the padding between y-axis label and y-axis
+            legend style={yshift=0.3em}, % Reduce the padding between legend and plot area
+            ]
+        
+        \addplot[color=plt_blue, line width=1pt]
+            coordinates {
+            (1, 35.683)(3, 59.577)(5, 68.586)(10, 77.607)(25, 85.544)(50, 89.592)(100, 92.401)(200, 94.519)(1000, 97.393)
+        }; \addlegendentry{our + end2end}
+        
+        \addplot[color=plt_blue, line width=1pt, dashed]
+            coordinates {
+            (1, 35.649)(3, 59.572)(5, 68.45)(10, 77.088)(25, 83.888)(50, 87.094)(100, 88.964)(200, 89.95)(1000, 90.566)
+        }; \addlegendentry{our + rerank}
+        
+        
+        \addplot[color=plt_orange, line width=1pt]
+            coordinates {
+            (1, 34.373)(3, 60.493)(5, 71.157)(10, 81.475)(25, 89.406)(50, 92.954)(100, 95.119)(200, 96.573)(1000, 98.356)
+        }; \addlegendentry{ColBERTv2 + end2end}
+        
+        \addplot[color=plt_orange, line width=1pt, dashed]
+            coordinates {
+            (1, 33.864)(3, 59.635)(5, 69.842)(10, 79.216)(25, 85.836)(50, 88.396)(100, 89.685)(200, 90.296)(1000, 90.566)
+        }; \addlegendentry{ColBERTv2 + rerank}
+        
+        \end{semilogxaxis}
+    \end{tikzpicture}
+    \caption{Comparison between our ColBERT implementation and the official ColBERTv2 checkpoint}
+    \label{our-vs-colbertv2} 
+\end{figure}
+\section{Constant Settings for Neural Model Training and Hyperparameter Search}
+\label{appendix:constsettings}
+Throughout the training runs, we maintained a batch size $B$ of 42 on MS MARCOv2 and 128 on FANDOM-QA, a dropout rate of 0.1, and utilized the AdamW optimizer with a learning rate of  3e-6. Additionally, we employed linear warmup of the learning rate during the first epoch. We increased the value of $N_d$ to 320 compared to the official ColBERTv2 checkpoint, which used 180. Automatic mixed precision was applied during training and retrieval, with the embeddings being stored with 16-bit precision.
+\\
+The hyperparameter search was performed only on MS MARCOv2, with the only difference being the use of a smaller batch size of 28 and a higher learning rate of 5e-6.
+
+
+
+\section{Hardware specification}
+\label{appendix:hardware}
+The training of every model was conducted on a single NVidia A100 GPU with 40GB of memory, which was made available through the High-Performance Computing (HPC) infrastructure provided by the ZIH (TU Dresden). 
+\\
+Training time had great variety, every trained model took 3 to 6 epochs to converge. The training of the preadapted models took about 12 to 18 hours. Fine-tuning on the FANDOM-QA dataset was done in under an hour, and on the Harry Potter dataset after mere minutes.
+
+\section{Similarity Measures}
+\label{appendix:similarity}
+We tested two differente similarity meassures \\ \\
+(1) \textit{cosine similarity}:
+$$
+sim_{cos}(E_{q_i}, E_{d_j}) := \frac{E_{q_i}^{T}E_{d_j} }{\| E_{q_i} \|\| E_{d_j} \|} 
+$$ \\
+(2) \textit{negated squared L2-norm} with an optional normalization of the embedding vectors beforehand:
+$$
+sim_{L2}(E_{q_i}, E_{d_j}) := -{\| E_{q_i} -E_{d_j} \|}^2
+$$
+$$
+sim_{L2,norm}(E_{q_i}, E_{d_j}) := -{\| \frac{E_{q_i}}{\| E_{q_i} \|}  - \frac{E_{d_j}}{\| E_{d_j} \|} \|}^2
+$$
+
+\section{Contribution of Contextual-Aware Embeddings}
+\label{chap:context}
+\begin{figure}
+    \centering
+    \caption{End-to-End Retrieval Performance of Different Embedding Methods on MS MARCOv1}
+    \label{embeddings-plot}
+    \begin{tikzpicture}[scale = 0.9]
+        \begin{semilogxaxis}[
+            xlabel={k},
+            ylabel={Recall@k (\%)},
+            legend style={at={(0.98,0.12)},
+                  anchor=south east,
+                  font=\scriptsize},
+            ticklabel style={font=\footnotesize},
+            ymajorgrids=true,
+            xmin = 1, xmax = 1000,
+            ymax=100,            
+            xtick=data,
+            xticklabels={
+                1,
+                3,
+                5,
+                10,
+                25,
+                50,
+                100,
+                200,
+                1000},
+            cycle list={
+                    {plt_blue, dotted},
+                    {plt_orange},
+                    {plt_green},
+                    {plt_red},
+                    {plt_purple, dashed},
+            },
+            line width=1pt, % Adjust line thickness
+            ylabel style={yshift=-1em}, % Reduce the padding between y-axis label and y-axis
+            legend style={yshift=-1em}, % Reduce the padding between legend and plot area
+            legend cell align=left, % Align legend items horizontally
+        ]
+        % Approach 1 - TF-IDF
+        \addplot+[mark=none, line width=1pt] coordinates {
+            (1,13.104)
+            (3,31.057)
+            (5,42.672)
+            (10,57.925)
+            (25,70.155)
+            (50,76.09)
+            (100,80.382)
+            (200,82.972)
+            (1000,86.132)};
+        % Approach 2 - Word Emb.
+        \addplot+[mark=none, line width=1pt] coordinates {
+            (1,12.172)
+            (3,27.988)
+            (5,38.266)
+            (10,50.43)
+            (25,62.826)
+            (50,71.301)
+            (100,77.624)
+            (200,82.133)
+            (1000,91.254)};
+        % Approach 3 - Word Emb. + Pos. Emb.
+        \addplot+[mark=none, line width=1pt] coordinates {
+            (1,11.933)
+            (3,27.188)
+            (5,36.487)
+            (10,48.32)
+            (25,59.768)
+            (50,66.373)
+            (100,73.015)
+            (200,79.049)
+            (1000,91.853)};
+        % Approach 4 - Word Emb. + Pos. Emb. + LayerNorm
+        \addplot+[mark=none, line width=1pt] coordinates {
+            (1,16.822)
+            (3,38.059)
+            (5,50.051)
+            (10,64.128)
+            (25,75.561)
+            (50,81.753)
+            (100,87.041)
+            (200,90.892)
+            (1000,96.994)};
+        % Approach 5 - ColBERT
+        \addplot+[mark=none, line width=1pt] coordinates {
+            (1,38.382)
+            (3,67.795)
+            (5,79.337)
+            (10,88.39)
+            (25,94.004)
+            (50,96.357)
+            (100,97.799)
+            (200,98.631)
+            (1000,99.61)};
+        \legend{TF-IDF, Word Emb., Word Emb. + Pos. Emb., Word Emb. + Pos. Emb. + LN, ColBERT (end-to-end)}
+        \end{semilogxaxis}
+    \end{tikzpicture}
+\end{figure}
+
+To investigate the importance of the Transformer encoder, we analyzed the learned embeddings of our ColBERT model, which was trained on MS MARCOv2. Due to the large size of the resulting 768-dimensional word embeddings, we performed the evaluation on the smaller MS MARCOv1 dataset. For our testing we removed the transformer backbone and the final linear mapping and used solely the output of the embedding layer for the end-to-end retrieval process. We tested three experimental settings: (A) utilizing only word embeddings, (B) incorporating word embeddings with positional embeddings, and (C) combining word and positional embeddings with LayerNorm. \\
+The results, presented in Figure \ref{embeddings-plot}, indicated that employing either word embeddings or word and positional embeddings achieved performance comparable to that of TF-IDF. However, when LayerNorm was also applied, the model slightly outperformed TF-IDF. Nevertheless, when compared to the complete ColBERT model, the exclusive use of context-unaware word embeddings resulted in inferior performance. We therefore suspect that the contextual information encoded in the embeddings by the transformer backbone significantly contributes to the overall performance of ColBERT.
+
+
+\label{appendix:hyperparameters}
+\begin{figure*}
+    \centering
+    \caption{End-to-End Retrieval performance of experimented models with $k=1000$, $\hat{k}=\frac{k}{\lambda}$ on MS MARCOv2. Unlisted values are identical to those of the base model.}
+    \label{hparameter-end2end}
+    \resizebox{\textwidth}{!}{
+        \begin{tabularx}{1.15\textwidth}{c | c c c c c c c | c c c c}
+            \hline
+                & Backbone & $d$ & sim & norm & Loss & $N_q$ & ${\lambda}$ & MRR@10 & Rec@1 & Rec@10 & Rec@1000 \\
+            \hline
+                base & BERT & 128 & cosine & yes & cross-entropy & 32 & 2 & 50.42 & 35.65 & 76.97 & 97.46 \\
+            \hline  
+                & & 64 & & & & &      & 49.94 & 35.19 & 76.48 & 96.69\\ 
+                & & 32 & & & & &        & 48.66 & 34.33 & 74.30 & 95.34\\ 
+                & & 24 & & & & &        & 48.56 & 34.29 & 74.23 & 94.86\\   
+                & & 16 & & & & &        & 43.84 & 30.97 & 67.30 & 91.63\\
+                & & 8 & & & &  &        & 30.66 & 21.56 & 47.77 & 71.54\\
+            \hline
+                & & & L2 & & &  &       & 47.46 & 33.38 & 72.90 & 96.45\\ 
+                & & & L2 & no & & &     & 39.04 & 27.41 & 60.61 & 90.88\\ 
+            \hline
+                & RoBERTa & & & & & &   & 47.50 & 33.55 & 72.98 & 96.51\\
+                & & & & & MSE &     &   & 13.20 & 9.42  & 20.82 & 86.98\\ 
+                \textbf{best} & & & & & & \textbf{64}   &   & \textbf{51.11} & \textbf{36.06} & \textbf{78.06} & \textbf{97.43} \\ 
+            \hline
+                & & & & & & & 1         & 50.42 & 35.65 & 76.96 & 97.40 \\
+                & & & & & & & 5         & 50.42 & 35.65 & 76.96 & 97.24\\
+                & & & & & & & 10        & 50.41 & 35.65 & 76.93 & 96.29 \\
+                & & & & & & & 20        & 50.32 & 35.63 & 76.63 & 93.72 \\
+            \hline
+        \end{tabularx}
+    }
+\end{figure*}
+
+\label{appendix:rerank}
+\begin{figure*}
+    \centering
+    \caption{Rerank Retrieval performance of experimented models on MS MARCOv2.
+    Unlisted values are identical to those of the base model.}
+    \centering
+    \label{hparameter-rerank}
+    \resizebox{\textwidth}{!}{
+        \begin{tabularx}{1.1\textwidth}{c | c c c c c c | c c c c}            
+        \hline
+            & Backbone & $d$ & Sim & norm & Loss Fun & $N_q$ & MRR@10 & Rec@1 & Rec@10 & Rec@1000 \\
+            \hline
+            base & BERT & 128 & cosine & yes & cross-entropy & 32 & 50.49 & 35.70 & 76.74 & 90.57\\
+            \hline  
+                & & 64 & & & &      & 50.10 & 35.28 & 76.48 &  \\ 
+                & & 32 & & & &      & 49.47 & 34.86 & 75.57 &  \\ 
+                & & 24 & & & &      & 49.48 & 34.83 & 75.62 &  \\   
+                & & 16 & & & &      & 47.21 & 33.07 & 72.97 &  \\
+                & & 8 & & & &      & 41.65 & 28.59 & 66.67 &  \\
+            \hline
+                & & & L2 & & &      & 48.50 & 34.06 & 74.33 &  \\ 
+                & & & L2 & no & &  & 42.67 & 29.62 & 67.11 &  \\ 
+            \hline
+                & RoBERTa & & & & & & 49.86 & 35.15 & 76.26 &  \\
+                & & & & & MSE    & & 24.42 & 15.89 & 43.20 &  \\ 
+                \textbf{best} & & & & & & \textbf{64}    & \textbf{50.91} & \textbf{35.94} & \textbf{77.33} & \textbf{90.57}\\ 
+             \hline
+        \end{tabularx}
+    }
+\end{figure*}
+
+
+\begin{figure*}
+    \centering
+    \caption{End-to-End Retrieval on The Witcher ($d=24$, $sim=\text{cosine}$)}
+    \label{FandomQAvHPonWitcher}
+    \begin{tikzpicture}
+        \begin{semilogxaxis}[
+            xlabel = {k},
+            ylabel={Recall@k (\%)},
+            xmin = 1, xmax = 1000,
+            ymin = 40, ymax = 100,
+            xtick=data,
+            xticklabels={1,3,5,10,25,50,100,200,1000},
+            legend pos = south east,
+            line width = 1pt,
+            ymajorgrids = true,
+            font=\footnotesize,
+            ylabel style={yshift=-1em}, % Reduce the padding between y-axis label and y-axis
+            legend style={yshift=0.2em, xshift=0.3em}, % Reduce the padding between legend and plot area
+            ]
+            
+            \addplot[color=plt_red, line width=1pt, dotted]
+                coordinates {
+                (1, 45.277)(3, 62.293)(5, 69.183)(10, 77.511)(25, 84.422)(50, 88.336)(100, 91.372)(200, 93.389)(1000, 96.066)
+                }; \addlegendentry{TF-IDF}
+            
+            \addplot[color=plt_blue, line width=1pt, dashed]
+                coordinates {
+                (1, 60.56)(3, 74.16)(5, 78.25)(10, 83)(25, 86.98)(50, 89.22)(100, 91.95)(200, 93.63)(1000, 97.22)
+                }; \addlegendentry{preadapted on MS MARCOv2}
+                    
+            \addplot[color=plt_orange, line width=1pt]
+                coordinates {
+                (1, 74.216)(3, 86.838)(5, 89.974)(10, 92.55)(25, 94.927)(50, 96.305)(100, 97.424)(200, 98.143)(1000, 99.201)
+                }; \addlegendentry{fine-tun. FANDOM-QA}
+                
+            \addplot[color=plt_green, line width=1pt]
+                coordinates {
+                (1, 72.678)(3, 85.54)(5, 88.496)(10, 91.712)(25, 94.248)(50, 95.746)(100, 96.785)(200, 97.603)(1000, 98.902)
+                }; \addlegendentry{fine-tun. Harry Potter}
+                
+        \end{semilogxaxis}
+    \end{tikzpicture}
+\end{figure*}
+
+
+\begin{figure*}[h]
+    \begin{center}
+    \includegraphics[width=1.0\textwidth]{"./images/heatmap1.png"}
+    \end{center}
+    \caption{KDE, Abs. Count, Acc. Similarities - ColBERTv2 }
+    \small
+    \center Custom Query and Passage
+    \label{fig:example1}
+\end{figure*}
+
+\begin{figure*}[h]
+    \begin{center}
+    \includegraphics[width=1.0\textwidth]{"./images/first_word_heatmap.png"}
+    \end{center}
+    \caption{Single Token Similarity - ColBERTv2 }
+    \small
+    \center Custom Query and Passage
+    \label{fig:example2}
+\end{figure*}
+
+\begin{figure*}[h]
+    \begin{center}
+    \includegraphics[width=1.0\textwidth]{"./images/unicorns.png"}
+    \end{center}
+    \caption{End-to-end Retrieval - ColBERTv2 - 24 dimensional embedding}
+    \small
+    \center Custom Query: Are unicorns peaceful or do they harm others?, Top 1 Passage retrieved from \href{https://witcher.fandom.com}{Witcher Fandom}
+    \label{fig:example3}
+\end{figure*}
+
+\begin{figure*}[h]
+    \begin{center}
+    \includegraphics[width=1.0\textwidth]{"./images/sweets.png"}
+    \end{center}
+    \caption{End-to-end Retrieval - ColBERT preadapted MS MARCOv2, fine-tuned on Harry Potter - 24 dimensional embedding}
+    \small
+    \center Custom Query: What is Dumbledore's favourite candy?, Top 1 Passage retrieved from \href{https://harrypotter.fandom.com}{Harry Potter Fandom}
+    \label{fig:example4}
+\end{figure*}
+
+
+\begin{figure*}[ht]
+    \centering
+    \caption{Random Samples out of the FANDOM-QA Dataset. Each passage has two positive and two negative queries.}
+    \label{tab:fandom-qa}
+    \begin{tabular}{|p{4.5cm}|p{4.5cm}|p{4.5cm}|}
+        \hline
+        \textbf{Passage} & \textbf{Positive Queries} & \textbf{Negative Queries} \\
+        \hline
+        Sincantar is an Altmer mystic and a member of the Mages Guild residing in Marbruk, Greenshade. He is found at the local branch, selling his wares. &
+        1. Who is Sincantar and where does he live? \linebreak \linebreak 2. What is Sincantar's occupation and where can he be found?&
+        1. What type of mystical abilities does Sincantar possess? \linebreak \linebreak 2. How long has Sincantar been a member of the Mages Guild?\\
+        \hline
+        [Lions in the wizarding world] It was a possible corporeal form of the Patronus Charm. Patricia Rakepick's Patronus took the form of a lioness. &
+        1. What is one possible corporeal form of the Patronus Charm in the wizarding world? \linebreak \linebreak 2. Whose Patronus took the form of a lioness according to the given paragraph?&
+        1. Are there any other characters besides Patricia Rakepick whose Patronus takes the form of a lioness? \linebreak \linebreak 2. Why do some witches and wizards choose a lion as their Patronus?\\
+        \hline
+        [Chest] Usually the largest storage containers found and they normally contain items of higher value than other containers. Chests can vary in appearance depending on their location. As chests are the ''best'' containers available, the term ''chest'' is often used for any storage container found within a dungeon. Chests may be locked or trapped, but never both. The one exception is the locked and trapped chest inside Pinewatch, in the room with the Unusual Gem. &
+        1. What is the difference between chests and other storage containers in a dungeon? \linebreak \linebreak 2. Can a chest be both locked and trapped? &
+        1. What is the highest value item found in a chest?  \linebreak \linebreak 2. What are the different appearances of chests in different locations?\\
+        \hline
+    \end{tabular}
+\end{figure*}
+
+
+\begin{figure*}
+    \centering
+    \caption{Dataset sizes and median count of words in a Passage or Query}
+    \label{table1}
+    \setlength{\tabcolsep}{4pt} % Reduce cell padding
+    \begin{tabular}{ccccc}
+    \hline
+    \textbf{Dataset} & \textbf{\# Passages} & \textbf{\# Queries} & \multicolumn{2}{c}{\textbf{Median word count}} \\
+    & & & \textbf{Passage} & \textbf{Query} \\
+    \hline
+
+    \texttt{MS MARCO v1} & 707,946 & 92,373 & 72 & 6 \\
+    \texttt{MS MARCO v2} & 8,132,834 & 909,824 & 50 & 6 \\
+    \hline
+    \texttt{FANDOM-QA} & 705,136 & 576,526 & 53 & 11 \\
+    \hline
+    \end{tabular}
+\end{figure*}
+
+
+
+
 
 \end{document}

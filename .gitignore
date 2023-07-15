@@ -5,6 +5,7 @@ data/*
 
 # ignores tensorboard logging directory
 runs/
+events.out.tfevents*
 
 # ignore saved models
 checkpoints/

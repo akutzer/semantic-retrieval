@@ -1,14 +1,8 @@
-# Information Retrieval
+# Semantic Retrieval in FANDOM Wikis
 
-The goal of the task is to develop a **semantic retrieval system for wikis**. The system should be able to be connected to any wiki (preferably language-independent). **Therefore, it must not be adapted to the concrete dataset.** The challenge here is also that generally there are no or only a few queries.
+## Task
 
-As an example wiki, the Wikia datasets are to be worked with in the context of the project. These are available in different sizes and for different contents.
-
-A rough work plan could look like this:
-- read in, understand and preprocess the dataset
-- generate queries to the document (e.g. with Doc2Query)
-- train a semantic retrieval system (e.g. ColBERT, DSI, Splade, etc.)
-- develop a prototypical frontend or connect it to an already existing one
+The goal is to develop a **semantic retrieval system for wikis**. The system should be able to be connected to any wiki (preferably language-independent). **Therefore, it must not be adapted to the concrete dataset.** The challenge here is also that generally there are no or only a few queries.
 
 ---
 
@@ -19,13 +13,18 @@ return multiple (N) candidate passages to the user (how large N is is up to you,
 
 ---
 
-## **Installation**
+## Demo Version
 
+We developed a [demo version](https://colab.research.google.com/drive/1cfob0zBghF2vRkeR9696YRHmD2mjT-WU?usp=sharing) where you can test our retrieval system.
+
+## Installation
+
+If you want to run our project locally you first need to install all requirements:
 ```python
 pip3 install -r requirements.txt
 pip3 install -e .
 ```
 
-## **Tasks:**
+If you want to **train** a model yourself, have a look at the [train_ms_marco.sh](retrieval/training/train_ms_marco.sh) script.
 
-see [TASKS.md](TASKS.md)
+For **evaluation**, have a look at the [evaluate_retrieval.sh](retrieval/evaluation/evaluate_retrieval.sh) script.
