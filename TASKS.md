@@ -145,7 +145,7 @@ data/
             └─ ...
 ```
 
-### :heavy_check_mark: Analyzing the datasets (assigned: Till)
+### :heavy_check_mark: Analyzing the datasets
 
 Write a simple script which collects some basic statistics of the datasets.
 Some examples would be:
@@ -160,14 +160,14 @@ The script should be run on MS MARCO v1.1 & v2.1 as well as on all the `human_ve
 
 
 ## 3. Implement Models
-### :heavy_check_mark: Baseline: BM-25 or TF-IDF (assigned: Till, Florian)
+### :heavy_check_mark: Baseline: BM-25 or TF-IDF
 - :heavy_check_mark: Implement the BM-25 or TF-IDF model, using an external library.
 - :heavy_check_mark: Implement efficient inference, so given a query find the best passages as fast as possible; maybe try to precompute the wiki passages?
 - :heavy_check_mark: Finish everything, polish the code, add a methode for saving precomputed embeddings as well as loading them
 
 The implementation should work with the previous described datasets class. In case the output of the dataset class is not directly usable, you can write a dataloader, which for example tokenizes the data from the dataset class and then combines these into a batch of data, which is then directly feed into the model. I don't know if this is necessary tho. ^^
 
-### :heavy_check_mark: Neural Retrieval Model: ColBERT (assigned: Aaron)
+### :heavy_check_mark: Neural Retrieval Model: ColBERT
 - :heavy_check_mark: Implement the ColBERT model from the ColBERTv1 paper.
 - :heavy_check_mark: Add support for other backbones, like RoBERTa, TinyBERT, etc.
 - :heavy_check_mark: Write dataloaders base on the dataset class.

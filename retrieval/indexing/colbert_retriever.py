@@ -114,7 +114,7 @@ class ColBERTRetriever:
                 topk_pids = pids[topk_indices]
                 reranked_pids.append((topk_sims, topk_pids))
 
-        return reranked_pids, k_hat
+        return reranked_pids
 
     def to(self, device: Optional[Union[str, torch.device]] = None, dtype: Optional[torch.dtype] = None) -> None:
         if isinstance(device, str):
@@ -125,7 +125,6 @@ class ColBERTRetriever:
 
 
 if __name__ == "__main__":
-    import cProfile
     from tqdm import tqdm
 
     from retrieval.configs import BaseConfig
@@ -163,53 +162,50 @@ if __name__ == "__main__":
     top1, top3, top5, top10, top25, top100 = 0, 0, 0, 0, 0, 0
     mrr_10, mrr_100 = 0, 0
 
-    with cProfile.Profile() as pr:
-        query_batch = []
-        target_batch = []
-        for i, triple in enumerate(tqdm(dataset)):
-            # for QPP datasets:
-            qid, pid_pos, *pid_neg = triple
-            query, psg_pos, *psg_neg = dataset.id2string(triple)
-            query_batch.append(query)
-            target_batch.append(pid_pos)
+    query_batch = []
+    target_batch = []
+    for i, triple in enumerate(tqdm(dataset)):
+        # for QPP datasets:
+        qid, pid_pos, *pid_neg = triple
+        query, psg_pos, *psg_neg = dataset.id2string(triple)
+        query_batch.append(query)
+        target_batch.append(pid_pos)
 
-            # for QQP datasets:
-            # qid_pos, qid_neg, pid_pos = triple
-            # query_pos, query_neg, passage = dataset.id2string(triple)
-            # query_batch.append(query_pos)
-            # target_batch.append(pid_pos)
+        # for QQP datasets:
+        # qid_pos, qid_neg, pid_pos = triple
+        # query_pos, query_neg, passage = dataset.id2string(triple)
+        # query_batch.append(query_pos)
+        # target_batch.append(pid_pos)
 
-            if len(query_batch) == BSIZE or i + 1 == len(dataset):
-                with torch.autocast(retriever.device.type):
-                    # pids = retriever.tf_idf_rank(query_batch, K)
-                    # pids = retriever.rerank(query_batch, K)
-                    pids = retriever.full_retrieval(query_batch, K)
+        if len(query_batch) == BSIZE or i + 1 == len(dataset):
+            with torch.autocast(retriever.device.type):
+                # pids = retriever.tf_idf_rank(query_batch, K)
+                # pids = retriever.rerank(query_batch, K)
+                pids = retriever.full_retrieval(query_batch, K)
 
-                for j, ((sims, pred_pids), target_pid) in enumerate(zip(pids, target_batch)):
-                    idx = torch.where(pred_pids == target_pid)[0]
-                    # print(idx, torch.where(pred_pids == target_pid))
-                    if idx.numel() == 0:
-                        continue
-                    # print(target_pid, pred_pids[:10])
-                    if idx < 100:
-                        top100 += 1
-                        mrr_100 += 1 / (idx + 1)
-                        if idx < 25:
-                            top25 += 1
-                            if idx < 10:
-                                top10 += 1
-                                mrr_10 += 1 / (idx + 1)
-                                if idx < 5:
-                                    top5 += 1
-                                    if idx < 3:
-                                        top3 += 1
-                                        if idx < 1:
-                                            top1 += 1
+            for j, ((sims, pred_pids), target_pid) in enumerate(zip(pids, target_batch)):
+                idx = torch.where(pred_pids == target_pid)[0]
 
-                query_batch = []
-                target_batch = []
+                if idx.numel() == 0:
+                    continue
 
-        # pr.print_stats()
+                if idx < 100:
+                    top100 += 1
+                    mrr_100 += 1 / (idx + 1)
+                    if idx < 25:
+                        top25 += 1
+                        if idx < 10:
+                            top10 += 1
+                            mrr_10 += 1 / (idx + 1)
+                            if idx < 5:
+                                top5 += 1
+                                if idx < 3:
+                                    top3 += 1
+                                    if idx < 1:
+                                        top1 += 1
+
+            query_batch = []
+            target_batch = []
 
     print("Top-1-Acc:", round((100 * top1) / len(dataset), 3))
     print("Top-3-Acc:", round((100 * top3) / len(dataset), 3))

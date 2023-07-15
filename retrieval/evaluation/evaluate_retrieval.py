@@ -168,9 +168,7 @@ def evaluate_colbert(retriever: ColBERTRetriever, dataset: TripleDataset, config
             with torch.autocast(retriever.device.type):
                 # tf_idf_pids = retriever.tf_idf_rank(query_batch, config.k)
                 rerank_pids = retriever.rerank(query_batch, config.k)
-                full_pids, k_hat = retriever.full_retrieval(query_batch, config.k)
-                if i <= 20:
-                    print('k_hat', k_hat)
+                full_pids = retriever.full_retrieval(query_batch, config.k)
 
             # tf_idf_qids_visit, tf_idf_recall_1, tf_idf_recall_3, tf_idf_recall_5, tf_idf_recall_10, tf_idf_recall_25, tf_idf_recall_50, tf_idf_recall_100, tf_idf_recall_200, tf_idf_recall_1000, tf_idf_mrr_5, tf_idf_mrr_10, tf_idf_mrr_100 = evaluate(tf_idf_pids, tf_idf_qids_visit, qids_batch, qrels, 
             #          tf_idf_recall_1, tf_idf_recall_3, tf_idf_recall_5, tf_idf_recall_10,
