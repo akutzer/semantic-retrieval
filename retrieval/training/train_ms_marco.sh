@@ -42,8 +42,9 @@ TENSORBOARD_PATH="../../runs"
 # if you want to resuming training from a checkpoint comment out the CHECKPOINT variable 
 # and add the path to the checkpoint
 # this is also the recommended way of loading the colbertv2 weights
-# CHECKPOINT="../../checkpoints/harry_potter_bert_2023-05-31T15:10:52/epoch1_2_loss0.1793_mrr0.9658_acc93.171/"
 # CHECKPOINT="../../data/colbertv2.0/"
+# CHECKPOINT="../../checkpoints/harry_potter_bert_2023-05-31T15:10:52/epoch1_2_loss0.1793_mrr0.9658_acc93.171/"
+
 
 
 

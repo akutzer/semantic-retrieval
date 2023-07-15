@@ -2,11 +2,12 @@
 
 # Set the arguments for the Python script:
 
+# Example for FANDOM-QA:
 # DATASET_MODE="QQP" # QQP or QPP
 # PASSAGES_PATH="../../data/fandoms_qa/fandoms_all/all/passages.tsv"
 # QUERIES_PATH="../../data/fandoms_qa/fandoms_all/all/queries.tsv"
 # TRIPLES_PATH="../../data/fandoms_qa/fandoms_all/val/triples.tsv"
-# INDEX_PATH="../../data/fandoms_qa/harry_potter/all/passages.index.pt"
+# INDEX_PATH="../../data/fandoms_qa/harry_potter/all/passages.idx"
 
 # Example for MS MARCO:
 DATASET_MODE="QPP" # QQP or QPP
