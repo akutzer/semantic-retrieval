@@ -114,7 +114,7 @@ class ColBERTRetriever:
                 topk_pids = pids[topk_indices]
                 reranked_pids.append((topk_sims, topk_pids))
 
-        return reranked_pids
+        return reranked_pids, k_hat
 
     def to(self, device: Optional[Union[str, torch.device]] = None, dtype: Optional[torch.dtype] = None) -> None:
         if isinstance(device, str):
@@ -220,3 +220,5 @@ if __name__ == "__main__":
 
     print("MRR@10:", round((100 * mrr_10.item()) / len(dataset), 3))
     print("MRR@100:", round((100 * mrr_100.item()) / len(dataset), 3))
+
+

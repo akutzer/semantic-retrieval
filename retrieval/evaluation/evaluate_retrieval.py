@@ -150,7 +150,6 @@ def evaluate_colbert(retriever: ColBERTRetriever, dataset: TripleDataset, config
     # tf_idf_qids_visit = np.zeros(datalen, dtype=bool)
     rerank_qids_visit = np.zeros(datalen, dtype=bool)
     full_qids_visit = np.zeros(datalen, dtype=bool)
-
     
     for i, triple in enumerate(tqdm(dataset)):
         if config.dataset_mode=="QPP":
@@ -169,8 +168,10 @@ def evaluate_colbert(retriever: ColBERTRetriever, dataset: TripleDataset, config
             with torch.autocast(retriever.device.type):
                 # tf_idf_pids = retriever.tf_idf_rank(query_batch, config.k)
                 rerank_pids = retriever.rerank(query_batch, config.k)
-                full_pids = retriever.full_retrieval(query_batch, config.k)
-            
+                full_pids, k_hat = retriever.full_retrieval(query_batch, config.k)
+                if i <= 20:
+                    print('k_hat', k_hat)
+
             # tf_idf_qids_visit, tf_idf_recall_1, tf_idf_recall_3, tf_idf_recall_5, tf_idf_recall_10, tf_idf_recall_25, tf_idf_recall_50, tf_idf_recall_100, tf_idf_recall_200, tf_idf_recall_1000, tf_idf_mrr_5, tf_idf_mrr_10, tf_idf_mrr_100 = evaluate(tf_idf_pids, tf_idf_qids_visit, qids_batch, qrels, 
             #          tf_idf_recall_1, tf_idf_recall_3, tf_idf_recall_5, tf_idf_recall_10,
             #          tf_idf_recall_25, tf_idf_recall_50, tf_idf_recall_100, tf_idf_recall_200, 
@@ -282,4 +283,6 @@ if __name__ == "__main__":
         retriever.indexer = index(inference, config)
     
     evaluate_colbert(retriever, dataset, config)
+
+
 
