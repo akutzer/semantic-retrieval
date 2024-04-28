@@ -1,4 +1,7 @@
- 
+# IMPORTANT: Using the WikiExtractor module requires Python 3.9 
+
+
+
 ### Descriptions
 
 - [download_wikis.py](/src/preprocessing/download_wikis.py):
@@ -35,6 +38,8 @@
 
 
 ### How to run
+
+
 
 To download and clean the wikis run the following command: \
 *NOTE: Make sure to be in the `/src/preprocessing/` directory, since the download paths are relative to the directory from which the script got executed*
